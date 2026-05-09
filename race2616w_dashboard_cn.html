@@ -196,7 +196,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <span style="margin:0 10px;color:#d97706;">|</span>
     <strong>★ 核心指标：</strong>CM/TEU 占 FAK 基准价的百分比（<span style="color:#0d6e3e;font-weight:700;">≥80% 优</span> · <span style="color:#b45309;font-weight:700;">60–80% 正常</span> · <span style="color:#c0392b;font-weight:700;">&lt;60% 偏低</span>）
     <span style="margin:0 10px;color:#d97706;">|</span>
-    <strong>术语：</strong>Contribution（CM） = 收入 − 成本，反映单箱收益贡献。FAK 基准以最后一次公布价格为准。数据首次出具，如有异常欢迎各口岸反馈。
+    <strong>术语：</strong>Contribution（CM） = 收入 − 成本（集装箱装卸费 ＋ 箱成本 ＋ 口岸运营佣金成本），反映单箱收益贡献。FAK 基准以最后一次公布价格为准。数据首次出具，如有异常欢迎各口岸反馈。
   </div>
 
   <!-- KPI Strip -->
@@ -741,7 +741,7 @@ function renderTEU() {
   }
 
   document.getElementById('top3-teu-cards').innerHTML =
-    '<div class="top3-section-label">🏆 出口 TEU 排行 — 装货港（按目的港区域分组）</div>' +
+    '<div class="top3-section-label">🏆 出口 TEU 排行 — 装货港（按目的港区域分组）<span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:8px;">本排行现阶段只统计 CN 港口</span></div>' +
     '<div class="top3-cards-row">' +
       buildTop3TeuCol(mePolTeu, '🌊 中东', 'me') +
       buildTop3TeuCol(rsPolTeu, '🔴 红海', 'rs') +
