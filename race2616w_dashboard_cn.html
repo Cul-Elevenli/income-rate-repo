@@ -248,9 +248,9 @@ tbody tr.region-header-row + tr td { border-top:none; }
       <thead><tr>
         <th>POL</th>
         <th class="num">单收/TEU</th>
-        <th class="num">总营收 (USD)</th>
-        <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK</th>
+        <th class="num">TEU</th>
+        <th class="num">总营收 (USD)</th>
         <th class="num">vs 整船平均单收</th>
       </tr></thead>
       <tbody id="revenue-me-tbody"></tbody>
@@ -264,9 +264,9 @@ tbody tr.region-header-row + tr td { border-top:none; }
       <thead><tr>
         <th>POL</th>
         <th class="num">单收/TEU</th>
-        <th class="num">总营收 (USD)</th>
-        <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK</th>
+        <th class="num">TEU</th>
+        <th class="num">总营收 (USD)</th>
         <th class="num">vs 整船平均单收</th>
       </tr></thead>
       <tbody id="revenue-rs-tbody"></tbody>
@@ -280,9 +280,9 @@ tbody tr.region-header-row + tr td { border-top:none; }
       <thead><tr>
         <th>POL</th>
         <th class="num">单收/TEU</th>
-        <th class="num">总营收 (USD)</th>
-        <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK</th>
+        <th class="num">TEU</th>
+        <th class="num">总营收 (USD)</th>
         <th class="num">vs 整船平均单收</th>
       </tr></thead>
       <tbody id="revenue-oth-tbody"></tbody>
@@ -996,9 +996,9 @@ function renderRevenueRegionCompare() {
       const fakHtml = p.avgFak !== null ? fmt.usd(p.avgFak) : '—';
       return '<tr><td class="code">' + p.pol + '</td>' +
         '<td class="num ' + cls + '"><strong>' + fmt.usd(avgRev) + '</strong></td>' +
-        '<td class="num">' + fmt.usd(p.revenue) + '</td>' +
-        '<td class="num">' + fmt.teu(p.teu) + '</td>' +
         '<td class="num" style="color:#b45309;">' + fakHtml + '</td>' +
+        '<td class="num">' + fmt.teu(p.teu) + '</td>' +
+        '<td class="num">' + fmt.usd(p.revenue) + '</td>' +
         '<td class="num ' + cls + '">' + arrowHtml + ' ' + vsText + '</td></tr>';
     }).join('');
   }
