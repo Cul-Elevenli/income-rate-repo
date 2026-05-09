@@ -170,7 +170,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
 #top3-shipper-cards { display:flex; flex-direction:column; gap:0; }
 #top3-shipper-cards .top3-section-label { font-size:12px; font-weight:700; color:var(--accent); letter-spacing:0.5px; margin-bottom:6px; padding:0 2px; white-space:nowrap; }
 .top3-cards-row { display:flex; flex-wrap:wrap; gap:16px; align-items:stretch; }
-.top3-cards-row .top3-card { flex:1; min-width:180px; max-width:320px; }
+.top3-cards-row .top3-card { flex:1; min-width:180px; }
 
 /* Ensure dropdowns are clickable */
 .section-head select { position:relative; z-index:10; }
@@ -183,7 +183,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
   <!-- Header -->
   <div class="header">
     <div class="header-left">
-      <h1 id="vessel-title">RACE2616W — 口岸TEU运价及收入分析</h1>
+      <h1 id="vessel-title">RACE2616W — 口岸TEU单收及收益分析</h1>
     </div>
     <div class="header-right" id="generated-time"></div>
   </div>
@@ -192,23 +192,100 @@ tbody tr.region-header-row + tr td { border-top:none; }
   <div style="background:#fff8e1;border:1px solid #f59e0b;border-left:4px solid #b45309;padding:10px 20px;margin-bottom:20px;font-size:12px;color:#78350f;line-height:1.8;">
     <strong style="font-size:13px;">📋 报告说明</strong>
     <span style="margin:0 10px;color:#d97706;">|</span>
-    <strong>排名逻辑：</strong>效益总额 → 效益/TEU → TEU 箱量，三维度排序，综合排名不代表实际优劣，仅为数据体现。
+    <strong>排名逻辑：</strong>CM 总额 → CM/TEU → TEU 箱量，三维度排序，综合排名不代表实际优劣，仅为数据体现。
     <span style="margin:0 10px;color:#d97706;">|</span>
-    <strong>★ 核心指标：</strong>效益/TEU 占 FAK 基准价的百分比（<span style="color:#0d6e3e;font-weight:700;">≥80% 优</span> · <span style="color:#b45309;font-weight:700;">60–80% 正常</span> · <span style="color:#c0392b;font-weight:700;">&lt;60% 偏低</span>）
+    <strong>★ 核心指标：</strong>CM/TEU 占 FAK 基准价的百分比（<span style="color:#0d6e3e;font-weight:700;">≥80% 优</span> · <span style="color:#b45309;font-weight:700;">60–80% 正常</span> · <span style="color:#c0392b;font-weight:700;">&lt;60% 偏低</span>）
     <span style="margin:0 10px;color:#d97706;">|</span>
-    FAK 基准以最后一次公布价格为准。数据首次出具，如有异常欢迎各口岸反馈。
+    <strong>术语：</strong>Contribution（CM） = 收入 − 成本，反映单箱收益贡献。FAK 基准以最后一次公布价格为准。数据首次出具，如有异常欢迎各口岸反馈。
   </div>
 
   <!-- KPI Strip -->
   <div class="kpi-strip" id="kpi-strip"></div>
 
-  <!-- ============ TOP 3 效益 PODs (按单收排序) ============ -->
-  <div class="top3-cards" id="top3-cm-cards"></div>
+  <!-- ============ EXECUTIVE SUMMARY: 所有 TOP 模块汇总 ============ -->
+  <div class="section" id="executive-summary" style="background:linear-gradient(180deg,#fafbfc 0%,#fff 100%);border:2px solid var(--accent);">
+    <div class="section-head" style="background:#0f4c81;border-bottom:2px solid #0a3558;">
+      <div class="section-title" style="color:#fff;font-size:13px;letter-spacing:1.5px;">📊 SUMMARY — 核心指标速览</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.7);">汇总所有 TOP 排名，下钻明细请见下方各区块</div>
+    </div>
 
-  <!-- ============ SECTION 2: 效益 分析 ============ -->
+    <!-- 单收区域对比 TOP -->
+    <div class="top3-cards" id="top3-revenue-cards" style="padding:16px 20px 8px;"></div>
+
+    <!-- CM TOP -->
+    <div class="top3-cards" id="top3-cm-cards" style="padding:8px 20px;"></div>
+
+    <!-- TEU TOP -->
+    <div class="top3-cards" id="top3-teu-cards" style="padding:8px 20px;"></div>
+
+    <!-- 货代 TOP -->
+    <div style="padding:8px 20px 16px;">
+      <div id="top3-shipper-summary"></div>
+    </div>
+  </div>
+
+  <!-- ============ SECTION 1B: 单收区域对比 ============ -->
   <div class="section">
     <div class="section-head">
-      <div class="section-title">船舶效益分析 — POD 总览（点击 POD 行展开 POL 明细）</div>
+      <div class="section-title">单收区域对比 — 各区域 POL 单箱运费收入与 FAK 对比</div>
+    </div>
+
+    <!-- 中东 -->
+    <div class="section-head" style="background:#e8f1fb;border-bottom:1px solid var(--border);">
+      <div class="section-title" style="color:#1a6bb5;">◆ 中东</div>
+    </div>
+    <table id="revenue-me-table">
+      <thead><tr>
+        <th>POL</th>
+        <th class="num">单收/TEU</th>
+        <th class="num">总营收 (USD)</th>
+        <th class="num">TEU</th>
+        <th class="num" style="color:#b45309;">FAK</th>
+        <th class="num">vs 整船平均单收</th>
+      </tr></thead>
+      <tbody id="revenue-me-tbody"></tbody>
+    </table>
+
+    <!-- 红海 -->
+    <div class="section-head" style="background:#e6f4ed;border-bottom:1px solid var(--border);">
+      <div class="section-title" style="color:#0d6e3e;">◆ 红海</div>
+    </div>
+    <table id="revenue-rs-table">
+      <thead><tr>
+        <th>POL</th>
+        <th class="num">单收/TEU</th>
+        <th class="num">总营收 (USD)</th>
+        <th class="num">TEU</th>
+        <th class="num" style="color:#b45309;">FAK</th>
+        <th class="num">vs 整船平均单收</th>
+      </tr></thead>
+      <tbody id="revenue-rs-tbody"></tbody>
+    </table>
+
+    <!-- 其他 -->
+    <div class="section-head" style="background:#f1f3f4;border-bottom:1px solid var(--border);">
+      <div class="section-title" style="color:#5f6368;">◆ 其他</div>
+    </div>
+    <table id="revenue-oth-table">
+      <thead><tr>
+        <th>POL</th>
+        <th class="num">单收/TEU</th>
+        <th class="num">总营收 (USD)</th>
+        <th class="num">TEU</th>
+        <th class="num" style="color:#b45309;">FAK</th>
+        <th class="num">vs 整船平均单收</th>
+      </tr></thead>
+      <tbody id="revenue-oth-tbody"></tbody>
+    </table>
+
+    <div class="note">* 按区域划分，展示各 POL 单箱运费收入（Revenue/TEU）与 FAK 基准价对比。绿色 = 高于船舶平均，红色 = 低于船舶平均。</div>
+  </div>
+
+
+  <!-- ============ SECTION 2: CM 分析 ============ -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">CM 分析 — POD 总览（点击 POD 行展开 POL 明细）</div>
     </div>
     <div class="section-kpi" id="cm-kpi"></div>
 
@@ -220,10 +297,10 @@ tbody tr.region-header-row + tr td { border-top:none; }
       <thead><tr>
         <th style="width:32px;"></th>
         <th>POD</th>
-        <th class="num">船舶效益 (USD)</th>
-        <th class="num">效益/TEU</th>
-        <th class="num">船舶平均 效益/TEU</th>
-        <th class="num">vs 船舶均</th>
+        <th class="num">CM 总额 (USD)</th>
+        <th class="num">CM/TEU</th>
+        <th class="num">AVG CM</th>
+        <th class="num">vs 整船平均单收</th>
       </tr></thead>
       <tbody id="cm-me-tbody"></tbody>
     </table>
@@ -236,10 +313,10 @@ tbody tr.region-header-row + tr td { border-top:none; }
       <thead><tr>
         <th style="width:32px;"></th>
         <th>POD</th>
-        <th class="num">船舶效益 (USD)</th>
-        <th class="num">效益/TEU</th>
-        <th class="num">船舶平均 效益/TEU</th>
-        <th class="num">vs 船舶均</th>
+        <th class="num">CM 总额 (USD)</th>
+        <th class="num">CM/TEU</th>
+        <th class="num">AVG CM</th>
+        <th class="num">vs 整船平均单收</th>
       </tr></thead>
       <tbody id="cm-rs-tbody"></tbody>
     </table>
@@ -252,19 +329,17 @@ tbody tr.region-header-row + tr td { border-top:none; }
       <thead><tr>
         <th style="width:32px;"></th>
         <th>POD</th>
-        <th class="num">船舶效益 (USD)</th>
-        <th class="num">效益/TEU</th>
-        <th class="num">船舶平均 效益/TEU</th>
-        <th class="num">vs 船舶均</th>
+        <th class="num">CM 总额 (USD)</th>
+        <th class="num">CM/TEU</th>
+        <th class="num">AVG CM</th>
+        <th class="num">vs 整船平均单收</th>
       </tr></thead>
       <tbody id="cm-other-tbody"></tbody>
     </table>
 
-    <div class="note">* 点击任意 POD 行展开，查看中国 POL 明细。▲ = 高于船舶平均效益/TEU，▼ = 低于船舶平均效益/TEU，— = 持平。</div>
+    <div class="note">* 点击任意 POD 行展开，查看中国 POL 明细。▲ = 高于船舶平均 CM/TEU，▼ = 低于船舶平均 CM/TEU，— = 持平。</div>
   </div>
 
-  <!-- ============ TOP 3 TEU PODs ============ -->
-  <div class="top3-cards" id="top3-teu-cards"></div>
 
   <!-- ============ SECTION 1: TEU 分析 ============ -->
   <div class="section">
@@ -293,7 +368,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
   <!-- ============ SECTION 3: Top Shippers ============ -->
   <div class="section">
     <div class="section-head">
-      <div class="section-title">大货代排名 — 按效益/TEU 降序（含 FAK vs OFT 运价对比）</div>
+      <div class="section-title">大货代排名 — 按 CM/TEU 降序（含 FAK vs OFT 运价对比）</div>
       <div style="display:flex;gap:10px;align-items:center;">
         <label style="font-size:11px;color:var(--text2);">筛选 POD</label>
         <select id="pod-filter" onchange="renderShippers()" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);cursor:pointer;">
@@ -307,10 +382,6 @@ tbody tr.region-header-row + tr td { border-top:none; }
       </div>
     </div>
 
-    <!-- TOP 3 货代卡片（按全航段总效益聚合） -->
-    <div style="padding:14px 20px 0;">
-      <div id="top3-shipper-cards"></div>
-    </div>
 
     <table id="shipper-table">
       <thead><tr id="shipper-thead-row">
@@ -331,15 +402,15 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th>POL</th>
         <th class="num">TEU</th>
         <th class="num">占比</th>
-        <th class="num">效益 总额 (USD)</th>
-        <th class="num">效益/TEU</th>
+        <th class="num">CM 总额 (USD)</th>
+        <th class="num">CM/TEU</th>
         <th class="num" style="color:#b45309;">FAK 均值</th>
         <th class="num" style="color:#b45309;background:#fff8e1;">占 FAK %</th>
-        <th class="num">vs 船舶均</th>
+        <th class="num">vs 整船平均单收</th>
       </tr></thead>
       <tbody id="pol-me-tbody"></tbody>
     </table>
-    <div class="note">* 按 效益/TEU 从高到低排序。<strong style="color:#b45309;">占 FAK %</strong> = 效益/TEU ÷ 该 POL 加权平均 FAK 运价，越高越好。绿色 ≥ 80%，橙色 60–80%，红色 &lt; 60%。</div>
+    <div class="note">* 按 CM/TEU 从高到低排序。<strong style="color:#b45309;">占 FAK %</strong> = CM/TEU ÷ 该 POL 加权平均 FAK 运价，越高越好。绿色 ≥ 80%，橙色 60–80%，红色 &lt; 60%。</div>
   </div>
 
   <!-- ============ SECTION 4B: 红海 — 口岸综合考核 ============ -->
@@ -354,32 +425,35 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th>POL</th>
         <th class="num">TEU</th>
         <th class="num">占比</th>
-        <th class="num">效益 总额 (USD)</th>
-        <th class="num">效益/TEU</th>
+        <th class="num">CM 总额 (USD)</th>
+        <th class="num">CM/TEU</th>
         <th class="num" style="color:#b45309;">FAK 均值</th>
         <th class="num" style="color:#b45309;background:#fff8e1;">占 FAK %</th>
-        <th class="num">vs 船舶均</th>
+        <th class="num">vs 整船平均单收</th>
       </tr></thead>
       <tbody id="pol-rs-tbody"></tbody>
     </table>
-    <div class="note">* 按 效益/TEU 从高到低排序。<strong style="color:#b45309;">占 FAK %</strong> = 效益/TEU ÷ 该 POL 加权平均 FAK 运价，越高越好。绿色 ≥ 80%，橙色 60–80%，红色 &lt; 60%。</div>
+    <div class="note">* 按 CM/TEU 从高到低排序。<strong style="color:#b45309;">占 FAK %</strong> = CM/TEU ÷ 该 POL 加权平均 FAK 运价，越高越好。绿色 ≥ 80%，橙色 60–80%，红色 &lt; 60%。</div>
   </div>
 
   <!-- ============ SECTION 5: POL 气泡图 ============ -->
   <div class="section">
     <div class="section-head">
-      <div class="section-title">口岸气泡图 — TEU 规模 vs 效益/TEU 效率</div>
+      <div class="section-title">口岸气泡图 — TEU 规模 vs CM/TEU 效率</div>
     </div>
     <div style="padding:16px 20px;">
       <div id="pol-bubble-chart"></div>
     </div>
-    <div class="note">* 气泡大小 = 效益 总额 (USD)。颜色：<span style="color:var(--positive);font-weight:600;">绿色</span> = 高于船舶均，<span style="color:var(--negative);font-weight:600;">红色</span> = 低于船舶均。悬停查看详情。</div>
+    <div class="note">* 气泡大小 = CM 总额 (USD)。颜色：<span style="color:var(--positive);font-weight:600;">绿色</span> = 高于整船平均单收，<span style="color:var(--negative);font-weight:600;">红色</span> = 低于整船平均单收。悬停查看详情。</div>
   </div>
 
   <!-- ============ SECTION 6: FAK vs OFT 运价对比 ============ -->
   <div class="section">
     <div class="section-head">
       <div class="section-title">FAK vs OFT 运价对比 — 各口岸实际海运费率 vs 公开运价</div>
+    </div>
+    <div style="padding:0 20px 8px;font-size:11px;color:var(--text2);line-height:1.5;">
+      <strong>计算说明：</strong>「单收占 FAK %」= CM/TEU ÷ 该 POL 加权平均 FAK 运价 × 100%。FAK 按各航段 TEU 加权（40′ 优先，无则取 20′）。≥80% 为优，60–80% 正常，&lt;60% 偏低。
     </div>
     <div class="section-kpi" id="fak-kpi"></div>
     <table id="fak-table">
@@ -536,19 +610,22 @@ function renderAll() {
       '<div class="kpi-sub" style="color:#b45309;">' + fakPctSub + '</div>' +
     '</div>' +
     [
-      { label:'效益 / TEU', value:fmt.usd(d.cm_per_teu), sub:'整船加权均值', highlight: true },
-      { label:'船舶平均 效益/TEU', value:fmt.usd(d.vessel_avg_cm_per_teu), sub:'基准' },
-      { label:'船舶效益总额', value:fmt.usd(d.total_contribution), sub:'效益 (USD)' },
-      { label:'总 TEU', value:fmt.teu(d.total_teu), sub:'TEU' },
+      { label:'Total Teu', value:fmt.teu(d.total_teu), sub:'TEU' },
       { label:'总营收', value:fmt.usd(d.total_revenue), sub:'USD' },
+      { label:'单箱收入', value:fmt.usd(d.cm_per_teu), sub:'OFT/TEU', highlight: true },
+      { label:'Total CM', value:fmt.usd(d.total_contribution), sub:'Contribution (USD)' },
+      { label:'AVG CM', value:fmt.usd(d.vessel_avg_cm_per_teu), sub:'CM/TEU' },
     ].map(c => '<div class="kpi-cell"><div class="kpi-label">' + c.label + '</div><div class="kpi-value' + (c.highlight ? '' : ' secondary') + '">' + c.value + '</div><div class="kpi-sub">' + c.sub + '</div></div>').join('');
 
   renderTEU();
-  render效益();
+  renderCM();
+  renderRevenueTop3();
+  renderRevenueRegionCompare();
   renderShippers();
   renderPOLRank();
   renderBubbleChart();
   renderFAK();
+  renderShipperSummary();
 }
 
 function renderTEU() {
@@ -558,10 +635,24 @@ function renderTEU() {
   const total20gp = pods.reduce((s,d) => s+(d.teu_20gp||0), 0);
   const total40hc = pods.reduce((s,d) => s+(d.teu_40hc||0), 0);
 
-  // Top 3 POL by TEU — 按区域分组，每区域取前三
-  const mePolTeu = [...DATA.level3].filter(d => getPolRegion(d) === 'me').sort((a,b) => (b.teu||0)-(a.teu||0)).slice(0,3);
-  const rsPolTeu = [...DATA.level3].filter(d => getPolRegion(d) === 'rs').sort((a,b) => (b.teu||0)-(a.teu||0)).slice(0,3);
-  const othPolTeu = [...DATA.level3].filter(d => getPolRegion(d) === '').sort((a,b) => (b.teu||0)-(a.teu||0)).slice(0,3);
+  // 全部中国 POL TEU 排行（按区域分组）— 不再限制前三
+  function buildRegionPolTeuList(region) {
+    const polMap = {};
+    (DATA.level4||[]).forEach(r => {
+      const pol = r['POL Code']||'';
+      const pod = (r['DEL Code']||'').toUpperCase();
+      if (!pol || !pod) return;
+      const isTarget = region === 'me' ? ME_PODS.has(pod) : region === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
+      if (!isTarget) return;
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0 };
+      polMap[pol].teu += r.Total_TEU||0;
+    });
+    return Object.values(polMap).sort((a,b) => (b.teu||0)-(a.teu||0));
+  }
+
+  const mePolTeu = buildRegionPolTeuList('me');
+  const rsPolTeu = buildRegionPolTeuList('rs');
+  const othPolTeu = buildRegionPolTeuList('oth');
   const polTeuMax = Math.max(
     mePolTeu[0]?.teu||0, rsPolTeu[0]?.teu||0, othPolTeu[0]?.teu||0
   ) || 1;
@@ -576,7 +667,7 @@ function renderTEU() {
         return '<div class="top3-row">' +
           '<div class="top3-rank">' + (i+1) + '</div>' +
           '<div class="top3-info">' +
-            '<div class="top3-code">' + (d['POL Code']||'') + '</div>' +
+            '<div class="top3-code">' + (d.pol||'') + '</div>' +
             '<div class="top3-bar-wrap"><div class="top3-bar-track"><div class="top3-bar-fill" style="width:' + bw + '%"></div></div></div>' +
           '</div>' +
           '<div class="top3-metric">' +
@@ -588,7 +679,7 @@ function renderTEU() {
   }
 
   document.getElementById('top3-teu-cards').innerHTML =
-    '<div class="top3-section-label">🏆 出口 TEU 排名前三 — 装货港（按目的港区域分组）</div>' +
+    '<div class="top3-section-label">🏆 出口 TEU 排行 — 装货港（按目的港区域分组）</div>' +
     '<div class="top3-cards-row">' +
       buildTop3TeuCol(mePolTeu, '🌊 中东', 'me') +
       buildTop3TeuCol(rsPolTeu, '🔴 红海', 'rs') +
@@ -653,15 +744,34 @@ function renderTEUDetail(podCode) {
     }).join('') + '</tbody></table>';
 }
 
-function render效益() {
+function renderCM() {
   const pods = DATA.level2;
   const vesselAvg = DATA.level1.vessel_avg_cm_per_teu;
   const maxCm = Math.max(...pods.map(d => d.cm_per_teu||0));
 
-  // Top 3 POL by 单收 (cm_per_teu) — 按区域分组，每区域取前三
-  const mePolCm = [...DATA.level3].filter(d => getPolRegion(d) === 'me').sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0)).slice(0,3);
-  const rsPolCm = [...DATA.level3].filter(d => getPolRegion(d) === 'rs').sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0)).slice(0,3);
-  const othPolCm = [...DATA.level3].filter(d => getPolRegion(d) === '').sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0)).slice(0,3);
+  // 全部中国 POL CM/TEU 排行（按区域分组）— 不再限制前三
+  function buildRegionPolList(region) {
+    const polMap = {};
+    (DATA.level4||[]).forEach(r => {
+      const pol = r['POL Code']||'';
+      const pod = (r['DEL Code']||'').toUpperCase();
+      if (!pol || !pod) return;
+      const isTarget = region === 'me' ? ME_PODS.has(pod) : region === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
+      if (!isTarget) return;
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0, contribution:0, cm_per_teu:0, vs_vessel_pct:0 };
+      polMap[pol].teu += r.CM_TEU||0;
+      polMap[pol].contribution += r.TotalContribution||0;
+    });
+    Object.values(polMap).forEach(p => {
+      p.cm_per_teu = p.teu > 0 ? p.contribution / p.teu : 0;
+      p.vs_vessel_pct = vesselAvg > 0 ? (p.cm_per_teu / vesselAvg - 1) * 100 : 0;
+    });
+    return Object.values(polMap).sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0));
+  }
+
+  const mePolCm = buildRegionPolList('me');
+  const rsPolCm = buildRegionPolList('rs');
+  const othPolCm = buildRegionPolList('oth');
   const polCmMax = Math.max(
     mePolCm[0]?.cm_per_teu||0, rsPolCm[0]?.cm_per_teu||0, othPolCm[0]?.cm_per_teu||0
   ) || 1;
@@ -676,7 +786,7 @@ function render效益() {
         return '<div class="top3-row">' +
           '<div class="top3-rank">' + (i+1) + '</div>' +
           '<div class="top3-info">' +
-            '<div class="top3-code">' + (d['POL Code']||'') + '</div>' +
+            '<div class="top3-code">' + d.pol + '</div>' +
             '<div class="top3-bar-wrap"><div class="top3-bar-track"><div class="top3-bar-fill" style="width:' + bw + '%"></div></div></div>' +
           '</div>' +
           '<div class="top3-metric">' +
@@ -688,7 +798,7 @@ function render效益() {
   }
 
   document.getElementById('top3-cm-cards').innerHTML =
-    '<div class="top3-section-label">💰 船舶效益单收排名前三 — 装货港（按效益/TEU 降序）</div>' +
+    '<div class="top3-section-label">💰 整船CM/TEU 区域排行 — 装货港（按CM/TEU 降序）</div>' +
     '<div class="top3-cards-row">' +
       buildTop3CmCol(mePolCm, '🌊 中东', 'me') +
       buildTop3CmCol(rsPolCm, '🔴 红海', 'rs') +
@@ -696,8 +806,8 @@ function render效益() {
     '</div>';
 
   document.getElementById('cm-kpi').innerHTML = [
-    { label:'船舶效益总额', val:fmt.usd(DATA.level1.total_contribution) },
-    { label:'平均 效益/TEU', val:fmt.usd(DATA.level1.cm_per_teu) },
+    { label:'Total CM', val:fmt.usd(DATA.level1.total_contribution) },
+    { label:'平均 CM/TEU', val:fmt.usd(DATA.level1.cm_per_teu) },
     { label:'船舶平均', val:fmt.usd(vesselAvg) },
     { label:'POD 数量', val:pods.length },
   ].map(i => '<div class="item"><span>' + i.label + ':</span><span class="val">' + i.val + '</span></div>').join('');
@@ -712,13 +822,139 @@ function render效益() {
   renderCmTbody('cm-other-tbody',othPods);
 }
 
-function render效益Detail(podCode) {
+function renderRevenueTop3() {
+  const vesselAvgRev = DATA.level1.total_revenue / DATA.level1.total_teu;
+
+  function buildRegionPolRevenue(region) {
+    const polMap = {};
+    (DATA.level4||[]).forEach(r => {
+      const pol = r['POL Code']||'';
+      const pod = (r['DEL Code']||'').toUpperCase();
+      if (!pol || !pod) return;
+      const isTarget = region === 'me' ? ME_PODS.has(pod) : region === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
+      if (!isTarget) return;
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, cm_per_teu:0, vs_vessel_pct:0 };
+      polMap[pol].teu += r.CM_TEU||0;
+      polMap[pol].revenue += r.Revenue||0;
+    });
+    Object.values(polMap).forEach(p => {
+      p.cm_per_teu = p.teu > 0 ? p.revenue / p.teu : 0;
+      p.vs_vessel_pct = vesselAvgRev > 0 ? (p.cm_per_teu / vesselAvgRev - 1) * 100 : 0;
+    });
+    return Object.values(polMap).sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0));
+  }
+
+  const mePolRev = buildRegionPolRevenue('me');
+  const rsPolRev = buildRegionPolRevenue('rs');
+  const othPolRev = buildRegionPolRevenue('oth');
+  const polRevMax = Math.max(
+    mePolRev[0]?.cm_per_teu||0, rsPolRev[0]?.cm_per_teu||0, othPolRev[0]?.cm_per_teu||0
+  ) || 1;
+
+  function buildTop3RevCol(arr, regionLabel, regionClass) {
+    if (!arr.length) return '<div class="top3-card"><div class="top3-card-head region-' + regionClass + '">' + regionLabel + '</div><div style="padding:16px 14px;color:var(--text3);font-size:12px;text-align:center;">—</div></div>';
+    const max = polRevMax;
+    return '<div class="top3-card"><div class="top3-card-head region-' + regionClass + '">' + regionLabel + '</div>' +
+      arr.map((d,i) => {
+        const bw = max > 0 ? ((d.cm_per_teu||0)/max*100) : 0;
+        const vsV = d.vs_vessel_pct||0;
+        return '<div class="top3-row">' +
+          '<div class="top3-rank">' + (i+1) + '</div>' +
+          '<div class="top3-info">' +
+            '<div class="top3-code">' + d.pol + '</div>' +
+            '<div class="top3-bar-wrap"><div class="top3-bar-track"><div class="top3-bar-fill" style="width:' + bw + '%"></div></div></div>' +
+          '</div>' +
+          '<div class="top3-metric">' +
+            '<div class="top3-teu">' + fmt.usd(d.cm_per_teu) + '/TEU</div>' +
+            '<div class="top3-sub">' + fmt.usd(d.revenue) + ' · ' + fmt.teu(d.teu) + ' TEU · ' + badge(vsV) + '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+  }
+
+  document.getElementById('top3-revenue-cards').innerHTML =
+    '<div class="top3-section-label">💵 单收/TEU 区域排行 — 装货港（按 Revenue/TEU 降序）</div>' +
+    '<div class="top3-cards-row">' +
+      buildTop3RevCol(mePolRev, '🌊 中东', 'me') +
+      buildTop3RevCol(rsPolRev, '🔴 红海', 'rs') +
+      buildTop3RevCol(othPolRev, '⚪ 其他', 'other') +
+    '</div>';
+}
+
+function renderRevenueRegionCompare() {
+  const vesselAvgRev = DATA.level1.total_revenue / DATA.level1.total_teu;
+  const fakData = DATA.fak_data || [];
+  const fakMap = {};
+  fakData.forEach(r => {
+    const key = r.POL + '|' + r.POD + '|' + r.Size;
+    fakMap[key] = r;
+  });
+
+  function getFak(pol, pod) {
+    let f = fakMap[pol+'|'+pod+"|40'"] || fakMap[pol+'|'+pod+"|20'"];
+    return f ? f.FAK : null;
+  }
+
+  function buildPolRows(regionKey) {
+    const polMap = {};
+    (DATA.level4||[]).forEach(r => {
+      const pol = r['POL Code']||'';
+      const pod = (r['DEL Code']||'').toUpperCase();
+      if (!pol || !pod) return;
+      const isTarget = regionKey === 'me' ? ME_PODS.has(pod) : regionKey === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
+      if (!isTarget) return;
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, fakSum:0, fakTeu:0 };
+      polMap[pol].teu += r.CM_TEU||0;
+      polMap[pol].revenue += r.Revenue||0;
+      const fak = getFak(pol, pod);
+      if (fak !== null) {
+        polMap[pol].fakSum += fak * (r.CM_TEU||0);
+        polMap[pol].fakTeu += r.CM_TEU||0;
+      }
+    });
+    Object.values(polMap).forEach(p => {
+      p.avgFak = p.fakTeu > 0 ? p.fakSum / p.fakTeu : null;
+    });
+    return Object.values(polMap).sort((a,b) => (b.revenue/b.teu||0)-(a.revenue/a.teu||0));
+  }
+
+  function renderPolTable(tbodyId, pols) {
+    const tb = document.getElementById(tbodyId);
+    if (!tb) return;
+    tb.innerHTML = pols.map(p => {
+      const avgRev = p.teu > 0 ? p.revenue / p.teu : 0;
+      const vsV = vesselAvgRev > 0 ? (avgRev / vesselAvgRev - 1) * 100 : 0;
+      const cls = vsV > 2 ? 'positive' : vsV < -2 ? 'negative' : '';
+      const arrowHtml = vsV > 2
+        ? '<span style="color:var(--positive);font-weight:700;font-size:13px;">▲</span>'
+        : vsV < -2
+        ? '<span style="color:var(--negative);font-weight:700;font-size:13px;">▼</span>'
+        : '<span style="color:var(--neutral);font-size:13px;">—</span>';
+      const vsText = vsV > 0 ? '+' + vsV.toFixed(1) + '%' : vsV === 0 ? '0.0%' : vsV.toFixed(1) + '%';
+      const fakHtml = p.avgFak !== null ? fmt.usd(p.avgFak) : '—';
+      return '<tr><td class="code">' + p.pol + '</td>' +
+        '<td class="num ' + cls + '"><strong>' + fmt.usd(avgRev) + '</strong></td>' +
+        '<td class="num">' + fmt.usd(p.revenue) + '</td>' +
+        '<td class="num">' + fmt.teu(p.teu) + '</td>' +
+        '<td class="num" style="color:#b45309;">' + fakHtml + '</td>' +
+        '<td class="num ' + cls + '">' + arrowHtml + ' ' + vsText + '</td></tr>';
+    }).join('');
+  }
+
+  renderPolTable('revenue-me-tbody', buildPolRows('me'));
+  renderPolTable('revenue-rs-tbody', buildPolRows('rs'));
+  renderPolTable('revenue-oth-tbody', buildPolRows('oth'));
+}
+
+
+
+function renderCMDetail(podCode) {
   const rows = DATA.level4.filter(r => (r['DEL Code']||'') === podCode);
   if (!rows.length) return;
   const max = Math.max(...rows.map(r => r.CM_Per_TEU||0), 1);
   const inner = document.getElementById('cm-inner-' + podCode);
   if (!inner) return;
-  inner.innerHTML = '<table><thead><tr><th>POL</th><th class="num">效益/TEU</th><th class="num">船舶效益</th><th class="num">TEU</th><th>vs 船舶均</th></tr></thead><tbody>' +
+  inner.innerHTML = '<table><thead><tr><th>POL</th><th class="num">CM/TEU</th><th class="num">Total CM</th><th class="num">TEU</th><th>vs 整船平均单收</th></tr></thead><tbody>' +
     rows.map(r => {
       const vsV = r.vs_Vessel_Pct||0;
       const cls = vsV > 2 ? 'positive' : vsV < -2 ? 'negative' : '';
@@ -742,7 +978,8 @@ function toggleRow(section, k) {
   if (!detail) return;
   if (detail.style.display === 'none') {
     if (section === 'teu') renderTEUDetail(k);
-    if (section === 'cm') render效益Detail(k);
+    if (section === 'cm') renderCMDetail(k);
+
     detail.style.display = '';
     if (arrow) arrow.classList.add('open');
   } else {
@@ -821,11 +1058,8 @@ function renderShippers() {
     displayAgg = sortedAgg.filter(m => m.name === shipperFilterVal);
   }
 
-  // hasFinancial：是否显示金额列（需要在 renderShipperTop3 调用前声明）
+  // hasFinancial：是否显示金额列
   const hasFinancial = displayAgg.some(m => m.TotalC > 0);
-
-  // --- TOP 3 cards：按单收降序取 top3 货代
-  renderShipperTop3([...allRows], hasFinancial);
 
   // Build POD avg map from level2 (cm_per_teu per POD)
   const podAvgMap = {};
@@ -890,10 +1124,10 @@ function renderShippers() {
     { label:'货代', style:'' },
   ];
   if (hasFinancial) {
-    thCols.push({ label:'效益/TEU', style:'text-align:right;' });
+    thCols.push({ label:'CM/TEU', style:'text-align:right;' });
     thCols.push({ label:'vs 口岸均', style:'text-align:right;' });
     thCols.push({ label:'vs 整船均', style:'text-align:right;' });
-    thCols.push({ label:'总效益 (USD)', style:'text-align:right;' });
+    thCols.push({ label:'Total CM (USD)', style:'text-align:right;' });
   }
   thCols.push({ label:'TEU', style:'text-align:right;' });
   thCols.push({ label:'占比', style:'text-align:right;' });
@@ -996,7 +1230,7 @@ function renderShipperTop3(allRows, hasFinancial) {
 
   function renderTop3Group(shippers, label, color) {
     if (!shippers.length) return '';
-    const top3 = [...shippers].sort((a,b) => (b.teu||0)-(a.teu||0)).slice(0,3);
+    const top3 = [...shippers].sort((a,b) => (b.teu||0)-(a.teu||0));
     const topMax = top3[0] ? top3[0].teu||1 : 1;
     return '<div style="margin-bottom:16px;">' +
       '<div class="top3-section-label" style="color:' + color + ';">' + label + '</div>' +
@@ -1034,6 +1268,80 @@ function renderShipperTop3(allRows, hasFinancial) {
   const otherHtml = renderTop3Group(otherShippers, '其他', '#5f6368');
 
   document.getElementById('top3-shipper-cards').innerHTML = meHtml + rsHtml + otherHtml;
+}
+
+function renderShipperSummary() {
+  // Same aggregation as renderShipperTop3 but render into top3-shipper-summary
+  const allRows = DATA.level5 || [];
+  const map = {};
+  allRows.forEach(d => {
+    const name = d.Shipper||'';
+    if (!name) return;
+    if (!map[name]) map[name] = { name, teu:0, TotalC:0, routes:0, podRegions:{} };
+    map[name].teu += d.TEU||0;
+    map[name].TotalC += d.TotalContribution||0;
+    map[name].routes += 1;
+    const pod = d['DEL Code']||'';
+    const reg = getRegion(pod);
+    if (reg) map[name].podRegions[reg] = (map[name].podRegions[reg]||0) + (d.TEU||0);
+  });
+  Object.values(map).forEach(m => {
+    m.C_Per_TEU = m.teu > 0 ? m.TotalC / m.teu : 0;
+    const sortedRegs = Object.entries(m.podRegions).sort((a,b) => b[1]-a[1]);
+    m.dominantRegion = sortedRegs[0] ? sortedRegs[0][0] : '';
+  });
+
+  const meShippers = Object.values(map).filter(m => m.dominantRegion === '【中东】');
+  const rsShippers = Object.values(map).filter(m => m.dominantRegion === '【红海】');
+  const otherShippers = Object.values(map).filter(m =>
+    m.dominantRegion && m.dominantRegion !== '【中东】' && m.dominantRegion !== '【红海】'
+  );
+
+  const vesselAvg = DATA.level1.vessel_avg_cm_per_teu || 1;
+  const hasFinancial = true;
+
+  function renderTop3GroupCompact(shippers, label, color) {
+    if (!shippers.length) return '';
+    const top3 = [...shippers].sort((a,b) => (b.teu||0)-(a.teu||0));
+    const topMax = top3[0] ? top3[0].teu||1 : 1;
+    return '<div style="margin-bottom:12px;">' +
+      '<div class="top3-section-label" style="color:' + color + ';font-size:11px;margin-bottom:4px;">' + label + '</div>' +
+      '<div class="top3-cards-row">' +
+      top3.map((m,i) => {
+        const rank = ['r1','r2','r3'][i];
+        const bw = topMax > 0 ? ((m.teu||0)/topMax*100) : 0;
+        const vsV = vesselAvg > 0 ? ((m.C_Per_TEU/vesselAvg)-1)*100 : null;
+        const teuText = hasFinancial && m.TotalC > 0
+          ? fmt.usd(m.C_Per_TEU) + '/TEU · ' + fmt.teu(m.teu) + ' TEU'
+          : fmt.teu(m.teu) + ' TEU';
+        const subText = hasFinancial && m.TotalC > 0
+          ? fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段 · ' + badge(vsV)
+          : m.routes + ' 段';
+        return '<div class="top3-card">' +
+          '<div class="top3-card-head" style="background:' + color + ';color:#fff;font-size:9px;">#' + (i+1) + ' ' + label + '</div>' +
+          '<div class="top3-row" style="flex-direction:column;align-items:flex-start;gap:4px;">' +
+            '<div style="display:flex;align-items:center;gap:8px;width:100%;">' +
+              '<div class="top3-rank ' + rank + '" style="font-size:14px;">' + (i+1) + '</div>' +
+              '<div class="top3-code" style="font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + m.name + '</div>' +
+            '</div>' +
+            '<div class="top3-bar-wrap" style="width:100%;padding-left:26px;">' +
+              '<div class="top3-bar-track"><div class="top3-bar-fill" style="width:' + bw + '%;background:' + color + ';"></div></div>' +
+            '</div>' +
+            '<div style="padding-left:26px;font-size:10px;color:var(--text2);">' +
+              teuText + ' · ' + subText +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div></div>';
+  }
+
+  const meHtml = renderTop3GroupCompact(meShippers, '中东', '#1a6bb5');
+  const rsHtml = renderTop3GroupCompact(rsShippers, '红海', '#0d6e3e');
+  const otherHtml = renderTop3GroupCompact(otherShippers, '其他', '#5f6368');
+
+  document.getElementById('top3-shipper-summary').innerHTML =
+    '<div class="top3-section-label" style="font-size:12px;">🏢 TOP 货代 — 按 TEU 降序（按区域分组）</div>' +
+    meHtml + rsHtml + otherHtml;
 }
 
 function toggleShipperRow(name) {
@@ -1170,14 +1478,14 @@ function renderPOLRank() {
   const vesselAvg = DATA.level1.vessel_avg_cm_per_teu;
   const totalTeu = DATA.level1.total_teu || 1;
 
-  // === 从 level4 重建：计算每个 POL 在每个区域的 TEU / 效益 ===
+  // === 从 level4 重建：计算每个 POL 在每个区域的 TEU / CM ===
   // 1. 先建立 level3 基线数据
   const polBase = {};
   (DATA.level3||[]).forEach(d => {
     polBase[d['POL Code']] = { pol: d['POL Code'], teu: d.teu||0, contribution: d.contribution||0, cm_per_teu: d.cm_per_teu||0 };
   });
 
-  // 2. 从 level4 拆解每个 POL × 区域的 TEU 和 效益
+  // 2. 从 level4 拆解每个 POL × 区域的 TEU 和 CM
   const polRegTeu = {};  // pol -> region -> { teu, contribution, pods }
   (DATA.level4||[]).forEach(r => {
     const pol = r['POL Code']||'';
@@ -1236,10 +1544,10 @@ function renderPOLRank() {
   document.getElementById('pol-me-kpi').innerHTML = [
     { label:'口岸数量', val:mePols.length },
     { label:'合计 TEU', val:fmt.teu(mePols.reduce((s,d)=>s+(d.teu||0),0)) },
-    { label:'平均 效益/TEU', val:fmt.usd(meAvg) },
+    { label:'平均 CM/TEU', val:fmt.usd(meAvg) },
     { label:'船舶平均', val:fmt.usd(vesselAvg) },
-    { label:'高于船舶均', val:'<span style="color:var(--positive);font-weight:700;">' + meAbove + '</span>' },
-    { label:'低于船舶均', val:'<span style="color:var(--negative);font-weight:700;">' + meBelow + '</span>' },
+    { label:'高于整船平均单收', val:'<span style="color:var(--positive);font-weight:700;">' + meAbove + '</span>' },
+    { label:'低于整船平均单收', val:'<span style="color:var(--negative);font-weight:700;">' + meBelow + '</span>' },
   ].map(i => '<div class="item"><span>' + i.label + ':</span><span class="val">' + i.val + '</span></div>').join('');
 
   // Helper: calculate weighted FAK avg for a POL (across its PODs in level4)
@@ -1292,10 +1600,10 @@ function renderPOLRank() {
   document.getElementById('pol-rs-kpi').innerHTML = [
     { label:'口岸数量', val:rsPols.length },
     { label:'合计 TEU', val:fmt.teu(rsPols.reduce((s,d)=>s+(d.teu||0),0)) },
-    { label:'平均 效益/TEU', val:fmt.usd(rsAvg) },
+    { label:'平均 CM/TEU', val:fmt.usd(rsAvg) },
     { label:'船舶平均', val:fmt.usd(vesselAvg) },
-    { label:'高于船舶均', val:'<span style="color:var(--positive);font-weight:700;">' + rsAbove + '</span>' },
-    { label:'低于船舶均', val:'<span style="color:var(--negative);font-weight:700;">' + rsBelow + '</span>' },
+    { label:'高于整船平均单收', val:'<span style="color:var(--positive);font-weight:700;">' + rsAbove + '</span>' },
+    { label:'低于整船平均单收', val:'<span style="color:var(--negative);font-weight:700;">' + rsBelow + '</span>' },
   ].map(i => '<div class="item"><span>' + i.label + ':</span><span class="val">' + i.val + '</span></div>').join('');
 
   const rsSorted = rsPols.sort((a,b) => (b.cm_per_teu||0) - (a.cm_per_teu||0));
@@ -1362,14 +1670,14 @@ function renderBubbleChart() {
     const below = (d.vs_vessel_pct||0) < -2;
     const color = above ? '#0d6e3e' : below ? '#c0392b' : '#1a6bb5';
     const vsV = d.vs_vessel_pct||0;
-    const tooltip = '<strong>' + (d['POL Code']||'') + '</strong><br>TEU: ' + fmt.teu(d.teu) + '（占总量 ' + ((d.teu/(DATA.level1.total_teu||1))*100).toFixed(1) + '%）<br>效益/TEU: ' + fmt.usd(d.cm_per_teu) + '<br>效益 总额: ' + fmt.usd(d.contribution) + '<br>vs 船舶均: ' + fmt.pct(vsV);
+    const tooltip = '<strong>' + (d['POL Code']||'') + '</strong><br>TEU: ' + fmt.teu(d.teu) + '（占总量 ' + ((d.teu/(DATA.level1.total_teu||1))*100).toFixed(1) + '%）<br>CM/TEU: ' + fmt.usd(d.cm_per_teu) + '<br>CM 总额: ' + fmt.usd(d.contribution) + '<br>vs 整船平均单收: ' + fmt.pct(vsV);
     circles += '<circle class="bubble-hover" cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + color + '" fill-opacity="0.65" stroke="' + color + '" stroke-width="1.5" data-tip="' + tooltip.replace(/"/g,'&quot;') + '" onmousemove="showBubbleTip(event,this)" onmouseleave="hideBubbleTip()"/>';
     circles += '<text x="' + x + '" y="' + y + '" text-anchor="middle" dominant-baseline="middle" font-size="10" font-weight="700" fill="' + (above||below?'#fff':'#1a6bb5') + '" pointer-events="none">' + (d['POL Code']||'').substring(2) + '</text>';
   });
 
   // Vessel avg horizontal line
   const vesselY = toY(vesselAvg);
-  const vesselLabel = '<text x="' + (pad.left + chartW + 4) + '" y="' + vesselY + '" class="axis-label" font-size="9" fill="#0f4c81" font-weight="600">船舶均</text>';
+  const vesselLabel = '<text x="' + (pad.left + chartW + 4) + '" y="' + vesselY + '" class="axis-label" font-size="9" fill="#0f4c81" font-weight="600">整船平均单收</text>';
 
   let svg = '<div class="bubble-wrap" style="position:relative;width:' + W + 'px;">';
   svg += '<div class="bubble-tooltip" id="bubble-tip"></div>';
@@ -1397,7 +1705,7 @@ function renderBubbleChart() {
 
   // Axis labels
   svg += '<text x="' + (pad.left + chartW/2) + '" y="' + (pad.top+chartH+40) + '" class="axis-label" text-anchor="middle" font-size="11" font-weight="600">TEU 规模</text>';
-  svg += '<text x="14" y="' + (pad.top+chartH/2) + '" class="axis-label" text-anchor="middle" font-size="11" font-weight="600" transform="rotate(-90,14,' + (pad.top+chartH/2) + ')">效益/TEU (USD)</text>';
+  svg += '<text x="14" y="' + (pad.top+chartH/2) + '" class="axis-label" text-anchor="middle" font-size="11" font-weight="600" transform="rotate(-90,14,' + (pad.top+chartH/2) + ')">CM/TEU (USD)</text>';
 
   svg += circles;
   svg += '</svg></div>';
@@ -1475,14 +1783,14 @@ function renderHeatmap() {
   const level1 = DATA.level1 || {};
   const vesselAvg = level1.vessel_avg_cm_per_teu || 1;
 
-  // TOP3: POL with highest avg 效益/TEU across its routes (by contribution / teu weighted avg)
+  // TOP3: POL with highest avg CM/TEU across its routes (by contribution / teu weighted avg)
   const polHeatTop3 = [...level3]
     .filter(d => (d.teu||0) > 0)
     .sort((a,b) => (b.cm_per_teu||0) - (a.cm_per_teu||0))
-    .slice(0,3);
+    ;
   const polHeatMax = polHeatTop3[0] ? (polHeatTop3[0].cm_per_teu||1) : 1;
   document.getElementById('top3-heatmap-cards').innerHTML =
-    '<div class="top3-section-label">🔥 效益/TEU 效率最高前三 — 装货港</div>' +
+    '<div class="top3-section-label">🔥 CM/TEU 效率最高前三 — 装货港</div>' +
     polHeatTop3.map((d,i) => {
       const rank = ['r1','r2','r3'][i];
       const bw = polHeatMax > 0 ? ((d.cm_per_teu||0)/polHeatMax*100) : 0;
@@ -1513,7 +1821,7 @@ function renderHeatmap() {
   // Build DEL list (sorted by level2 teu desc)
   const podOrder = [...(DATA.level2||[])].sort((a,b) => (b.teu||0)-(a.teu||0)).map(d => d['DEL Code']||'');
 
-  // Find global min/max 效益/TEU for color scale (use ALL data, not filtered)
+  // Find global min/max CM/TEU for color scale (use ALL data, not filtered)
   const cmVals = level4.map(r => r.CM_Per_TEU||0).filter(v => v > 0);
   const globalMin = cmVals.length ? Math.min(...cmVals) : 0;
   const globalMax = cmVals.length ? Math.max(...cmVals) : 1;
@@ -1567,7 +1875,7 @@ function renderHeatmap() {
         const vsV = r.vs_Vessel_Pct||0;
         const bg = cmColor(cm, vsV);
         const textColor = cm > (globalMax*0.7) ? '#fff' : '#333';
-        html += '<div class="heatmap-cell" style="background:' + bg + ';color:' + textColor + ';" title="' + pol + ' → ' + del + '\n效益/TEU: ' + fmt.usd(cm) + '\nTEU: ' + fmt.teu(r.Total_TEU) + '\n船舶效益: ' + fmt.usd(r.TotalContribution) + '\nvs 船舶均: ' + fmt.pct(vsV) + '">' + fmt.teu(r.Total_TEU) + '</div>';
+        html += '<div class="heatmap-cell" style="background:' + bg + ';color:' + textColor + ';" title="' + pol + ' → ' + del + '\nCM/TEU: ' + fmt.usd(cm) + '\nTEU: ' + fmt.teu(r.Total_TEU) + '\nTotal CM: ' + fmt.usd(r.TotalContribution) + '\nvs 整船平均单收: ' + fmt.pct(vsV) + '">' + fmt.teu(r.Total_TEU) + '</div>';
       } else {
         html += '<div class="heatmap-cell" style="background:#e8eaed;color:#ccc;" title="No data">—</div>';
       }
@@ -1790,7 +2098,7 @@ renderAll = function() {
 };
 
 
-window.DATA = {"vessel": "RACE2616W", "generated": "2026-05-08 17:18", "level1": {"total_teu": 5456, "total_revenue": 16306041.94, "total_contribution": 12239393.1, "cm_per_teu": 2243.29, "vessel_avg_cm_per_teu": 2212.73}, "level2": [{"DEL Code": "AEJEA", "teu": 2012.0, "teu_20gp": 180.0, "teu_40hc": 1536.0, "revenue": 7683342.629162819, "contribution": 6605275.549795838, "vessel_teu": 2012, "vessel_cm_per_teu": 3241.56, "cm_per_teu": 3282.9401340933587, "vs_vessel_pct": 1.276549997327181}, {"DEL Code": "AEKLF", "teu": 1440.0, "teu_20gp": 22.0, "teu_40hc": 1152.0, "revenue": 4853509.872928757, "contribution": 4120405.840127695, "vessel_teu": 1440, "vessel_cm_per_teu": 2828.31, "cm_per_teu": 2861.3929445331214, "vs_vessel_pct": 1.1697071584487295}, {"DEL Code": "SAJED", "teu": 1006.0, "teu_20gp": 2.0, "teu_40hc": 876.0, "revenue": 2026251.1463582674, "contribution": 731104.7135978317, "vessel_teu": 1006, "vessel_cm_per_teu": 712.99, "cm_per_teu": 726.7442481091766, "vs_vessel_pct": 1.929094112003904}, {"DEL Code": "INMUN", "teu": 186.0, "teu_20gp": 0.0, "teu_40hc": 186.0, "revenue": 217206.97808113028, "contribution": 158062.03779463738, "vessel_teu": 186, "vessel_cm_per_teu": 845.68, "cm_per_teu": 849.7959021217065, "vs_vessel_pct": 0.4866973467158475}, {"DEL Code": "MYPKG", "teu": 142.0, "teu_20gp": 0.0, "teu_40hc": 142.0, "revenue": 121901.7180515686, "contribution": 88361.8109722073, "vessel_teu": 142, "vessel_cm_per_teu": 620.32, "cm_per_teu": 622.2662744521641, "vs_vessel_pct": 0.313753297034447}, {"DEL Code": "EGSOK", "teu": 139.0, "teu_20gp": 0.0, "teu_40hc": 136.0, "revenue": 254230.5554584135, "contribution": 90890.6506505719, "vessel_teu": 139, "vessel_cm_per_teu": 519.58, "cm_per_teu": 653.8895730256971, "vs_vessel_pct": 25.84964260088862}, {"DEL Code": "SDPZU", "teu": 139.0, "teu_20gp": 2.0, "teu_40hc": 116.0, "revenue": 373352.46890183666, "contribution": 90296.527961781, "vessel_teu": 139, "vessel_cm_per_teu": 676.1, "cm_per_teu": 649.6153090775613, "vs_vessel_pct": -3.917274208318111}, {"DEL Code": "YEADE", "teu": 115.0, "teu_20gp": 0.0, "teu_40hc": 98.0, "revenue": 324325.1834978505, "contribution": 100424.4219758204, "vessel_teu": 115, "vessel_cm_per_teu": 847.68, "cm_per_teu": 873.2558432680034, "vs_vessel_pct": 3.0171578034168034}, {"DEL Code": "PKKHI", "teu": 108.0, "teu_20gp": 0.0, "teu_40hc": 96.0, "revenue": 110240.5319014495, "contribution": 77262.8850915275, "vessel_teu": 108, "vessel_cm_per_teu": 711.64, "cm_per_teu": 715.3970841808103, "vs_vessel_pct": 0.5279473021205128}, {"DEL Code": "DJJIB", "teu": 102.0, "teu_20gp": 6.0, "teu_40hc": 56.0, "revenue": 219461.6615375651, "contribution": 101865.2991185196, "vessel_teu": 102, "vessel_cm_per_teu": 988.97, "cm_per_teu": 998.6794031227411, "vs_vessel_pct": 0.9817692268462075}, {"DEL Code": "INDER", "teu": 31.0, "teu_20gp": 0.0, "teu_40hc": 30.0, "revenue": 43482.719762920104, "contribution": 25609.9990125619, "vessel_teu": 31, "vessel_cm_per_teu": 786.73, "cm_per_teu": 826.1290004052227, "vs_vessel_pct": 5.007944327179925}, {"DEL Code": "INSSA", "teu": 20.0, "teu_20gp": 0.0, "teu_40hc": 20.0, "revenue": 19579.2124399283, "contribution": 14273.305827244, "vessel_teu": 20, "vessel_cm_per_teu": 706.51, "cm_per_teu": 713.6652913621999, "vs_vessel_pct": 1.0127657587578387}, {"DEL Code": "JOAQJ", "teu": 11.0, "teu_20gp": 0.0, "teu_40hc": 2.0, "revenue": 35564.4002712108, "contribution": 16771.9682417335, "vessel_teu": 11, "vessel_cm_per_teu": 1531.15, "cm_per_teu": 1524.7243856121363, "vs_vessel_pct": -0.4196593663497228}, {"DEL Code": "SADMM", "teu": 2.0, "teu_20gp": 0.0, "teu_40hc": 0.0, "revenue": 10737.2082092348, "contribution": 8242.3684069803, "vessel_teu": 2, "vessel_cm_per_teu": 4082.11, "cm_per_teu": 4121.18420349015, "vs_vessel_pct": 0.9572060402622595}, {"DEL Code": "AESCT", "teu": 2.0, "teu_20gp": 0.0, "teu_40hc": 2.0, "revenue": 7407.0141880136, "contribution": 6372.8388490791, "vessel_teu": 2, "vessel_cm_per_teu": 3095.81, "cm_per_teu": 3186.41942453955, "vs_vessel_pct": 2.9268406181112594}, {"DEL Code": "SARUH", "teu": 1.0, "teu_20gp": 0.0, "teu_40hc": 0.0, "revenue": 5448.6409874727, "contribution": 4172.8780863454, "vessel_teu": 1, "vessel_cm_per_teu": 4084.06, "cm_per_teu": 4172.8780863454, "vs_vessel_pct": 2.1747497917611547}, {"DEL Code": "INNSA", "teu": 0.0, "teu_20gp": 0.0, "teu_40hc": 0.0, "revenue": 0.0, "contribution": 0.0, "vessel_teu": 0, "vessel_cm_per_teu": 0.0, "cm_per_teu": 0.0, "vs_vessel_pct": NaN}], "level3": [{"POL Code": "CNSWA", "teu": 8.0, "revenue": 28521.6453747736, "contribution": 23441.4282110852, "cm_per_teu": 2930.17852638565, "combined_oft_avg": 2562.5, "vs_vessel_pct": 32.42368144263648}, {"POL Code": "CNNGB", "teu": 612.0, "revenue": 2063575.4317221432, "contribution": 1744450.2538684562, "cm_per_teu": 2850.4089115497645, "combined_oft_avg": 2376.2527710191944, "vs_vessel_pct": 28.81864988271341}, {"POL Code": "CNSHK", "teu": 1353.0, "revenue": 4171880.6897774287, "contribution": 3455648.4738322836, "cm_per_teu": 2554.063912662442, "combined_oft_avg": 2185.4838745646416, "vs_vessel_pct": 15.425917878025874}, {"POL Code": "CNSHA", "teu": 1245.0, "revenue": 3668708.843710185, "contribution": 2611390.636339342, "cm_per_teu": 2097.502519148066, "combined_oft_avg": 2932.4696401023566, "vs_vessel_pct": -5.207480390826458}, {"POL Code": "CNTAO", "teu": 1387.0, "revenue": 3779224.3441077294, "contribution": 2635311.4754675296, "cm_per_teu": 1900.0082735887027, "combined_oft_avg": 1878.33865929007, "vs_vessel_pct": -14.132846140798804}, {"POL Code": "CNXMN", "teu": 160.0, "revenue": 458418.46253581694, "contribution": 255776.7902626097, "cm_per_teu": 1598.6049391413103, "combined_oft_avg": 4787.589285714286, "vs_vessel_pct": -27.754179717303494}, {"POL Code": "CNXGG", "teu": 348.0, "revenue": 947280.7861528179, "contribution": 538213.4182636618, "cm_per_teu": 1546.5902823668441, "combined_oft_avg": 6429.898705096074, "vs_vessel_pct": -30.10488028964925}], "level4": [{"POL Code": "CNSHK", "DEL Code": "AEJEA", "TEU_20GP": 92.0, "TEU_40HC": 406.0, "Total_TEU": 498.0, "Combined_OFT_Avg": 3485.843373493976, "CM_TEU": 575.0, "Revenue": 2251563.1268122876, "TotalContribution": 1961999.878890636, "CM_Per_TEU": 3412.173702418497, "Vessel_Per_TEU": 3241.56, "vs_Vessel_Pct": 5.263320821409967, "POL_Per_TEU": 3372.27, "vs_POL_Pct": 1.1832890728944445}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "TEU_20GP": 72.0, "TEU_40HC": 350.0, "Total_TEU": 430.0, "Combined_OFT_Avg": 3228.4883720930234, "CM_TEU": 476.0, "Revenue": 1810920.6989729314, "TotalContribution": 1572236.5537508738, "CM_Per_TEU": 3303.017970064861, "Vessel_Per_TEU": 3241.56, "vs_Vessel_Pct": 1.8959380688576166, "POL_Per_TEU": 3271.17, "vs_POL_Pct": 0.9735956879300289}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "TEU_20GP": 0.0, "TEU_40HC": 338.0, "Total_TEU": 338.0, "Combined_OFT_Avg": 3644.6745562130177, "CM_TEU": 429.0, "Revenue": 1629540.6543920827, "TotalContribution": 1397056.4172596617, "CM_Per_TEU": 3256.5417651740368, "Vessel_Per_TEU": 3241.56, "vs_Vessel_Pct": 0.46217762972262655, "POL_Per_TEU": 3208.88, "vs_POL_Pct": 1.4853084307931974}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "TEU_20GP": 0.0, "TEU_40HC": 270.0, "Total_TEU": 270.0, "Combined_OFT_Avg": 2904.074074074074, "CM_TEU": 280.0, "Revenue": 1026125.7683530544, "TotalContribution": 892742.6382001129, "CM_Per_TEU": 3188.366565000403, "Vessel_Per_TEU": 3241.56, "vs_Vessel_Pct": -1.6409825824478586, "POL_Per_TEU": 3149.89, "vs_POL_Pct": 1.2215209102668156}, {"POL Code": "CNXGG", "DEL Code": "AEJEA", "TEU_20GP": 2.0, "TEU_40HC": 22.0, "Total_TEU": 24.0, "Combined_OFT_Avg": 10091.666666666666, "CM_TEU": 69.0, "Revenue": 261806.53384284812, "TotalContribution": 219895.3016425589, "CM_Per_TEU": 3186.8884296023025, "Vessel_Per_TEU": 3241.56, "vs_Vessel_Pct": -1.686582090033728, "POL_Per_TEU": 3137.34, "vs_POL_Pct": 1.5793133546986304}, {"POL Code": "CNXMN", "DEL Code": "AEJEA", "TEU_20GP": 12.0, "TEU_40HC": 30.0, "Total_TEU": 42.0, "Combined_OFT_Avg": 2863.095238095238, "CM_TEU": 43.0, "Revenue": 152869.1705784854, "TotalContribution": 124713.42353851169, "CM_Per_TEU": 2900.3121753142254, "Vessel_Per_TEU": 3241.56, "vs_Vessel_Pct": -10.52727158176232, "POL_Per_TEU": 2853.91, "vs_POL_Pct": 1.6259158597932588}, {"POL Code": "CNSWA", "DEL Code": "AEJEA", "TEU_20GP": 0.0, "TEU_40HC": 8.0, "Total_TEU": 8.0, "Combined_OFT_Avg": 2562.5, "CM_TEU": 8.0, "Revenue": 28521.6453747736, "TotalContribution": 23441.4282110852, "CM_Per_TEU": 2930.17852638565, "Vessel_Per_TEU": 3241.56, "vs_Vessel_Pct": -9.605914239265967, "POL_Per_TEU": 2866.64, "vs_POL_Pct": 2.216480841181667}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "TEU_20GP": 14.0, "TEU_40HC": 372.0, "Total_TEU": 386.0, "Combined_OFT_Avg": 2698.4455958549224, "CM_TEU": 434.0, "Revenue": 1428295.999665065, "TotalContribution": 1212396.4763248046, "CM_Per_TEU": 2793.5402680295037, "Vessel_Per_TEU": 2828.31, "vs_Vessel_Pct": -1.2293465698772876, "POL_Per_TEU": 2756.86, "vs_POL_Pct": 1.3305089133834658}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "TEU_20GP": 0.0, "TEU_40HC": 274.0, "Total_TEU": 274.0, "Combined_OFT_Avg": 2627.189781021898, "CM_TEU": 305.0, "Revenue": 976770.5387911709, "TotalContribution": 831282.0921958322, "CM_Per_TEU": 2725.5150563797774, "Vessel_Per_TEU": 2828.31, "vs_Vessel_Pct": -3.634500589405776, "POL_Per_TEU": 2702.83, "vs_POL_Pct": 0.8393075546659468}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "TEU_20GP": 0.0, "TEU_40HC": 196.0, "Total_TEU": 196.0, "Combined_OFT_Avg": 3831.6326530612246, "CM_TEU": 282.0, "Revenue": 1005026.853301428, "TotalContribution": 848148.8238013833, "CM_Per_TEU": 3007.6199425580967, "Vessel_Per_TEU": 2828.31, "vs_Vessel_Pct": 6.339826347115296, "POL_Per_TEU": 2974.84, "vs_POL_Pct": 1.1019060708507444}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "TEU_20GP": 8.0, "TEU_40HC": 154.0, "Total_TEU": 162.0, "Combined_OFT_Avg": 3093.8271604938273, "CM_TEU": 201.0, "Revenue": 686387.9421820418, "TotalContribution": 581661.8276413671, "CM_Per_TEU": 2893.8399385142643, "Vessel_Per_TEU": 2828.31, "vs_Vessel_Pct": 2.316929138399404, "POL_Per_TEU": 2856.31, "vs_POL_Pct": 1.3139308588446141}, {"POL Code": "CNXGG", "DEL Code": "AEKLF", "TEU_20GP": 0.0, "TEU_40HC": 10.0, "Total_TEU": 10.0, "Combined_OFT_Avg": 10060.0, "CM_TEU": 32.0, "Revenue": 110353.38490270611, "TotalContribution": 90574.0971335455, "CM_Per_TEU": 2830.4405354232968, "Vessel_Per_TEU": 2828.31, "vs_Vessel_Pct": 0.07532892162800398, "POL_Per_TEU": 2769.23, "vs_POL_Pct": 2.2103810598360196}, {"POL Code": "CNXMN", "DEL Code": "AEKLF", "TEU_20GP": 0.0, "TEU_40HC": 4.0, "Total_TEU": 4.0, "Combined_OFT_Avg": 5062.5, "CM_TEU": 7.0, "Revenue": 24954.171502579, "TotalContribution": 19942.0055579677, "CM_Per_TEU": 2848.8579368525284, "Vessel_Per_TEU": 2828.31, "vs_Vessel_Pct": 0.726509359035199, "POL_Per_TEU": 2771.12, "vs_POL_Pct": 2.805289444431436}, {"POL Code": "CNSHK", "DEL Code": "AESCT", "TEU_20GP": 0.0, "TEU_40HC": 2.0, "Total_TEU": 2.0, "Combined_OFT_Avg": 2750.0, "CM_TEU": 2.0, "Revenue": 7407.0141880136, "TotalContribution": 6372.8388490791, "CM_Per_TEU": 3186.41942453955, "Vessel_Per_TEU": 3095.81, "vs_Vessel_Pct": 2.9268406181112594, "POL_Per_TEU": 3095.81, "vs_POL_Pct": 2.9268406181112594}, {"POL Code": "CNSHA", "DEL Code": "DJJIB", "TEU_20GP": 6.0, "TEU_40HC": 6.0, "Total_TEU": 12.0, "Combined_OFT_Avg": 9129.166666666666, "CM_TEU": 51.0, "Revenue": 121601.9696916712, "TotalContribution": 57851.394512223604, "CM_Per_TEU": 1134.3410688671295, "Vessel_Per_TEU": 988.97, "vs_Vessel_Pct": 14.699239498380079, "POL_Per_TEU": 1124.99, "vs_POL_Pct": 0.8312135100871476}, {"POL Code": "CNTAO", "DEL Code": "DJJIB", "TEU_20GP": 0.0, "TEU_40HC": 36.0, "Total_TEU": 36.0, "Combined_OFT_Avg": 1750.0, "CM_TEU": 36.0, "Revenue": 68659.86133939499, "TotalContribution": 32186.2447593992, "CM_Per_TEU": 894.0623544277555, "Vessel_Per_TEU": 988.97, "vs_Vessel_Pct": -9.59661522313564, "POL_Per_TEU": 888.95, "vs_POL_Pct": 0.5751003349744543}, {"POL Code": "CNNGB", "DEL Code": "DJJIB", "TEU_20GP": 0.0, "TEU_40HC": 14.0, "Total_TEU": 14.0, "Combined_OFT_Avg": 1700.0, "CM_TEU": 14.0, "Revenue": 26268.7037360845, "TotalContribution": 10238.541466327799, "CM_Per_TEU": 731.3243904519857, "Vessel_Per_TEU": 988.97, "vs_Vessel_Pct": -26.0519135613835, "POL_Per_TEU": 716.89, "vs_POL_Pct": 2.0134735387556946}, {"POL Code": "CNXGG", "DEL Code": "DJJIB", "TEU_20GP": 0.0, "TEU_40HC": 0.0, "Total_TEU": 0.0, "Combined_OFT_Avg": 0.0, "CM_TEU": 1.0, "Revenue": 2931.1267704144, "TotalContribution": 1589.118380569, "CM_Per_TEU": 1589.118380569, "Vessel_Per_TEU": 988.97, "vs_Vessel_Pct": 60.68418461318341, "POL_Per_TEU": 1462.04, "vs_POL_Pct": 8.691853886966161}, {"POL Code": "CNTAO", "DEL Code": "EGSOK", "TEU_20GP": 0.0, "TEU_40HC": 90.0, "Total_TEU": 90.0, "Combined_OFT_Avg": 1671.111111111111, "CM_TEU": 90.0, "Revenue": 159530.94247246018, "TotalContribution": 53637.8181709778, "CM_Per_TEU": 595.9757574553089, "Vessel_Per_TEU": 519.58, "vs_Vessel_Pct": 14.703367615248641, "POL_Per_TEU": 465.38, "vs_POL_Pct": 28.062176598759912}, {"POL Code": "CNSHA", "DEL Code": "EGSOK", "TEU_20GP": 0.0, "TEU_40HC": 44.0, "Total_TEU": 44.0, "Combined_OFT_Avg": 1700.0, "CM_TEU": 44.0, "Revenue": 82517.6487730956, "TotalContribution": 31289.5763158855, "CM_Per_TEU": 711.1267344519432, "Vessel_Per_TEU": 519.58, "vs_Vessel_Pct": 36.86568660301457, "POL_Per_TEU": 581.27, "vs_POL_Pct": 22.340174867435646}, {"POL Code": "CNXGG", "DEL Code": "EGSOK", "TEU_20GP": 0.0, "TEU_40HC": 2.0, "Total_TEU": 2.0, "Combined_OFT_Avg": 5425.0, "CM_TEU": 5.0, "Revenue": 12181.9642128577, "TotalContribution": 5963.2561637086, "CM_Per_TEU": 1192.65123274172, "Vessel_Per_TEU": 519.58, "vs_Vessel_Pct": 129.54140512369986, "POL_Per_TEU": 952.37, "vs_POL_Pct": 25.229819580805767}, {"POL Code": "CNSHA", "DEL Code": "INDER", "TEU_20GP": 0.0, "TEU_40HC": 30.0, "Total_TEU": 30.0, "Combined_OFT_Avg": 1059.1666666666667, "CM_TEU": 31.0, "Revenue": 43482.719762920104, "TotalContribution": 25609.9990125619, "CM_Per_TEU": 826.1290004052227, "Vessel_Per_TEU": 786.73, "vs_Vessel_Pct": 5.007944327179925, "POL_Per_TEU": 786.73, "vs_POL_Pct": 5.007944327179925}, {"POL Code": "CNSHK", "DEL Code": "INMUN", "TEU_20GP": 0.0, "TEU_40HC": 116.0, "Total_TEU": 116.0, "Combined_OFT_Avg": 1250.0, "CM_TEU": 116.0, "Revenue": 157681.90022464498, "TotalContribution": 123129.67646951419, "CM_Per_TEU": 1061.462728185467, "Vessel_Per_TEU": 845.68, "vs_Vessel_Pct": 25.515884044256353, "POL_Per_TEU": 1061.46, "vs_POL_Pct": 0.00025702197605781407}, {"POL Code": "CNTAO", "DEL Code": "INMUN", "TEU_20GP": 0.0, "TEU_40HC": 66.0, "Total_TEU": 66.0, "Combined_OFT_Avg": 550.0, "CM_TEU": 66.0, "Revenue": 55716.990164373405, "TotalContribution": 32745.2033453984, "CM_Per_TEU": 496.1394446272485, "Vessel_Per_TEU": 845.68, "vs_Vessel_Pct": -41.33248455358427, "POL_Per_TEU": 485.85, "vs_POL_Pct": 2.1178233255631396}, {"POL Code": "CNXGG", "DEL Code": "JOAQJ", "TEU_20GP": 0.0, "TEU_40HC": 0.0, "Total_TEU": 0.0, "Combined_OFT_Avg": 0.0, "CM_TEU": 9.0, "Revenue": 29789.7974616775, "TotalContribution": 13862.4834425866, "CM_Per_TEU": 1540.2759380651778, "Vessel_Per_TEU": 1531.15, "vs_Vessel_Pct": 0.596018552406874, "POL_Per_TEU": 1551.64, "vs_POL_Pct": -0.7323903698552736}, {"POL Code": "CNSHK", "DEL Code": "MYPKG", "TEU_20GP": 0.0, "TEU_40HC": 130.0, "Total_TEU": 130.0, "Combined_OFT_Avg": 750.0, "CM_TEU": 130.0, "Revenue": 112926.1765299926, "TotalContribution": 82667.2197362367, "CM_Per_TEU": 635.9016902787439, "Vessel_Per_TEU": 620.32, "vs_Vessel_Pct": 2.5118793975277054, "POL_Per_TEU": 635.9, "vs_POL_Pct": 0.00026580889194161017}, {"POL Code": "CNTAO", "DEL Code": "MYPKG", "TEU_20GP": 0.0, "TEU_40HC": 12.0, "Total_TEU": 12.0, "Combined_OFT_Avg": 500.0, "CM_TEU": 12.0, "Revenue": 8975.541521576, "TotalContribution": 5694.5912359706, "CM_Per_TEU": 474.54926966421664, "Vessel_Per_TEU": 620.32, "vs_Vessel_Pct": -23.499279458309164, "POL_Per_TEU": 451.53, "vs_POL_Pct": 5.098059855207104}, {"POL Code": "CNTAO", "DEL Code": "PKKHI", "TEU_20GP": 0.0, "TEU_40HC": 46.0, "Total_TEU": 46.0, "Combined_OFT_Avg": 941.304347826087, "CM_TEU": 58.0, "Revenue": 62403.322841989, "TotalContribution": 43597.6072288224, "CM_Per_TEU": 751.6828832555586, "Vessel_Per_TEU": 711.64, "vs_Vessel_Pct": 5.626845491478649, "POL_Per_TEU": 740.04, "vs_POL_Pct": 1.5732775600722393}, {"POL Code": "CNSHA", "DEL Code": "PKKHI", "TEU_20GP": 0.0, "TEU_40HC": 48.0, "Total_TEU": 48.0, "Combined_OFT_Avg": 661.4583333333334, "CM_TEU": 48.0, "Revenue": 46169.6162499272, "TotalContribution": 32474.8455888152, "CM_Per_TEU": 676.5592831003166, "Vessel_Per_TEU": 711.64, "vs_Vessel_Pct": -4.929559454173926, "POL_Per_TEU": 683.9, "vs_POL_Pct": -1.0733611492445339}, {"POL Code": "CNSHA", "DEL Code": "SADMM", "TEU_20GP": 0.0, "TEU_40HC": 0.0, "Total_TEU": 0.0, "Combined_OFT_Avg": 0.0, "CM_TEU": 2.0, "Revenue": 10737.2082092348, "TotalContribution": 8242.3684069803, "CM_Per_TEU": 4121.18420349015, "Vessel_Per_TEU": 4082.11, "vs_Vessel_Pct": 0.9572060402622595, "POL_Per_TEU": 4082.11, "vs_POL_Pct": 0.9572060402622595}, {"POL Code": "CNTAO", "DEL Code": "SAJED", "TEU_20GP": 0.0, "TEU_40HC": 344.0, "Total_TEU": 344.0, "Combined_OFT_Avg": 1607.5581395348838, "CM_TEU": 358.0, "Revenue": 647623.2221391541, "TotalContribution": 191855.8762213185, "CM_Per_TEU": 535.9102687746326, "Vessel_Per_TEU": 712.99, "vs_Vessel_Pct": -24.836215266044036, "POL_Per_TEU": 530.17, "vs_POL_Pct": 1.0827222918370794}, {"POL Code": "CNSHA", "DEL Code": "SAJED", "TEU_20GP": 2.0, "TEU_40HC": 252.0, "Total_TEU": 254.0, "Combined_OFT_Avg": 2007.6771653543308, "CM_TEU": 293.0, "Revenue": 601037.8980069617, "TotalContribution": 228680.9870543364, "CM_Per_TEU": 780.4811844857898, "Vessel_Per_TEU": 712.99, "vs_Vessel_Pct": 9.465937037797122, "POL_Per_TEU": 769.61, "vs_POL_Pct": 1.412557592259689}, {"POL Code": "CNXGG", "DEL Code": "SAJED", "TEU_20GP": 0.0, "TEU_40HC": 152.0, "Total_TEU": 152.0, "Combined_OFT_Avg": 2497.3684210526317, "CM_TEU": 204.0, "Revenue": 443980.6118610496, "TotalContribution": 178190.5169432968, "CM_Per_TEU": 873.4829261926313, "Vessel_Per_TEU": 712.99, "vs_Vessel_Pct": 22.509842521302037, "POL_Per_TEU": 850.83, "vs_POL_Pct": 2.662450335863964}, {"POL Code": "CNXMN", "DEL Code": "SAJED", "TEU_20GP": 0.0, "TEU_40HC": 70.0, "Total_TEU": 70.0, "Combined_OFT_Avg": 2541.4285714285716, "CM_TEU": 89.0, "Revenue": 205504.0648770438, "TotalContribution": 82349.8263271168, "CM_Per_TEU": 925.2789474956943, "Vessel_Per_TEU": 712.99, "vs_Vessel_Pct": 29.774463526233784, "POL_Per_TEU": 900.99, "vs_POL_Pct": 2.6958065567536105}, {"POL Code": "CNSHK", "DEL Code": "SAJED", "TEU_20GP": 0.0, "TEU_40HC": 58.0, "Total_TEU": 58.0, "Combined_OFT_Avg": 1821.551724137931, "CM_TEU": 61.0, "Revenue": 125147.3774551509, "TotalContribution": 48473.7947011868, "CM_Per_TEU": 794.6523721506034, "Vessel_Per_TEU": 712.99, "vs_Vessel_Pct": 11.453508765985966, "POL_Per_TEU": 766.25, "vs_POL_Pct": 3.706671732542044}, {"POL Code": "CNNGB", "DEL Code": "SAJED", "TEU_20GP": 0.0, "TEU_40HC": 0.0, "Total_TEU": 0.0, "Combined_OFT_Avg": 0.0, "CM_TEU": 1.0, "Revenue": 2957.9720189072, "TotalContribution": 1553.7123505764, "CM_Per_TEU": 1553.7123505764, "Vessel_Per_TEU": 712.99, "vs_Vessel_Pct": 117.91502693956434, "POL_Per_TEU": 1464.9, "vs_POL_Pct": 6.062690325373743}, {"POL Code": "CNSHA", "DEL Code": "SARUH", "TEU_20GP": 0.0, "TEU_40HC": 0.0, "Total_TEU": 0.0, "Combined_OFT_Avg": 0.0, "CM_TEU": 1.0, "Revenue": 5448.6409874727, "TotalContribution": 4172.8780863454, "CM_Per_TEU": 4172.8780863454, "Vessel_Per_TEU": 4084.06, "vs_Vessel_Pct": 2.1747497917611547, "POL_Per_TEU": 4084.06, "vs_POL_Pct": 2.1747497917611547}, {"POL Code": "CNTAO", "DEL Code": "SDPZU", "TEU_20GP": 0.0, "TEU_40HC": 50.0, "Total_TEU": 50.0, "Combined_OFT_Avg": 2321.0, "CM_TEU": 51.0, "Revenue": 127568.1038632305, "TotalContribution": 26092.416969126498, "CM_Per_TEU": 511.61601900248036, "Vessel_Per_TEU": 676.1, "vs_Vessel_Pct": -24.32835098321545, "POL_Per_TEU": 554.33, "vs_POL_Pct": -7.705514945523362}, {"POL Code": "CNSHA", "DEL Code": "SDPZU", "TEU_20GP": 2.0, "TEU_40HC": 26.0, "Total_TEU": 28.0, "Combined_OFT_Avg": 3078.5714285714284, "CM_TEU": 36.0, "Revenue": 97225.4998830795, "TotalContribution": 23309.885464534298, "CM_Per_TEU": 647.496818459286, "Vessel_Per_TEU": 676.1, "vs_Vessel_Pct": -4.230614042407044, "POL_Per_TEU": 666.48, "vs_POL_Pct": -2.84827474803655}, {"POL Code": "CNSHK", "DEL Code": "SDPZU", "TEU_20GP": 0.0, "TEU_40HC": 22.0, "Total_TEU": 22.0, "Combined_OFT_Avg": 2361.3636363636365, "CM_TEU": 23.0, "Revenue": 58073.134361387, "TotalContribution": 12477.2154224084, "CM_Per_TEU": 542.4876270612348, "Vessel_Per_TEU": 676.1, "vs_Vessel_Pct": -19.762220520450413, "POL_Per_TEU": 573.18, "vs_POL_Pct": -5.354752946502872}, {"POL Code": "CNXGG", "DEL Code": "SDPZU", "TEU_20GP": 0.0, "TEU_40HC": 14.0, "Total_TEU": 14.0, "Combined_OFT_Avg": 3617.8571428571427, "CM_TEU": 19.0, "Revenue": 56501.8486539834, "TotalContribution": 16912.2409730696, "CM_Per_TEU": 890.1179459510316, "Vessel_Per_TEU": 676.1, "vs_Vessel_Pct": 31.654776800921702, "POL_Per_TEU": 880.85, "vs_POL_Pct": 1.0521593859376344}, {"POL Code": "CNXMN", "DEL Code": "SDPZU", "TEU_20GP": 0.0, "TEU_40HC": 0.0, "Total_TEU": 0.0, "Combined_OFT_Avg": 0.0, "CM_TEU": 5.0, "Revenue": 19374.7858335808, "TotalContribution": 7424.6248582551, "CM_Per_TEU": 1484.9249716510199, "Vessel_Per_TEU": 676.1, "vs_Vessel_Pct": 119.63096755672531, "POL_Per_TEU": 1517.41, "vs_POL_Pct": -2.140820763602469}, {"POL Code": "CNNGB", "DEL Code": "SDPZU", "TEU_20GP": 0.0, "TEU_40HC": 2.0, "Total_TEU": 2.0, "Combined_OFT_Avg": 2200.0, "CM_TEU": 2.0, "Revenue": 4943.7430468579, "TotalContribution": 1009.3943139497, "CM_Per_TEU": 504.69715697485, "Vessel_Per_TEU": 676.1, "vs_Vessel_Pct": -25.351699900184887, "POL_Per_TEU": 524.83, "vs_POL_Pct": -3.836069398691022}, {"POL Code": "CNSHA", "DEL Code": "YEADE", "TEU_20GP": 0.0, "TEU_40HC": 62.0, "Total_TEU": 62.0, "Combined_OFT_Avg": 2433.8709677419356, "CM_TEU": 62.0, "Revenue": 163179.0009908493, "TotalContribution": 45860.3205054185, "CM_Per_TEU": 739.6825887970726, "Vessel_Per_TEU": 847.68, "vs_Vessel_Pct": -12.740351453723964, "POL_Per_TEU": 723.77, "vs_POL_Pct": 2.1985698215002847}, {"POL Code": "CNXMN", "DEL Code": "YEADE", "TEU_20GP": 0.0, "TEU_40HC": 6.0, "Total_TEU": 6.0, "Combined_OFT_Avg": 8683.333333333334, "CM_TEU": 16.0, "Revenue": 55716.2697441279, "TotalContribution": 21346.9099807584, "CM_Per_TEU": 1334.1818737974, "Vessel_Per_TEU": 847.68, "vs_Vessel_Pct": 57.392161404940545, "POL_Per_TEU": 1295.78, "vs_POL_Pct": 2.96361062814674}, {"POL Code": "CNSHK", "DEL Code": "YEADE", "TEU_20GP": 0.0, "TEU_40HC": 12.0, "Total_TEU": 12.0, "Combined_OFT_Avg": 2366.6666666666665, "CM_TEU": 12.0, "Revenue": 30785.960540887303, "TotalContribution": 8131.3734384181, "CM_Per_TEU": 677.6144532015084, "Vessel_Per_TEU": 847.68, "vs_Vessel_Pct": -20.062470130059886, "POL_Per_TEU": 654.7, "vs_POL_Pct": 3.4999928519181767}, {"POL Code": "CNNGB", "DEL Code": "YEADE", "TEU_20GP": 0.0, "TEU_40HC": 10.0, "Total_TEU": 10.0, "Combined_OFT_Avg": 2450.0, "CM_TEU": 10.0, "Revenue": 26508.7057760683, "TotalContribution": 7623.8753416572, "CM_Per_TEU": 762.38753416572, "Vessel_Per_TEU": 847.68, "vs_Vessel_Pct": -10.061870733564549, "POL_Per_TEU": 732.76, "vs_POL_Pct": 4.043279404678213}, {"POL Code": "CNXGG", "DEL Code": "YEADE", "TEU_20GP": 0.0, "TEU_40HC": 4.0, "Total_TEU": 4.0, "Combined_OFT_Avg": 6887.5, "CM_TEU": 9.0, "Revenue": 29735.518447281098, "TotalContribution": 11226.4035843268, "CM_Per_TEU": 1247.378176036311, "Vessel_Per_TEU": 847.68, "vs_Vessel_Pct": 47.15201208431379, "POL_Per_TEU": 1194.4, "vs_POL_Pct": 4.435547223401781}, {"POL Code": "CNTAO", "DEL Code": "YEADE", "TEU_20GP": 0.0, "TEU_40HC": 4.0, "Total_TEU": 4.0, "Combined_OFT_Avg": 3262.5, "CM_TEU": 5.0, "Revenue": 14178.8520720406, "TotalContribution": 4296.4764754714, "CM_Per_TEU": 859.2952950942799, "Vessel_Per_TEU": 847.68, "vs_Vessel_Pct": 1.3702452687665234, "POL_Per_TEU": 809.52, "vs_POL_Pct": 6.148741858666851}], "level5": [{"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "DP WORLD CHINA CO., LTD", "TEU": 67, "Revenue": 309218.2911999246, "TotalContribution": 268661.202362084, "CM_Per_TEU": 4009.868691971403}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "Shipper": "SINOTRANS CENTRAL CHINA CO.,LTD", "TEU": 70, "Revenue": 287924.7073238734, "TotalContribution": 244599.427596197, "CM_Per_TEU": 3494.2775370885283}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "NINGBO PORT SOUTHEAST LOGISTCS GROUP CO.,LTD", "TEU": 68, "Revenue": 262418.4922407752, "TotalContribution": 228120.2235346024, "CM_Per_TEU": 3354.709169626506}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "LAVINSTAR CHINA PRIVATE LIMITED", "TEU": 42, "Revenue": 245158.0325318764, "TotalContribution": 218387.8629717233, "CM_Per_TEU": 5199.711023136269}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "SHENZHEN GREEN CHANNEL LOGISTICS CO., LTD", "TEU": 78, "Revenue": 248061.376807455, "TotalContribution": 209768.3904726958, "CM_Per_TEU": 2689.338339393536}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "DP WORLD CHINA CO., LTD", "TEU": 67, "Revenue": 230456.29157880248, "TotalContribution": 198828.0167069139, "CM_Per_TEU": 2967.582338909163}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD", "TEU": 60, "Revenue": 220422.6415420079, "TotalContribution": 191082.48295175802, "CM_Per_TEU": 3184.708049195967}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "LONGSAIL SUPPLY CHAIN CO.,LTD", "TEU": 60, "Revenue": 214569.78671658563, "TotalContribution": 186660.0765485478, "CM_Per_TEU": 3111.00127580913}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "SHENZHEN GREEN CHANNEL LOGISTICS CO., LTD", "TEU": 53, "Revenue": 213354.728457054, "TotalContribution": 185480.7339518901, "CM_Per_TEU": 3499.636489658304}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "DP WORLD CHINA CO., LTD", "TEU": 74, "Revenue": 211869.815157619, "TotalContribution": 179076.03270095668, "CM_Per_TEU": 2419.946387850766}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "UNITEX INTERNATIONAL FORWARDING(GUANGZHOU)LIMITED", "TEU": 53, "Revenue": 205851.4513259674, "TotalContribution": 178902.2160534252, "CM_Per_TEU": 3375.5135104419846}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "SINOOCEAN GROUP LTD", "TEU": 52, "Revenue": 200079.5782627388, "TotalContribution": 173642.1272178197, "CM_Per_TEU": 3339.2716772657636}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "MILLENNIUM LOGISTICS (SHENZHEN) LTD", "TEU": 53, "Revenue": 198287.825349638, "TotalContribution": 172748.4581934056, "CM_Per_TEU": 3259.4048715736903}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "SINOOCEAN GROUP LTD", "TEU": 61, "Revenue": 200367.7799862043, "TotalContribution": 169990.6074742348, "CM_Per_TEU": 2786.731270069423}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "WORLDWIDE LOGISTICS CO.,LTD", "TEU": 53, "Revenue": 193527.6422171221, "TotalContribution": 168331.8750608891, "CM_Per_TEU": 3176.0731143563985}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD", "TEU": 63, "Revenue": 194669.87822851288, "TotalContribution": 165656.0883840951, "CM_Per_TEU": 2629.4617203824623}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "Unitex Int'l Forwarding MED (Qingdao) Ltd", "TEU": 54, "Revenue": 189037.8353910324, "TotalContribution": 161010.0490653897, "CM_Per_TEU": 2981.6675752849947}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "WORLDWIDE LOGISTICS CO.,LTD", "TEU": 58, "Revenue": 180472.5248379436, "TotalContribution": 153184.5668925299, "CM_Per_TEU": 2641.1132222849983}, {"POL Code": "CNXGG", "DEL Code": "AEJEA", "Shipper": "Shenzhen United Logistics Development Co.,Ltd", "TEU": 45, "Revenue": 179318.3194013912, "TotalContribution": 151291.9122227345, "CM_Per_TEU": 3362.0424938385445}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD", "TEU": 47, "Revenue": 172404.6563648275, "TotalContribution": 150342.3335186828, "CM_Per_TEU": 3198.773053588996}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "DP WORLD CHINA CO., LTD", "TEU": 49, "Revenue": 170263.7016558883, "TotalContribution": 146409.8012938362, "CM_Per_TEU": 2987.955128445637}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "Shipper": "QINGDAO DSI LOGISTICS CO.,LTD", "TEU": 55, "Revenue": 174375.6080576885, "TotalContribution": 146397.9054354335, "CM_Per_TEU": 2661.7800988260637}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "SINOTRANS CENTRAL CHINA CO.,LTD", "TEU": 45, "Revenue": 171175.0202432143, "TotalContribution": 146013.1321554408, "CM_Per_TEU": 3244.7362701209067}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD", "TEU": 44, "Revenue": 157007.5132489133, "TotalContribution": 136988.5999233302, "CM_Per_TEU": 3113.3772709847776}, {"POL Code": "CNSHA", "DEL Code": "SAJED", "Shipper": "YQN South-Logistics (Shanghai) Co., Ltd", "TEU": 183, "Revenue": 363180.1145303193, "TotalContribution": 131976.7937468694, "CM_Per_TEU": 721.1846652834394}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "QINGDAO EASTON CARGO LOGISTICS CO,LTD", "TEU": 48, "Revenue": 147448.3874603268, "TotalContribution": 125417.0993258966, "CM_Per_TEU": 2612.8562359561793}, {"POL Code": "CNSHK", "DEL Code": "INMUN", "Shipper": "ExxonMobil Chemical Asia Pacific  ", "TEU": 116, "Revenue": 157681.90022464498, "TotalContribution": 123129.67646951419, "CM_Per_TEU": 1061.462728185467}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "UNICORN SUPPLY CHAIN (SHENZHEN) CO., LTD", "TEU": 31, "Revenue": 137713.7296753014, "TotalContribution": 118018.86761899779, "CM_Per_TEU": 3807.060245774122}, {"POL Code": "CNTAO", "DEL Code": "SAJED", "Shipper": "United Ocean International Logistics (GUANGZHOU)Co.,Ltd", "TEU": 236, "Revenue": 414301.2579039534, "TotalContribution": 115478.3604841335, "CM_Per_TEU": 489.31508679717587}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD", "TEU": 34, "Revenue": 124271.394274301, "TotalContribution": 108323.2083961022, "CM_Per_TEU": 3185.9767175324178}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "SINOTRANS ZHEJIANG CO.,LTD", "TEU": 32, "Revenue": 120224.1874538759, "TotalContribution": 104618.732642422, "CM_Per_TEU": 3269.3353950756873}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "Shipper": "QINGDAO SKY OCEAN SHIPPING LIMITED", "TEU": 37, "Revenue": 122832.9110571388, "TotalContribution": 103201.7757387445, "CM_Per_TEU": 2789.23718212823}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "ZHONGJUN SUPPLY CHAIN MANAGEMENT(SHANGHAI)CO.,LTD", "TEU": 31, "Revenue": 118817.63533069761, "TotalContribution": 103055.337188791, "CM_Per_TEU": 3324.3657157674515}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "Passion (Shanghai) Shipping Co., Ltd", "TEU": 29, "Revenue": 116820.4202551763, "TotalContribution": 101253.7121485001, "CM_Per_TEU": 3491.5073154655206}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "Sinotrans Eastern Co.Ltd", "TEU": 32, "Revenue": 115910.1978069743, "TotalContribution": 100376.5689766197, "CM_Per_TEU": 3136.7677805193657}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD", "TEU": 37, "Revenue": 113904.63777267959, "TotalContribution": 96783.1005751972, "CM_Per_TEU": 2615.7594750053295}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "Worldwide Logistics Co.,Ltd", "TEU": 32, "Revenue": 110251.94753011959, "TotalContribution": 94098.6126947845, "CM_Per_TEU": 2940.5816467120158}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "SHANGHAI ASIACARGO INTERNATIONAL TRANSPORTATION.CO.,LTD", "TEU": 28, "Revenue": 104947.37385885441, "TotalContribution": 91168.764928127, "CM_Per_TEU": 3256.0273188616784}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "Shipper": "SHENZHEN EAGLE IMP & EXP CO.,LTD", "TEU": 32, "Revenue": 104138.25773805121, "TotalContribution": 87712.2446956856, "CM_Per_TEU": 2741.007646740175}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "QINGDAO PUFA CENTURY SHIPPING CO.,LTD", "TEU": 24, "Revenue": 99011.9917928742, "TotalContribution": 87407.1722258093, "CM_Per_TEU": 3641.965509408721}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "QINGDAO SKY OCEAN SHIPPING LIMITED", "TEU": 29, "Revenue": 102788.0263786048, "TotalContribution": 87340.2172260748, "CM_Per_TEU": 3011.731628485338}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "QINGDAO DSI LOGISTICS CO.,LTD", "TEU": 28, "Revenue": 98611.0014746048, "TotalContribution": 83707.312015171, "CM_Per_TEU": 2989.546857684679}, {"POL Code": "CNSHK", "DEL Code": "MYPKG", "Shipper": "ExxonMobil Chemical Asia Pacific  ", "TEU": 130, "Revenue": 112926.1765299926, "TotalContribution": 82667.2197362367, "CM_Per_TEU": 635.9016902787439}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "CIMC WETRANS LOGISTICS MANAGEMENT CO.,LTD", "TEU": 26, "Revenue": 93684.7838493336, "TotalContribution": 81351.7646121703, "CM_Per_TEU": 3128.9140235450113}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "ONTOP LOGISTICS CO.,LTD", "TEU": 20, "Revenue": 92224.047827861, "TotalContribution": 80837.9610380532, "CM_Per_TEU": 4041.89805190266}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD", "TEU": 21, "Revenue": 93339.56165633781, "TotalContribution": 80799.0070033352, "CM_Per_TEU": 3847.5717620635805}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "UNITED OCEAN INTERNATIONAL LOGISTICS（SHANGHAI） CO.,LTD", "TEU": 30, "Revenue": 92754.4860318703, "TotalContribution": 78604.5530659126, "CM_Per_TEU": 2620.151768863753}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "COSCO SHIPPING LOGISTICS (SHANGHAI)", "TEU": 29, "Revenue": 91831.1189644883, "TotalContribution": 77691.4585161459, "CM_Per_TEU": 2679.0158109015824}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "DP WORLD CHINA CO., LTD", "TEU": 26, "Revenue": 88736.99612434019, "TotalContribution": 76685.655477405, "CM_Per_TEU": 2949.4482875925}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "AWOT GLOBAL CORPORATION SHENZHEN BRANCH", "TEU": 24, "Revenue": 86384.5366660745, "TotalContribution": 75080.9015988593, "CM_Per_TEU": 3128.370899952471}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "CHINATRANS INTERNATIONAL LIMITED", "TEU": 26, "Revenue": 81108.1447516561, "TotalContribution": 68732.6523455067, "CM_Per_TEU": 2643.563551750258}, {"POL Code": "CNXMN", "DEL Code": "AEJEA", "Shipper": "KING FREIGHT(SHENZHEN)INTERNATIONAL CORP.XIAMEN BRANCH", "TEU": 23, "Revenue": 82441.58138610859, "TotalContribution": 67429.1259955728, "CM_Per_TEU": 2931.7011302422957}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "QINGDAO FOREVER SAILING INTERNATIONAL LOGISTICS CO.,LTD", "TEU": 23, "Revenue": 78641.4690099447, "TotalContribution": 66946.19382654, "CM_Per_TEU": 2910.7040794147824}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "SINOOCEAN GROUP LTD", "TEU": 23, "Revenue": 78375.87470438, "TotalContribution": 66765.68252097511, "CM_Per_TEU": 2902.855761781527}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "QINGDAO WINTOP WORLDWIDE LOGISTICS CO.,LTD", "TEU": 21, "Revenue": 76277.721148904, "TotalContribution": 64906.500351692805, "CM_Per_TEU": 3090.7857310329905}, {"POL Code": "CNXGG", "DEL Code": "SAJED", "Shipper": "GOLDEN ELITE INTERNATIONAL TRADING CO.,LTD", "TEU": 44, "Revenue": 126069.22284368079, "TotalContribution": 64883.8278522241, "CM_Per_TEU": 1474.6324511869113}, {"POL Code": "CNXGG", "DEL Code": "AEKLF", "Shipper": "Shenzhen United Logistics Development Co.,Ltd", "TEU": 21, "Revenue": 78529.5952021553, "TotalContribution": 64858.0380961209, "CM_Per_TEU": 3088.478004577186}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "YQN South-Logistics (Shanghai) Co., Ltd", "TEU": 18, "Revenue": 73793.548263204, "TotalContribution": 64143.512825295, "CM_Per_TEU": 3563.5284902941667}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "DP WORLD CHINA CO., LTD", "TEU": 25, "Revenue": 75796.8220683901, "TotalContribution": 63734.8383488421, "CM_Per_TEU": 2549.3935339536843}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "NINGBO  HAPPYPORT LOGISTICS CO.,LTD", "TEU": 20, "Revenue": 72723.6240738591, "TotalContribution": 63180.572653139796, "CM_Per_TEU": 3159.02863265699}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "Passion (Shanghai) Shipping Co., Ltd", "TEU": 20, "Revenue": 72652.5013607099, "TotalContribution": 61578.6562292369, "CM_Per_TEU": 3078.9328114618447}, {"POL Code": "CNXGG", "DEL Code": "SAJED", "Shipper": "HAIKOU HAIXINCHENG BUILDING MATERIALS TRADING CO.,LTD", "TEU": 94, "Revenue": 176084.67061127519, "TotalContribution": 57142.810332764, "CM_Per_TEU": 607.9022375825957}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "SANCO INTERNATIONAL LOGISTICS LTD", "TEU": 17, "Revenue": 64415.0763849045, "TotalContribution": 55978.985608141804, "CM_Per_TEU": 3292.8815063612824}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "NINGBO YAOHONG INTERNATIONAL FORWARDING AGENCY CO.,LTD", "TEU": 17, "Revenue": 63887.1984633228, "TotalContribution": 55573.0586865601, "CM_Per_TEU": 3269.003452150594}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "CIMC GOLD WIDE TECHNOLOGY LOGISTICS GROUP CO., LIMITED", "TEU": 18, "Revenue": 63000.8573207649, "TotalContribution": 53230.2608828561, "CM_Per_TEU": 2957.2367157142276}, {"POL Code": "CNTAO", "DEL Code": "EGSOK", "Shipper": "CTS INTERNATIONAL LOGISTICS CORPORATION LIMITED", "TEU": 88, "Revenue": 156149.458530046, "TotalContribution": 52621.1161019298, "CM_Per_TEU": 597.9672284310204}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "Shenzhen United Logistics Development Co.,Ltd", "TEU": 20, "Revenue": 61716.2682131773, "TotalContribution": 52278.709823831305, "CM_Per_TEU": 2613.9354911915652}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "Worldwide Logistics Co., Ltd", "TEU": 14, "Revenue": 59699.92197420121, "TotalContribution": 51837.338088182696, "CM_Per_TEU": 3702.667006298764}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD", "TEU": 18, "Revenue": 59971.7416395486, "TotalContribution": 50975.1747321725, "CM_Per_TEU": 2831.954151787361}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "CTS INTERNATIONAL LOGISTICS CORPORATION LIMITED", "TEU": 12, "Revenue": 58266.17176777629, "TotalContribution": 50698.4134154645, "CM_Per_TEU": 4224.867784622042}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "Ningbo Tongze International Logistics Co., LTD", "TEU": 16, "Revenue": 57847.999760280596, "TotalContribution": 50268.85104880411, "CM_Per_TEU": 3141.8031905502567}, {"POL Code": "CNSHA", "DEL Code": "DJJIB", "Shipper": "YQN South-Logistics (Shanghai) Co., Ltd", "TEU": 44, "Revenue": 105085.32284198861, "TotalContribution": 50024.5587480005, "CM_Per_TEU": 1136.921789727284}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "Worldwide Logistics Co., Ltd", "TEU": 16, "Revenue": 57117.1841747384, "TotalContribution": 49739.4102381627, "CM_Per_TEU": 3108.713139885169}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "YQN South-Logistics (Shanghai) Co., Ltd", "TEU": 17, "Revenue": 58036.7417616615, "TotalContribution": 49079.467670535, "CM_Per_TEU": 2887.0275100314707}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD", "TEU": 18, "Revenue": 55179.9189723823, "TotalContribution": 46961.6612937348, "CM_Per_TEU": 2608.981182985267}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "ZHONGJUN SUPPLY CHAIN MANAGEMENT(SHANGHAI)CO.,LTD", "TEU": 13, "Revenue": 53800.7014726091, "TotalContribution": 46019.6576227749, "CM_Per_TEU": 3539.9736632903773}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "Worldwide-Logistics Shanghai Co.,Ltd", "TEU": 14, "Revenue": 51693.4188939098, "TotalContribution": 45094.7858431296, "CM_Per_TEU": 3221.056131652114}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "Shipper": "QINGDAO FOREVER SAILING INTERNATIONAL LOGISTICS CO.,LTD", "TEU": 14, "Revenue": 53179.7715262006, "TotalContribution": 44797.2757876961, "CM_Per_TEU": 3199.805413406864}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "SHENZHEN A&E CONTAINER TRANSPORTATION CO.,LTD", "TEU": 14, "Revenue": 50515.2992634717, "TotalContribution": 43816.0542126916, "CM_Per_TEU": 3129.7181580494}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "Shipper": "Unitex Int'l Forwarding MED (Qingdao) Ltd", "TEU": 16, "Revenue": 50682.2130259362, "TotalContribution": 42781.8211082685, "CM_Per_TEU": 2673.8638192667813}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "Unitrans Logistics (Shanghai) Co., Ltd", "TEU": 10, "Revenue": 48876.1354973539, "TotalContribution": 42740.149687866404, "CM_Per_TEU": 4274.014968786641}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "Ningbo kostar supply chain co., ltd", "TEU": 16, "Revenue": 50404.7524561064, "TotalContribution": 42612.9585195311, "CM_Per_TEU": 2663.309907470694}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "MILLENNIUM LOGISTICS (SHENZHEN) LTD", "TEU": 16, "Revenue": 50437.473619413504, "TotalContribution": 42604.0819079371, "CM_Per_TEU": 2662.7551192460687}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "NINGBO  HAPPYPORT LOGISTICS CO.,LTD", "TEU": 16, "Revenue": 50048.4195889883, "TotalContribution": 42350.7106524129, "CM_Per_TEU": 2646.919415775806}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD", "TEU": 13, "Revenue": 47396.2700312284, "TotalContribution": 40241.8828397288, "CM_Per_TEU": 3095.529449209908}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "Shipper": "WIDE-TRANS INTERNATIONAL LOGISTICS (QINGDAO) CO .,LTD", "TEU": 15, "Revenue": 47923.8514081914, "TotalContribution": 40124.9301836204, "CM_Per_TEU": 2674.9953455746936}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "SHENZHEN EAGLE IMP & EXP CO.,LTD", "TEU": 13, "Revenue": 46205.984856844196, "TotalContribution": 39206.6926219818, "CM_Per_TEU": 3015.899432460138}, {"POL Code": "CNTAO", "DEL Code": "SAJED", "Shipper": "SINOTRANS CENTRAL CHINA CO.,LTD", "TEU": 77, "Revenue": 136478.3693995512, "TotalContribution": 38812.8361904471, "CM_Per_TEU": 504.06280766814416}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD", "TEU": 12, "Revenue": 43969.974619251, "TotalContribution": 38028.0501668196, "CM_Per_TEU": 3169.0041805683}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "SHANGHAI BROTHERHOOD INTERNATIONAL FREIGHT CO.,LTD", "TEU": 12, "Revenue": 44027.8634401074, "TotalContribution": 37956.8442537246, "CM_Per_TEU": 3163.07035447705}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "COSCO SHIPPING LOGISTICS (SHANGHAI)", "TEU": 12, "Revenue": 43598.6740129845, "TotalContribution": 37722.8428266017, "CM_Per_TEU": 3143.5702355501417}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "SINOTRANS ZHEJIANG CO.,LTD", "TEU": 13, "Revenue": 42452.4206264679, "TotalContribution": 35993.740333849, "CM_Per_TEU": 2768.749256449923}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD", "TEU": 13, "Revenue": 41203.8686650359, "TotalContribution": 34975.4804038058, "CM_Per_TEU": 2690.421569523523}, {"POL Code": "CNXGG", "DEL Code": "SAJED", "Shipper": "Shenzhen United Logistics Development Co.,Ltd", "TEU": 47, "Revenue": 94771.0349121036, "TotalContribution": 34693.6995871993, "CM_Per_TEU": 738.1638210042404}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "CIMC WETRANS INTERNATIONAL LOGISTICS CO., LTD", "TEU": 12, "Revenue": 37677.6853202562, "TotalContribution": 32055.8332866487, "CM_Per_TEU": 2671.3194405540585}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "Safround Logistics Co.,Ltd", "TEU": 12, "Revenue": 37304.3335105657, "TotalContribution": 31626.5000581341, "CM_Per_TEU": 2635.541671511175}, {"POL Code": "CNSHA", "DEL Code": "EGSOK", "Shipper": "COSCO SHIPPING LOGISTICS (SHANGHAI)", "TEU": 44, "Revenue": 82517.6487730956, "TotalContribution": 31289.5763158855, "CM_Per_TEU": 711.1267344519432}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "Shanghai Winwell Supplychain Management Ltd", "TEU": 9, "Revenue": 35856.5889048671, "TotalContribution": 31265.2531004963, "CM_Per_TEU": 3473.917011166255}, {"POL Code": "CNSHA", "DEL Code": "SAJED", "Shipper": "SHANGHAI NOBLE INTERNATIONAL LOGISTICS CO.,LTD", "TEU": 47, "Revenue": 89333.5389368149, "TotalContribution": 30652.2099351006, "CM_Per_TEU": 652.1746794702256}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "SHENZHEN UNITED LOGISTICS DEVELOPMENT CO.,LTD", "TEU": 11, "Revenue": 35744.0715313525, "TotalContribution": 30255.6638625846, "CM_Per_TEU": 2750.5148965986}], "vessel_bench": {"AEJEA": {"teu": 2012, "cm": 6522013.04, "per_teu": 3241.56, "teu_20gp": 288, "teu_40hc": 1716}, "AEKLF": {"teu": 1440, "cm": 4072769.22, "per_teu": 2828.31, "teu_20gp": 266, "teu_40hc": 1174}, "AESCT": {"teu": 2, "cm": 6191.62, "per_teu": 3095.81, "teu_20gp": 0, "teu_40hc": 2}, "DJJIB": {"teu": 102, "cm": 100875.23, "per_teu": 988.97, "teu_20gp": 40, "teu_40hc": 62}, "EGSOK": {"teu": 139, "cm": 72221.73, "per_teu": 519.58, "teu_20gp": 3, "teu_40hc": 136}, "INDER": {"teu": 31, "cm": 24388.53, "per_teu": 786.73, "teu_20gp": 1, "teu_40hc": 30}, "INMUN": {"teu": 186, "cm": 157295.88, "per_teu": 845.68, "teu_20gp": 0, "teu_40hc": 186}, "INSSA": {"teu": 20, "cm": 14130.29, "per_teu": 706.51, "teu_20gp": 0, "teu_40hc": 20}, "JOAQJ": {"teu": 11, "cm": 16842.63, "per_teu": 1531.15, "teu_20gp": 9, "teu_40hc": 2}, "MYPKG": {"teu": 142, "cm": 88085.53, "per_teu": 620.32, "teu_20gp": 0, "teu_40hc": 142}, "PKKHI": {"teu": 108, "cm": 76857.01, "per_teu": 711.64, "teu_20gp": 12, "teu_40hc": 96}, "SADMM": {"teu": 2, "cm": 8164.21, "per_teu": 4082.11, "teu_20gp": 2, "teu_40hc": 0}, "SAJED": {"teu": 1006, "cm": 717263.5, "per_teu": 712.99, "teu_20gp": 128, "teu_40hc": 878}, "SARUH": {"teu": 1, "cm": 4084.06, "per_teu": 4084.06, "teu_20gp": 1, "teu_40hc": 0}, "SDPZU": {"teu": 139, "cm": 93977.61, "per_teu": 676.1, "teu_20gp": 21, "teu_40hc": 118}, "YEADE": {"teu": 115, "cm": 97482.72, "per_teu": 847.68, "teu_20gp": 17, "teu_40hc": 98}}, "fak_data": [{"POL": "CNNGB", "POD": "AEKLF", "Size": "20'", "FAK": 4000, "OFT_Avg": 4261.0, "Diff": 261.0, "DiffPct": 6.5, "Count": 18, "Status": "Above"}, {"POL": "CNNGB", "POD": "AEKLF", "Size": "40'", "FAK": 4800, "OFT_Avg": 5078.0, "Diff": 278.0, "DiffPct": 5.8, "Count": 106, "Status": "Above"}, {"POL": "CNNGB", "POD": "DJJIB", "Size": "40'", "FAK": 3600, "OFT_Avg": 3400.0, "Diff": -200.0, "DiffPct": -5.6, "Count": 3, "Status": "Below"}, {"POL": "CNNGB", "POD": "SAJED", "Size": "20'", "FAK": 2600, "OFT_Avg": 2450.0, "Diff": -150.0, "DiffPct": -5.8, "Count": 1, "Status": "Below"}, {"POL": "CNNGB", "POD": "SDPZU", "Size": "40'", "FAK": 4600, "OFT_Avg": 4400.0, "Diff": -200.0, "DiffPct": -4.3, "Count": 1, "Status": "Below"}, {"POL": "CNNGB", "POD": "YEADE", "Size": "40'", "FAK": 5100, "OFT_Avg": 4900.0, "Diff": -200.0, "DiffPct": -3.9, "Count": 4, "Status": "Below"}, {"POL": "CNSHA", "POD": "AEKLF", "Size": "20'", "FAK": 4000, "OFT_Avg": 4121.0, "Diff": 121.0, "DiffPct": 3.0, "Count": 52, "Status": "Above"}, {"POL": "CNSHA", "POD": "AEKLF", "Size": "40'", "FAK": 5000, "OFT_Avg": 5214.0, "Diff": 214.0, "DiffPct": 4.3, "Count": 122, "Status": "Above"}, {"POL": "CNSHA", "POD": "DJJIB", "Size": "20'", "FAK": 2600, "OFT_Avg": 2383.0, "Diff": -217.0, "DiffPct": -8.3, "Count": 6, "Status": "Below"}, {"POL": "CNSHA", "POD": "DJJIB", "Size": "40'", "FAK": 3700, "OFT_Avg": 3500.0, "Diff": -200.0, "DiffPct": -5.4, "Count": 4, "Status": "Below"}, {"POL": "CNSHA", "POD": "EGSOK", "Size": "40'", "FAK": 3700, "OFT_Avg": 3400.0, "Diff": -300.0, "DiffPct": -8.1, "Count": 1, "Status": "Below"}, {"POL": "CNSHA", "POD": "SAJED", "Size": "20'", "FAK": 2600, "OFT_Avg": 2689.0, "Diff": 89.0, "DiffPct": 3.4, "Count": 23, "Status": "Above"}, {"POL": "CNSHA", "POD": "SAJED", "Size": "40'", "FAK": 3700, "OFT_Avg": 3339.0, "Diff": -361.0, "DiffPct": -9.7, "Count": 28, "Status": "Below"}, {"POL": "CNSHA", "POD": "SDPZU", "Size": "20'", "FAK": 3300, "OFT_Avg": 3050.0, "Diff": -250.0, "DiffPct": -7.6, "Count": 5, "Status": "Below"}, {"POL": "CNSHA", "POD": "SDPZU", "Size": "40'", "FAK": 4700, "OFT_Avg": 4417.0, "Diff": -283.0, "DiffPct": -6.0, "Count": 12, "Status": "Below"}, {"POL": "CNSHA", "POD": "YEADE", "Size": "40'", "FAK": 5200, "OFT_Avg": 4878.0, "Diff": -322.0, "DiffPct": -6.2, "Count": 9, "Status": "Below"}, {"POL": "CNSHK", "POD": "AEKLF", "Size": "20'", "FAK": 4000, "OFT_Avg": 4421.0, "Diff": 421.0, "DiffPct": 10.5, "Count": 48, "Status": "Above"}, {"POL": "CNSHK", "POD": "AEKLF", "Size": "40'", "FAK": 4800, "OFT_Avg": 5091.0, "Diff": 291.0, "DiffPct": 6.1, "Count": 194, "Status": "Above"}, {"POL": "CNSHK", "POD": "SAJED", "Size": "20'", "FAK": 2500, "OFT_Avg": 2617.0, "Diff": 117.0, "DiffPct": 4.7, "Count": 3, "Status": "Above"}, {"POL": "CNSHK", "POD": "SAJED", "Size": "40'", "FAK": 3500, "OFT_Avg": 3407.0, "Diff": -93.0, "DiffPct": -2.7, "Count": 14, "Status": "Below"}, {"POL": "CNSHK", "POD": "SDPZU", "Size": "20'", "FAK": 3250, "OFT_Avg": 3550.0, "Diff": 300.0, "DiffPct": 9.2, "Count": 1, "Status": "Above"}, {"POL": "CNSHK", "POD": "SDPZU", "Size": "40'", "FAK": 4500, "OFT_Avg": 4400.0, "Diff": -100.0, "DiffPct": -2.2, "Count": 5, "Status": "Below"}, {"POL": "CNSHK", "POD": "YEADE", "Size": "40'", "FAK": 5000, "OFT_Avg": 4800.0, "Diff": -200.0, "DiffPct": -4.0, "Count": 2, "Status": "Below"}, {"POL": "CNTAO", "POD": "AEKLF", "Size": "20'", "FAK": 4000, "OFT_Avg": 3861.0, "Diff": -139.0, "DiffPct": -3.5, "Count": 58, "Status": "Below"}, {"POL": "CNTAO", "POD": "AEKLF", "Size": "40'", "FAK": 5000, "OFT_Avg": 4942.0, "Diff": -58.0, "DiffPct": -1.2, "Count": 118, "Status": "Below"}, {"POL": "CNTAO", "POD": "DJJIB", "Size": "40'", "FAK": 4000, "OFT_Avg": 3500.0, "Diff": -500.0, "DiffPct": -12.5, "Count": 3, "Status": "Below"}, {"POL": "CNTAO", "POD": "EGSOK", "Size": "40'", "FAK": 3500, "OFT_Avg": 3175.0, "Diff": -325.0, "DiffPct": -9.3, "Count": 2, "Status": "Below"}, {"POL": "CNTAO", "POD": "SAJED", "Size": "20'", "FAK": 3000, "OFT_Avg": 2550.0, "Diff": -450.0, "DiffPct": -15.0, "Count": 3, "Status": "Below"}, {"POL": "CNTAO", "POD": "SAJED", "Size": "40'", "FAK": 3500, "OFT_Avg": 3041.0, "Diff": -459.0, "DiffPct": -13.1, "Count": 27, "Status": "Below"}, {"POL": "CNTAO", "POD": "SDPZU", "Size": "20'", "FAK": 3800, "OFT_Avg": 3550.0, "Diff": -250.0, "DiffPct": -6.6, "Count": 1, "Status": "Below"}, {"POL": "CNTAO", "POD": "SDPZU", "Size": "40'", "FAK": 5000, "OFT_Avg": 4500.0, "Diff": -500.0, "DiffPct": -10.0, "Count": 1, "Status": "Below"}, {"POL": "CNTAO", "POD": "YEADE", "Size": "20'", "FAK": 3800, "OFT_Avg": 3550.0, "Diff": -250.0, "DiffPct": -6.6, "Count": 1, "Status": "Below"}, {"POL": "CNTAO", "POD": "YEADE", "Size": "40'", "FAK": 5200, "OFT_Avg": 4750.0, "Diff": -450.0, "DiffPct": -8.7, "Count": 1, "Status": "Below"}]};
+window.DATA = {"vessel": "RACE2616W", "generated": "2026-05-08 17:18", "level1": {"total_teu": 5456, "total_revenue": 16306041.94, "total_contribution": 12239393.1, "cm_per_teu": 2243.29, "vessel_avg_cm_per_teu": 2212.73}, "level2": [{"DEL Code": "AEJEA", "teu": 2012.0, "teu_20gp": 180.0, "teu_40hc": 1536.0, "revenue": 7683342.629162819, "contribution": 6605275.549795838, "vessel_teu": 2012, "vessel_cm_per_teu": 3241.56, "cm_per_teu": 3282.9401340933587, "vs_vessel_pct": 1.276549997327181}, {"DEL Code": "AEKLF", "teu": 1440.0, "teu_20gp": 22.0, "teu_40hc": 1152.0, "revenue": 4853509.872928757, "contribution": 4120405.840127695, "vessel_teu": 1440, "vessel_cm_per_teu": 2828.31, "cm_per_teu": 2861.3929445331214, "vs_vessel_pct": 1.1697071584487295}, {"DEL Code": "SAJED", "teu": 1006.0, "teu_20gp": 2.0, "teu_40hc": 876.0, "revenue": 2026251.1463582674, "contribution": 731104.7135978317, "vessel_teu": 1006, "vessel_cm_per_teu": 712.99, "cm_per_teu": 726.7442481091766, "vs_vessel_pct": 1.929094112003904}, {"DEL Code": "INMUN", "teu": 186.0, "teu_20gp": 0.0, "teu_40hc": 186.0, "revenue": 217206.97808113028, "contribution": 158062.03779463738, "vessel_teu": 186, "vessel_cm_per_teu": 845.68, "cm_per_teu": 849.7959021217065, "vs_vessel_pct": 0.4866973467158475}, {"DEL Code": "MYPKG", "teu": 142.0, "teu_20gp": 0.0, "teu_40hc": 142.0, "revenue": 121901.7180515686, "contribution": 88361.8109722073, "vessel_teu": 142, "vessel_cm_per_teu": 620.32, "cm_per_teu": 622.2662744521641, "vs_vessel_pct": 0.313753297034447}, {"DEL Code": "EGSOK", "teu": 139.0, "teu_20gp": 0.0, "teu_40hc": 136.0, "revenue": 254230.5554584135, "contribution": 90890.6506505719, "vessel_teu": 139, "vessel_cm_per_teu": 519.58, "cm_per_teu": 653.8895730256971, "vs_vessel_pct": 25.84964260088862}, {"DEL Code": "SDPZU", "teu": 139.0, "teu_20gp": 2.0, "teu_40hc": 116.0, "revenue": 373352.46890183666, "contribution": 90296.527961781, "vessel_teu": 139, "vessel_cm_per_teu": 676.1, "cm_per_teu": 649.6153090775613, "vs_vessel_pct": -3.917274208318111}, {"DEL Code": "YEADE", "teu": 115.0, "teu_20gp": 0.0, "teu_40hc": 98.0, "revenue": 324325.1834978505, "contribution": 100424.4219758204, "vessel_teu": 115, "vessel_cm_per_teu": 847.68, "cm_per_teu": 873.2558432680034, "vs_vessel_pct": 3.0171578034168034}, {"DEL Code": "PKKHI", "teu": 108.0, "teu_20gp": 0.0, "teu_40hc": 96.0, "revenue": 110240.5319014495, "contribution": 77262.8850915275, "vessel_teu": 108, "vessel_cm_per_teu": 711.64, "cm_per_teu": 715.3970841808103, "vs_vessel_pct": 0.5279473021205128}, {"DEL Code": "DJJIB", "teu": 102.0, "teu_20gp": 6.0, "teu_40hc": 56.0, "revenue": 219461.6615375651, "contribution": 101865.2991185196, "vessel_teu": 102, "vessel_cm_per_teu": 988.97, "cm_per_teu": 998.6794031227411, "vs_vessel_pct": 0.9817692268462075}, {"DEL Code": "INDER", "teu": 31.0, "teu_20gp": 0.0, "teu_40hc": 30.0, "revenue": 43482.719762920104, "contribution": 25609.9990125619, "vessel_teu": 31, "vessel_cm_per_teu": 786.73, "cm_per_teu": 826.1290004052227, "vs_vessel_pct": 5.007944327179925}, {"DEL Code": "INSSA", "teu": 20.0, "teu_20gp": 0.0, "teu_40hc": 20.0, "revenue": 19579.2124399283, "contribution": 14273.305827244, "vessel_teu": 20, "vessel_cm_per_teu": 706.51, "cm_per_teu": 713.6652913621999, "vs_vessel_pct": 1.0127657587578387}, {"DEL Code": "JOAQJ", "teu": 11.0, "teu_20gp": 0.0, "teu_40hc": 2.0, "revenue": 35564.4002712108, "contribution": 16771.9682417335, "vessel_teu": 11, "vessel_cm_per_teu": 1531.15, "cm_per_teu": 1524.7243856121363, "vs_vessel_pct": -0.4196593663497228}, {"DEL Code": "SADMM", "teu": 2.0, "teu_20gp": 0.0, "teu_40hc": 0.0, "revenue": 10737.2082092348, "contribution": 8242.3684069803, "vessel_teu": 2, "vessel_cm_per_teu": 4082.11, "cm_per_teu": 4121.18420349015, "vs_vessel_pct": 0.9572060402622595}, {"DEL Code": "AESCT", "teu": 2.0, "teu_20gp": 0.0, "teu_40hc": 2.0, "revenue": 7407.0141880136, "contribution": 6372.8388490791, "vessel_teu": 2, "vessel_cm_per_teu": 3095.81, "cm_per_teu": 3186.41942453955, "vs_vessel_pct": 2.9268406181112594}, {"DEL Code": "SARUH", "teu": 1.0, "teu_20gp": 0.0, "teu_40hc": 0.0, "revenue": 5448.6409874727, "contribution": 4172.8780863454, "vessel_teu": 1, "vessel_cm_per_teu": 4084.06, "cm_per_teu": 4172.8780863454, "vs_vessel_pct": 2.1747497917611547}, {"DEL Code": "INNSA", "teu": 0.0, "teu_20gp": 0.0, "teu_40hc": 0.0, "revenue": 0.0, "contribution": 0.0, "vessel_teu": 0, "vessel_cm_per_teu": 0.0, "cm_per_teu": 0.0, "vs_vessel_pct": NaN}], "level3": [{"POL Code": "CNSWA", "teu": 8.0, "revenue": 28521.6453747736, "contribution": 23441.4282110852, "cm_per_teu": 2930.17852638565, "combined_oft_avg": 2562.5, "vs_vessel_pct": 32.42368144263648}, {"POL Code": "CNNGB", "teu": 612.0, "revenue": 2063575.4317221432, "contribution": 1744450.2538684562, "cm_per_teu": 2850.4089115497645, "combined_oft_avg": 2376.2527710191944, "vs_vessel_pct": 28.81864988271341}, {"POL Code": "CNSHK", "teu": 1353.0, "revenue": 4171880.6897774287, "contribution": 3455648.4738322836, "cm_per_teu": 2554.063912662442, "combined_oft_avg": 2185.4838745646416, "vs_vessel_pct": 15.425917878025874}, {"POL Code": "CNSHA", "teu": 1245.0, "revenue": 3668708.843710185, "contribution": 2611390.636339342, "cm_per_teu": 2097.502519148066, "combined_oft_avg": 2932.4696401023566, "vs_vessel_pct": -5.207480390826458}, {"POL Code": "CNTAO", "teu": 1387.0, "revenue": 3779224.3441077294, "contribution": 2635311.4754675296, "cm_per_teu": 1900.0082735887027, "combined_oft_avg": 1878.33865929007, "vs_vessel_pct": -14.132846140798804}, {"POL Code": "CNXMN", "teu": 160.0, "revenue": 458418.46253581694, "contribution": 255776.7902626097, "cm_per_teu": 1598.6049391413103, "combined_oft_avg": 4787.589285714286, "vs_vessel_pct": -27.754179717303494}, {"POL Code": "CNXGG", "teu": 348.0, "revenue": 947280.7861528179, "contribution": 538213.4182636618, "cm_per_teu": 1546.5902823668441, "combined_oft_avg": 6429.898705096074, "vs_vessel_pct": -30.10488028964925}], "level4": [{"POL Code": "CNSHK", "DEL Code": "AEJEA", "TEU_20GP": 92.0, "TEU_40HC": 406.0, "Total_TEU": 498.0, "Combined_OFT_Avg": 3485.843373493976, "CM_TEU": 575.0, "Revenue": 2251563.1268122876, "TotalContribution": 1961999.878890636, "CM_Per_TEU": 3412.173702418497, "Vessel_Per_TEU": 3241.56, "vs_Vessel_Pct": 5.263320821409967, "POL_Per_TEU": 3372.27, "vs_POL_Pct": 1.1832890728944445}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "TEU_20GP": 72.0, "TEU_40HC": 350.0, "Total_TEU": 430.0, "Combined_OFT_Avg": 3228.4883720930234, "CM_TEU": 476.0, "Revenue": 1810920.6989729314, "TotalContribution": 1572236.5537508738, "CM_Per_TEU": 3303.017970064861, "Vessel_Per_TEU": 3241.56, "vs_Vessel_Pct": 1.8959380688576166, "POL_Per_TEU": 3271.17, "vs_POL_Pct": 0.9735956879300289}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "TEU_20GP": 0.0, "TEU_40HC": 338.0, "Total_TEU": 338.0, "Combined_OFT_Avg": 3644.6745562130177, "CM_TEU": 429.0, "Revenue": 1629540.6543920827, "TotalContribution": 1397056.4172596617, "CM_Per_TEU": 3256.5417651740368, "Vessel_Per_TEU": 3241.56, "vs_Vessel_Pct": 0.46217762972262655, "POL_Per_TEU": 3208.88, "vs_POL_Pct": 1.4853084307931974}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "TEU_20GP": 0.0, "TEU_40HC": 270.0, "Total_TEU": 270.0, "Combined_OFT_Avg": 2904.074074074074, "CM_TEU": 280.0, "Revenue": 1026125.7683530544, "TotalContribution": 892742.6382001129, "CM_Per_TEU": 3188.366565000403, "Vessel_Per_TEU": 3241.56, "vs_Vessel_Pct": -1.6409825824478586, "POL_Per_TEU": 3149.89, "vs_POL_Pct": 1.2215209102668156}, {"POL Code": "CNXGG", "DEL Code": "AEJEA", "TEU_20GP": 2.0, "TEU_40HC": 22.0, "Total_TEU": 24.0, "Combined_OFT_Avg": 10091.666666666666, "CM_TEU": 69.0, "Revenue": 261806.53384284812, "TotalContribution": 219895.3016425589, "CM_Per_TEU": 3186.8884296023025, "Vessel_Per_TEU": 3241.56, "vs_Vessel_Pct": -1.686582090033728, "POL_Per_TEU": 3137.34, "vs_POL_Pct": 1.5793133546986304}, {"POL Code": "CNXMN", "DEL Code": "AEJEA", "TEU_20GP": 12.0, "TEU_40HC": 30.0, "Total_TEU": 42.0, "Combined_OFT_Avg": 2863.095238095238, "CM_TEU": 43.0, "Revenue": 152869.1705784854, "TotalContribution": 124713.42353851169, "CM_Per_TEU": 2900.3121753142254, "Vessel_Per_TEU": 3241.56, "vs_Vessel_Pct": -10.52727158176232, "POL_Per_TEU": 2853.91, "vs_POL_Pct": 1.6259158597932588}, {"POL Code": "CNSWA", "DEL Code": "AEJEA", "TEU_20GP": 0.0, "TEU_40HC": 8.0, "Total_TEU": 8.0, "Combined_OFT_Avg": 2562.5, "CM_TEU": 8.0, "Revenue": 28521.6453747736, "TotalContribution": 23441.4282110852, "CM_Per_TEU": 2930.17852638565, "Vessel_Per_TEU": 3241.56, "vs_Vessel_Pct": -9.605914239265967, "POL_Per_TEU": 2866.64, "vs_POL_Pct": 2.216480841181667}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "TEU_20GP": 14.0, "TEU_40HC": 372.0, "Total_TEU": 386.0, "Combined_OFT_Avg": 2698.4455958549224, "CM_TEU": 434.0, "Revenue": 1428295.999665065, "TotalContribution": 1212396.4763248046, "CM_Per_TEU": 2793.5402680295037, "Vessel_Per_TEU": 2828.31, "vs_Vessel_Pct": -1.2293465698772876, "POL_Per_TEU": 2756.86, "vs_POL_Pct": 1.3305089133834658}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "TEU_20GP": 0.0, "TEU_40HC": 274.0, "Total_TEU": 274.0, "Combined_OFT_Avg": 2627.189781021898, "CM_TEU": 305.0, "Revenue": 976770.5387911709, "TotalContribution": 831282.0921958322, "CM_Per_TEU": 2725.5150563797774, "Vessel_Per_TEU": 2828.31, "vs_Vessel_Pct": -3.634500589405776, "POL_Per_TEU": 2702.83, "vs_POL_Pct": 0.8393075546659468}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "TEU_20GP": 0.0, "TEU_40HC": 196.0, "Total_TEU": 196.0, "Combined_OFT_Avg": 3831.6326530612246, "CM_TEU": 282.0, "Revenue": 1005026.853301428, "TotalContribution": 848148.8238013833, "CM_Per_TEU": 3007.6199425580967, "Vessel_Per_TEU": 2828.31, "vs_Vessel_Pct": 6.339826347115296, "POL_Per_TEU": 2974.84, "vs_POL_Pct": 1.1019060708507444}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "TEU_20GP": 8.0, "TEU_40HC": 154.0, "Total_TEU": 162.0, "Combined_OFT_Avg": 3093.8271604938273, "CM_TEU": 201.0, "Revenue": 686387.9421820418, "TotalContribution": 581661.8276413671, "CM_Per_TEU": 2893.8399385142643, "Vessel_Per_TEU": 2828.31, "vs_Vessel_Pct": 2.316929138399404, "POL_Per_TEU": 2856.31, "vs_POL_Pct": 1.3139308588446141}, {"POL Code": "CNXGG", "DEL Code": "AEKLF", "TEU_20GP": 0.0, "TEU_40HC": 10.0, "Total_TEU": 10.0, "Combined_OFT_Avg": 10060.0, "CM_TEU": 32.0, "Revenue": 110353.38490270611, "TotalContribution": 90574.0971335455, "CM_Per_TEU": 2830.4405354232968, "Vessel_Per_TEU": 2828.31, "vs_Vessel_Pct": 0.07532892162800398, "POL_Per_TEU": 2769.23, "vs_POL_Pct": 2.2103810598360196}, {"POL Code": "CNXMN", "DEL Code": "AEKLF", "TEU_20GP": 0.0, "TEU_40HC": 4.0, "Total_TEU": 4.0, "Combined_OFT_Avg": 5062.5, "CM_TEU": 7.0, "Revenue": 24954.171502579, "TotalContribution": 19942.0055579677, "CM_Per_TEU": 2848.8579368525284, "Vessel_Per_TEU": 2828.31, "vs_Vessel_Pct": 0.726509359035199, "POL_Per_TEU": 2771.12, "vs_POL_Pct": 2.805289444431436}, {"POL Code": "CNSHK", "DEL Code": "AESCT", "TEU_20GP": 0.0, "TEU_40HC": 2.0, "Total_TEU": 2.0, "Combined_OFT_Avg": 2750.0, "CM_TEU": 2.0, "Revenue": 7407.0141880136, "TotalContribution": 6372.8388490791, "CM_Per_TEU": 3186.41942453955, "Vessel_Per_TEU": 3095.81, "vs_Vessel_Pct": 2.9268406181112594, "POL_Per_TEU": 3095.81, "vs_POL_Pct": 2.9268406181112594}, {"POL Code": "CNSHA", "DEL Code": "DJJIB", "TEU_20GP": 6.0, "TEU_40HC": 6.0, "Total_TEU": 12.0, "Combined_OFT_Avg": 9129.166666666666, "CM_TEU": 51.0, "Revenue": 121601.9696916712, "TotalContribution": 57851.394512223604, "CM_Per_TEU": 1134.3410688671295, "Vessel_Per_TEU": 988.97, "vs_Vessel_Pct": 14.699239498380079, "POL_Per_TEU": 1124.99, "vs_POL_Pct": 0.8312135100871476}, {"POL Code": "CNTAO", "DEL Code": "DJJIB", "TEU_20GP": 0.0, "TEU_40HC": 36.0, "Total_TEU": 36.0, "Combined_OFT_Avg": 1750.0, "CM_TEU": 36.0, "Revenue": 68659.86133939499, "TotalContribution": 32186.2447593992, "CM_Per_TEU": 894.0623544277555, "Vessel_Per_TEU": 988.97, "vs_Vessel_Pct": -9.59661522313564, "POL_Per_TEU": 888.95, "vs_POL_Pct": 0.5751003349744543}, {"POL Code": "CNNGB", "DEL Code": "DJJIB", "TEU_20GP": 0.0, "TEU_40HC": 14.0, "Total_TEU": 14.0, "Combined_OFT_Avg": 1700.0, "CM_TEU": 14.0, "Revenue": 26268.7037360845, "TotalContribution": 10238.541466327799, "CM_Per_TEU": 731.3243904519857, "Vessel_Per_TEU": 988.97, "vs_Vessel_Pct": -26.0519135613835, "POL_Per_TEU": 716.89, "vs_POL_Pct": 2.0134735387556946}, {"POL Code": "CNXGG", "DEL Code": "DJJIB", "TEU_20GP": 0.0, "TEU_40HC": 0.0, "Total_TEU": 0.0, "Combined_OFT_Avg": 0.0, "CM_TEU": 1.0, "Revenue": 2931.1267704144, "TotalContribution": 1589.118380569, "CM_Per_TEU": 1589.118380569, "Vessel_Per_TEU": 988.97, "vs_Vessel_Pct": 60.68418461318341, "POL_Per_TEU": 1462.04, "vs_POL_Pct": 8.691853886966161}, {"POL Code": "CNTAO", "DEL Code": "EGSOK", "TEU_20GP": 0.0, "TEU_40HC": 90.0, "Total_TEU": 90.0, "Combined_OFT_Avg": 1671.111111111111, "CM_TEU": 90.0, "Revenue": 159530.94247246018, "TotalContribution": 53637.8181709778, "CM_Per_TEU": 595.9757574553089, "Vessel_Per_TEU": 519.58, "vs_Vessel_Pct": 14.703367615248641, "POL_Per_TEU": 465.38, "vs_POL_Pct": 28.062176598759912}, {"POL Code": "CNSHA", "DEL Code": "EGSOK", "TEU_20GP": 0.0, "TEU_40HC": 44.0, "Total_TEU": 44.0, "Combined_OFT_Avg": 1700.0, "CM_TEU": 44.0, "Revenue": 82517.6487730956, "TotalContribution": 31289.5763158855, "CM_Per_TEU": 711.1267344519432, "Vessel_Per_TEU": 519.58, "vs_Vessel_Pct": 36.86568660301457, "POL_Per_TEU": 581.27, "vs_POL_Pct": 22.340174867435646}, {"POL Code": "CNXGG", "DEL Code": "EGSOK", "TEU_20GP": 0.0, "TEU_40HC": 2.0, "Total_TEU": 2.0, "Combined_OFT_Avg": 5425.0, "CM_TEU": 5.0, "Revenue": 12181.9642128577, "TotalContribution": 5963.2561637086, "CM_Per_TEU": 1192.65123274172, "Vessel_Per_TEU": 519.58, "vs_Vessel_Pct": 129.54140512369986, "POL_Per_TEU": 952.37, "vs_POL_Pct": 25.229819580805767}, {"POL Code": "CNSHA", "DEL Code": "INDER", "TEU_20GP": 0.0, "TEU_40HC": 30.0, "Total_TEU": 30.0, "Combined_OFT_Avg": 1059.1666666666667, "CM_TEU": 31.0, "Revenue": 43482.719762920104, "TotalContribution": 25609.9990125619, "CM_Per_TEU": 826.1290004052227, "Vessel_Per_TEU": 786.73, "vs_Vessel_Pct": 5.007944327179925, "POL_Per_TEU": 786.73, "vs_POL_Pct": 5.007944327179925}, {"POL Code": "CNSHK", "DEL Code": "INMUN", "TEU_20GP": 0.0, "TEU_40HC": 116.0, "Total_TEU": 116.0, "Combined_OFT_Avg": 1250.0, "CM_TEU": 116.0, "Revenue": 157681.90022464498, "TotalContribution": 123129.67646951419, "CM_Per_TEU": 1061.462728185467, "Vessel_Per_TEU": 845.68, "vs_Vessel_Pct": 25.515884044256353, "POL_Per_TEU": 1061.46, "vs_POL_Pct": 0.00025702197605781407}, {"POL Code": "CNTAO", "DEL Code": "INMUN", "TEU_20GP": 0.0, "TEU_40HC": 66.0, "Total_TEU": 66.0, "Combined_OFT_Avg": 550.0, "CM_TEU": 66.0, "Revenue": 55716.990164373405, "TotalContribution": 32745.2033453984, "CM_Per_TEU": 496.1394446272485, "Vessel_Per_TEU": 845.68, "vs_Vessel_Pct": -41.33248455358427, "POL_Per_TEU": 485.85, "vs_POL_Pct": 2.1178233255631396}, {"POL Code": "CNXGG", "DEL Code": "JOAQJ", "TEU_20GP": 0.0, "TEU_40HC": 0.0, "Total_TEU": 0.0, "Combined_OFT_Avg": 0.0, "CM_TEU": 9.0, "Revenue": 29789.7974616775, "TotalContribution": 13862.4834425866, "CM_Per_TEU": 1540.2759380651778, "Vessel_Per_TEU": 1531.15, "vs_Vessel_Pct": 0.596018552406874, "POL_Per_TEU": 1551.64, "vs_POL_Pct": -0.7323903698552736}, {"POL Code": "CNSHK", "DEL Code": "MYPKG", "TEU_20GP": 0.0, "TEU_40HC": 130.0, "Total_TEU": 130.0, "Combined_OFT_Avg": 750.0, "CM_TEU": 130.0, "Revenue": 112926.1765299926, "TotalContribution": 82667.2197362367, "CM_Per_TEU": 635.9016902787439, "Vessel_Per_TEU": 620.32, "vs_Vessel_Pct": 2.5118793975277054, "POL_Per_TEU": 635.9, "vs_POL_Pct": 0.00026580889194161017}, {"POL Code": "CNTAO", "DEL Code": "MYPKG", "TEU_20GP": 0.0, "TEU_40HC": 12.0, "Total_TEU": 12.0, "Combined_OFT_Avg": 500.0, "CM_TEU": 12.0, "Revenue": 8975.541521576, "TotalContribution": 5694.5912359706, "CM_Per_TEU": 474.54926966421664, "Vessel_Per_TEU": 620.32, "vs_Vessel_Pct": -23.499279458309164, "POL_Per_TEU": 451.53, "vs_POL_Pct": 5.098059855207104}, {"POL Code": "CNTAO", "DEL Code": "PKKHI", "TEU_20GP": 0.0, "TEU_40HC": 46.0, "Total_TEU": 46.0, "Combined_OFT_Avg": 941.304347826087, "CM_TEU": 58.0, "Revenue": 62403.322841989, "TotalContribution": 43597.6072288224, "CM_Per_TEU": 751.6828832555586, "Vessel_Per_TEU": 711.64, "vs_Vessel_Pct": 5.626845491478649, "POL_Per_TEU": 740.04, "vs_POL_Pct": 1.5732775600722393}, {"POL Code": "CNSHA", "DEL Code": "PKKHI", "TEU_20GP": 0.0, "TEU_40HC": 48.0, "Total_TEU": 48.0, "Combined_OFT_Avg": 661.4583333333334, "CM_TEU": 48.0, "Revenue": 46169.6162499272, "TotalContribution": 32474.8455888152, "CM_Per_TEU": 676.5592831003166, "Vessel_Per_TEU": 711.64, "vs_Vessel_Pct": -4.929559454173926, "POL_Per_TEU": 683.9, "vs_POL_Pct": -1.0733611492445339}, {"POL Code": "CNSHA", "DEL Code": "SADMM", "TEU_20GP": 0.0, "TEU_40HC": 0.0, "Total_TEU": 0.0, "Combined_OFT_Avg": 0.0, "CM_TEU": 2.0, "Revenue": 10737.2082092348, "TotalContribution": 8242.3684069803, "CM_Per_TEU": 4121.18420349015, "Vessel_Per_TEU": 4082.11, "vs_Vessel_Pct": 0.9572060402622595, "POL_Per_TEU": 4082.11, "vs_POL_Pct": 0.9572060402622595}, {"POL Code": "CNTAO", "DEL Code": "SAJED", "TEU_20GP": 0.0, "TEU_40HC": 344.0, "Total_TEU": 344.0, "Combined_OFT_Avg": 1607.5581395348838, "CM_TEU": 358.0, "Revenue": 647623.2221391541, "TotalContribution": 191855.8762213185, "CM_Per_TEU": 535.9102687746326, "Vessel_Per_TEU": 712.99, "vs_Vessel_Pct": -24.836215266044036, "POL_Per_TEU": 530.17, "vs_POL_Pct": 1.0827222918370794}, {"POL Code": "CNSHA", "DEL Code": "SAJED", "TEU_20GP": 2.0, "TEU_40HC": 252.0, "Total_TEU": 254.0, "Combined_OFT_Avg": 2007.6771653543308, "CM_TEU": 293.0, "Revenue": 601037.8980069617, "TotalContribution": 228680.9870543364, "CM_Per_TEU": 780.4811844857898, "Vessel_Per_TEU": 712.99, "vs_Vessel_Pct": 9.465937037797122, "POL_Per_TEU": 769.61, "vs_POL_Pct": 1.412557592259689}, {"POL Code": "CNXGG", "DEL Code": "SAJED", "TEU_20GP": 0.0, "TEU_40HC": 152.0, "Total_TEU": 152.0, "Combined_OFT_Avg": 2497.3684210526317, "CM_TEU": 204.0, "Revenue": 443980.6118610496, "TotalContribution": 178190.5169432968, "CM_Per_TEU": 873.4829261926313, "Vessel_Per_TEU": 712.99, "vs_Vessel_Pct": 22.509842521302037, "POL_Per_TEU": 850.83, "vs_POL_Pct": 2.662450335863964}, {"POL Code": "CNXMN", "DEL Code": "SAJED", "TEU_20GP": 0.0, "TEU_40HC": 70.0, "Total_TEU": 70.0, "Combined_OFT_Avg": 2541.4285714285716, "CM_TEU": 89.0, "Revenue": 205504.0648770438, "TotalContribution": 82349.8263271168, "CM_Per_TEU": 925.2789474956943, "Vessel_Per_TEU": 712.99, "vs_Vessel_Pct": 29.774463526233784, "POL_Per_TEU": 900.99, "vs_POL_Pct": 2.6958065567536105}, {"POL Code": "CNSHK", "DEL Code": "SAJED", "TEU_20GP": 0.0, "TEU_40HC": 58.0, "Total_TEU": 58.0, "Combined_OFT_Avg": 1821.551724137931, "CM_TEU": 61.0, "Revenue": 125147.3774551509, "TotalContribution": 48473.7947011868, "CM_Per_TEU": 794.6523721506034, "Vessel_Per_TEU": 712.99, "vs_Vessel_Pct": 11.453508765985966, "POL_Per_TEU": 766.25, "vs_POL_Pct": 3.706671732542044}, {"POL Code": "CNNGB", "DEL Code": "SAJED", "TEU_20GP": 0.0, "TEU_40HC": 0.0, "Total_TEU": 0.0, "Combined_OFT_Avg": 0.0, "CM_TEU": 1.0, "Revenue": 2957.9720189072, "TotalContribution": 1553.7123505764, "CM_Per_TEU": 1553.7123505764, "Vessel_Per_TEU": 712.99, "vs_Vessel_Pct": 117.91502693956434, "POL_Per_TEU": 1464.9, "vs_POL_Pct": 6.062690325373743}, {"POL Code": "CNSHA", "DEL Code": "SARUH", "TEU_20GP": 0.0, "TEU_40HC": 0.0, "Total_TEU": 0.0, "Combined_OFT_Avg": 0.0, "CM_TEU": 1.0, "Revenue": 5448.6409874727, "TotalContribution": 4172.8780863454, "CM_Per_TEU": 4172.8780863454, "Vessel_Per_TEU": 4084.06, "vs_Vessel_Pct": 2.1747497917611547, "POL_Per_TEU": 4084.06, "vs_POL_Pct": 2.1747497917611547}, {"POL Code": "CNTAO", "DEL Code": "SDPZU", "TEU_20GP": 0.0, "TEU_40HC": 50.0, "Total_TEU": 50.0, "Combined_OFT_Avg": 2321.0, "CM_TEU": 51.0, "Revenue": 127568.1038632305, "TotalContribution": 26092.416969126498, "CM_Per_TEU": 511.61601900248036, "Vessel_Per_TEU": 676.1, "vs_Vessel_Pct": -24.32835098321545, "POL_Per_TEU": 554.33, "vs_POL_Pct": -7.705514945523362}, {"POL Code": "CNSHA", "DEL Code": "SDPZU", "TEU_20GP": 2.0, "TEU_40HC": 26.0, "Total_TEU": 28.0, "Combined_OFT_Avg": 3078.5714285714284, "CM_TEU": 36.0, "Revenue": 97225.4998830795, "TotalContribution": 23309.885464534298, "CM_Per_TEU": 647.496818459286, "Vessel_Per_TEU": 676.1, "vs_Vessel_Pct": -4.230614042407044, "POL_Per_TEU": 666.48, "vs_POL_Pct": -2.84827474803655}, {"POL Code": "CNSHK", "DEL Code": "SDPZU", "TEU_20GP": 0.0, "TEU_40HC": 22.0, "Total_TEU": 22.0, "Combined_OFT_Avg": 2361.3636363636365, "CM_TEU": 23.0, "Revenue": 58073.134361387, "TotalContribution": 12477.2154224084, "CM_Per_TEU": 542.4876270612348, "Vessel_Per_TEU": 676.1, "vs_Vessel_Pct": -19.762220520450413, "POL_Per_TEU": 573.18, "vs_POL_Pct": -5.354752946502872}, {"POL Code": "CNXGG", "DEL Code": "SDPZU", "TEU_20GP": 0.0, "TEU_40HC": 14.0, "Total_TEU": 14.0, "Combined_OFT_Avg": 3617.8571428571427, "CM_TEU": 19.0, "Revenue": 56501.8486539834, "TotalContribution": 16912.2409730696, "CM_Per_TEU": 890.1179459510316, "Vessel_Per_TEU": 676.1, "vs_Vessel_Pct": 31.654776800921702, "POL_Per_TEU": 880.85, "vs_POL_Pct": 1.0521593859376344}, {"POL Code": "CNXMN", "DEL Code": "SDPZU", "TEU_20GP": 0.0, "TEU_40HC": 0.0, "Total_TEU": 0.0, "Combined_OFT_Avg": 0.0, "CM_TEU": 5.0, "Revenue": 19374.7858335808, "TotalContribution": 7424.6248582551, "CM_Per_TEU": 1484.9249716510199, "Vessel_Per_TEU": 676.1, "vs_Vessel_Pct": 119.63096755672531, "POL_Per_TEU": 1517.41, "vs_POL_Pct": -2.140820763602469}, {"POL Code": "CNNGB", "DEL Code": "SDPZU", "TEU_20GP": 0.0, "TEU_40HC": 2.0, "Total_TEU": 2.0, "Combined_OFT_Avg": 2200.0, "CM_TEU": 2.0, "Revenue": 4943.7430468579, "TotalContribution": 1009.3943139497, "CM_Per_TEU": 504.69715697485, "Vessel_Per_TEU": 676.1, "vs_Vessel_Pct": -25.351699900184887, "POL_Per_TEU": 524.83, "vs_POL_Pct": -3.836069398691022}, {"POL Code": "CNSHA", "DEL Code": "YEADE", "TEU_20GP": 0.0, "TEU_40HC": 62.0, "Total_TEU": 62.0, "Combined_OFT_Avg": 2433.8709677419356, "CM_TEU": 62.0, "Revenue": 163179.0009908493, "TotalContribution": 45860.3205054185, "CM_Per_TEU": 739.6825887970726, "Vessel_Per_TEU": 847.68, "vs_Vessel_Pct": -12.740351453723964, "POL_Per_TEU": 723.77, "vs_POL_Pct": 2.1985698215002847}, {"POL Code": "CNXMN", "DEL Code": "YEADE", "TEU_20GP": 0.0, "TEU_40HC": 6.0, "Total_TEU": 6.0, "Combined_OFT_Avg": 8683.333333333334, "CM_TEU": 16.0, "Revenue": 55716.2697441279, "TotalContribution": 21346.9099807584, "CM_Per_TEU": 1334.1818737974, "Vessel_Per_TEU": 847.68, "vs_Vessel_Pct": 57.392161404940545, "POL_Per_TEU": 1295.78, "vs_POL_Pct": 2.96361062814674}, {"POL Code": "CNSHK", "DEL Code": "YEADE", "TEU_20GP": 0.0, "TEU_40HC": 12.0, "Total_TEU": 12.0, "Combined_OFT_Avg": 2366.6666666666665, "CM_TEU": 12.0, "Revenue": 30785.960540887303, "TotalContribution": 8131.3734384181, "CM_Per_TEU": 677.6144532015084, "Vessel_Per_TEU": 847.68, "vs_Vessel_Pct": -20.062470130059886, "POL_Per_TEU": 654.7, "vs_POL_Pct": 3.4999928519181767}, {"POL Code": "CNNGB", "DEL Code": "YEADE", "TEU_20GP": 0.0, "TEU_40HC": 10.0, "Total_TEU": 10.0, "Combined_OFT_Avg": 2450.0, "CM_TEU": 10.0, "Revenue": 26508.7057760683, "TotalContribution": 7623.8753416572, "CM_Per_TEU": 762.38753416572, "Vessel_Per_TEU": 847.68, "vs_Vessel_Pct": -10.061870733564549, "POL_Per_TEU": 732.76, "vs_POL_Pct": 4.043279404678213}, {"POL Code": "CNXGG", "DEL Code": "YEADE", "TEU_20GP": 0.0, "TEU_40HC": 4.0, "Total_TEU": 4.0, "Combined_OFT_Avg": 6887.5, "CM_TEU": 9.0, "Revenue": 29735.518447281098, "TotalContribution": 11226.4035843268, "CM_Per_TEU": 1247.378176036311, "Vessel_Per_TEU": 847.68, "vs_Vessel_Pct": 47.15201208431379, "POL_Per_TEU": 1194.4, "vs_POL_Pct": 4.435547223401781}, {"POL Code": "CNTAO", "DEL Code": "YEADE", "TEU_20GP": 0.0, "TEU_40HC": 4.0, "Total_TEU": 4.0, "Combined_OFT_Avg": 3262.5, "CM_TEU": 5.0, "Revenue": 14178.8520720406, "TotalContribution": 4296.4764754714, "CM_Per_TEU": 859.2952950942799, "Vessel_Per_TEU": 847.68, "vs_Vessel_Pct": 1.3702452687665234, "POL_Per_TEU": 809.52, "vs_POL_Pct": 6.148741858666851}], "level5": [{"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "DP WORLD CHINA CO., LTD", "TEU": 67, "Revenue": 309218.2911999246, "TotalContribution": 268661.202362084, "CM_Per_TEU": 4009.868691971403}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "Shipper": "SINOTRANS CENTRAL CHINA CO.,LTD", "TEU": 70, "Revenue": 287924.7073238734, "TotalContribution": 244599.427596197, "CM_Per_TEU": 3494.2775370885283}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "NINGBO PORT SOUTHEAST LOGISTCS GROUP CO.,LTD", "TEU": 68, "Revenue": 262418.4922407752, "TotalContribution": 228120.2235346024, "CM_Per_TEU": 3354.709169626506}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "LAVINSTAR CHINA PRIVATE LIMITED", "TEU": 42, "Revenue": 245158.0325318764, "TotalContribution": 218387.8629717233, "CM_Per_TEU": 5199.711023136269}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "SHENZHEN GREEN CHANNEL LOGISTICS CO., LTD", "TEU": 78, "Revenue": 248061.376807455, "TotalContribution": 209768.3904726958, "CM_Per_TEU": 2689.338339393536}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "DP WORLD CHINA CO., LTD", "TEU": 67, "Revenue": 230456.29157880248, "TotalContribution": 198828.0167069139, "CM_Per_TEU": 2967.582338909163}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD", "TEU": 60, "Revenue": 220422.6415420079, "TotalContribution": 191082.48295175802, "CM_Per_TEU": 3184.708049195967}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "LONGSAIL SUPPLY CHAIN CO.,LTD", "TEU": 60, "Revenue": 214569.78671658563, "TotalContribution": 186660.0765485478, "CM_Per_TEU": 3111.00127580913}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "SHENZHEN GREEN CHANNEL LOGISTICS CO., LTD", "TEU": 53, "Revenue": 213354.728457054, "TotalContribution": 185480.7339518901, "CM_Per_TEU": 3499.636489658304}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "DP WORLD CHINA CO., LTD", "TEU": 74, "Revenue": 211869.815157619, "TotalContribution": 179076.03270095668, "CM_Per_TEU": 2419.946387850766}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "UNITEX INTERNATIONAL FORWARDING(GUANGZHOU)LIMITED", "TEU": 53, "Revenue": 205851.4513259674, "TotalContribution": 178902.2160534252, "CM_Per_TEU": 3375.5135104419846}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "SINOOCEAN GROUP LTD", "TEU": 52, "Revenue": 200079.5782627388, "TotalContribution": 173642.1272178197, "CM_Per_TEU": 3339.2716772657636}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "MILLENNIUM LOGISTICS (SHENZHEN) LTD", "TEU": 53, "Revenue": 198287.825349638, "TotalContribution": 172748.4581934056, "CM_Per_TEU": 3259.4048715736903}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "SINOOCEAN GROUP LTD", "TEU": 61, "Revenue": 200367.7799862043, "TotalContribution": 169990.6074742348, "CM_Per_TEU": 2786.731270069423}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "WORLDWIDE LOGISTICS CO.,LTD", "TEU": 53, "Revenue": 193527.6422171221, "TotalContribution": 168331.8750608891, "CM_Per_TEU": 3176.0731143563985}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD", "TEU": 63, "Revenue": 194669.87822851288, "TotalContribution": 165656.0883840951, "CM_Per_TEU": 2629.4617203824623}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "Unitex Int'l Forwarding MED (Qingdao) Ltd", "TEU": 54, "Revenue": 189037.8353910324, "TotalContribution": 161010.0490653897, "CM_Per_TEU": 2981.6675752849947}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "WORLDWIDE LOGISTICS CO.,LTD", "TEU": 58, "Revenue": 180472.5248379436, "TotalContribution": 153184.5668925299, "CM_Per_TEU": 2641.1132222849983}, {"POL Code": "CNXGG", "DEL Code": "AEJEA", "Shipper": "Shenzhen United Logistics Development Co.,Ltd", "TEU": 45, "Revenue": 179318.3194013912, "TotalContribution": 151291.9122227345, "CM_Per_TEU": 3362.0424938385445}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD", "TEU": 47, "Revenue": 172404.6563648275, "TotalContribution": 150342.3335186828, "CM_Per_TEU": 3198.773053588996}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "DP WORLD CHINA CO., LTD", "TEU": 49, "Revenue": 170263.7016558883, "TotalContribution": 146409.8012938362, "CM_Per_TEU": 2987.955128445637}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "Shipper": "QINGDAO DSI LOGISTICS CO.,LTD", "TEU": 55, "Revenue": 174375.6080576885, "TotalContribution": 146397.9054354335, "CM_Per_TEU": 2661.7800988260637}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "SINOTRANS CENTRAL CHINA CO.,LTD", "TEU": 45, "Revenue": 171175.0202432143, "TotalContribution": 146013.1321554408, "CM_Per_TEU": 3244.7362701209067}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD", "TEU": 44, "Revenue": 157007.5132489133, "TotalContribution": 136988.5999233302, "CM_Per_TEU": 3113.3772709847776}, {"POL Code": "CNSHA", "DEL Code": "SAJED", "Shipper": "YQN South-Logistics (Shanghai) Co., Ltd", "TEU": 183, "Revenue": 363180.1145303193, "TotalContribution": 131976.7937468694, "CM_Per_TEU": 721.1846652834394}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "QINGDAO EASTON CARGO LOGISTICS CO,LTD", "TEU": 48, "Revenue": 147448.3874603268, "TotalContribution": 125417.0993258966, "CM_Per_TEU": 2612.8562359561793}, {"POL Code": "CNSHK", "DEL Code": "INMUN", "Shipper": "ExxonMobil Chemical Asia Pacific  ", "TEU": 116, "Revenue": 157681.90022464498, "TotalContribution": 123129.67646951419, "CM_Per_TEU": 1061.462728185467}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "UNICORN SUPPLY CHAIN (SHENZHEN) CO., LTD", "TEU": 31, "Revenue": 137713.7296753014, "TotalContribution": 118018.86761899779, "CM_Per_TEU": 3807.060245774122}, {"POL Code": "CNTAO", "DEL Code": "SAJED", "Shipper": "United Ocean International Logistics (GUANGZHOU)Co.,Ltd", "TEU": 236, "Revenue": 414301.2579039534, "TotalContribution": 115478.3604841335, "CM_Per_TEU": 489.31508679717587}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD", "TEU": 34, "Revenue": 124271.394274301, "TotalContribution": 108323.2083961022, "CM_Per_TEU": 3185.9767175324178}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "SINOTRANS ZHEJIANG CO.,LTD", "TEU": 32, "Revenue": 120224.1874538759, "TotalContribution": 104618.732642422, "CM_Per_TEU": 3269.3353950756873}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "Shipper": "QINGDAO SKY OCEAN SHIPPING LIMITED", "TEU": 37, "Revenue": 122832.9110571388, "TotalContribution": 103201.7757387445, "CM_Per_TEU": 2789.23718212823}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "ZHONGJUN SUPPLY CHAIN MANAGEMENT(SHANGHAI)CO.,LTD", "TEU": 31, "Revenue": 118817.63533069761, "TotalContribution": 103055.337188791, "CM_Per_TEU": 3324.3657157674515}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "Passion (Shanghai) Shipping Co., Ltd", "TEU": 29, "Revenue": 116820.4202551763, "TotalContribution": 101253.7121485001, "CM_Per_TEU": 3491.5073154655206}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "Sinotrans Eastern Co.Ltd", "TEU": 32, "Revenue": 115910.1978069743, "TotalContribution": 100376.5689766197, "CM_Per_TEU": 3136.7677805193657}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD", "TEU": 37, "Revenue": 113904.63777267959, "TotalContribution": 96783.1005751972, "CM_Per_TEU": 2615.7594750053295}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "Worldwide Logistics Co.,Ltd", "TEU": 32, "Revenue": 110251.94753011959, "TotalContribution": 94098.6126947845, "CM_Per_TEU": 2940.5816467120158}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "SHANGHAI ASIACARGO INTERNATIONAL TRANSPORTATION.CO.,LTD", "TEU": 28, "Revenue": 104947.37385885441, "TotalContribution": 91168.764928127, "CM_Per_TEU": 3256.0273188616784}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "Shipper": "SHENZHEN EAGLE IMP & EXP CO.,LTD", "TEU": 32, "Revenue": 104138.25773805121, "TotalContribution": 87712.2446956856, "CM_Per_TEU": 2741.007646740175}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "QINGDAO PUFA CENTURY SHIPPING CO.,LTD", "TEU": 24, "Revenue": 99011.9917928742, "TotalContribution": 87407.1722258093, "CM_Per_TEU": 3641.965509408721}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "QINGDAO SKY OCEAN SHIPPING LIMITED", "TEU": 29, "Revenue": 102788.0263786048, "TotalContribution": 87340.2172260748, "CM_Per_TEU": 3011.731628485338}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "QINGDAO DSI LOGISTICS CO.,LTD", "TEU": 28, "Revenue": 98611.0014746048, "TotalContribution": 83707.312015171, "CM_Per_TEU": 2989.546857684679}, {"POL Code": "CNSHK", "DEL Code": "MYPKG", "Shipper": "ExxonMobil Chemical Asia Pacific  ", "TEU": 130, "Revenue": 112926.1765299926, "TotalContribution": 82667.2197362367, "CM_Per_TEU": 635.9016902787439}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "CIMC WETRANS LOGISTICS MANAGEMENT CO.,LTD", "TEU": 26, "Revenue": 93684.7838493336, "TotalContribution": 81351.7646121703, "CM_Per_TEU": 3128.9140235450113}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "ONTOP LOGISTICS CO.,LTD", "TEU": 20, "Revenue": 92224.047827861, "TotalContribution": 80837.9610380532, "CM_Per_TEU": 4041.89805190266}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD", "TEU": 21, "Revenue": 93339.56165633781, "TotalContribution": 80799.0070033352, "CM_Per_TEU": 3847.5717620635805}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "UNITED OCEAN INTERNATIONAL LOGISTICS（SHANGHAI） CO.,LTD", "TEU": 30, "Revenue": 92754.4860318703, "TotalContribution": 78604.5530659126, "CM_Per_TEU": 2620.151768863753}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "COSCO SHIPPING LOGISTICS (SHANGHAI)", "TEU": 29, "Revenue": 91831.1189644883, "TotalContribution": 77691.4585161459, "CM_Per_TEU": 2679.0158109015824}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "DP WORLD CHINA CO., LTD", "TEU": 26, "Revenue": 88736.99612434019, "TotalContribution": 76685.655477405, "CM_Per_TEU": 2949.4482875925}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "AWOT GLOBAL CORPORATION SHENZHEN BRANCH", "TEU": 24, "Revenue": 86384.5366660745, "TotalContribution": 75080.9015988593, "CM_Per_TEU": 3128.370899952471}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "CHINATRANS INTERNATIONAL LIMITED", "TEU": 26, "Revenue": 81108.1447516561, "TotalContribution": 68732.6523455067, "CM_Per_TEU": 2643.563551750258}, {"POL Code": "CNXMN", "DEL Code": "AEJEA", "Shipper": "KING FREIGHT(SHENZHEN)INTERNATIONAL CORP.XIAMEN BRANCH", "TEU": 23, "Revenue": 82441.58138610859, "TotalContribution": 67429.1259955728, "CM_Per_TEU": 2931.7011302422957}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "QINGDAO FOREVER SAILING INTERNATIONAL LOGISTICS CO.,LTD", "TEU": 23, "Revenue": 78641.4690099447, "TotalContribution": 66946.19382654, "CM_Per_TEU": 2910.7040794147824}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "SINOOCEAN GROUP LTD", "TEU": 23, "Revenue": 78375.87470438, "TotalContribution": 66765.68252097511, "CM_Per_TEU": 2902.855761781527}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "QINGDAO WINTOP WORLDWIDE LOGISTICS CO.,LTD", "TEU": 21, "Revenue": 76277.721148904, "TotalContribution": 64906.500351692805, "CM_Per_TEU": 3090.7857310329905}, {"POL Code": "CNXGG", "DEL Code": "SAJED", "Shipper": "GOLDEN ELITE INTERNATIONAL TRADING CO.,LTD", "TEU": 44, "Revenue": 126069.22284368079, "TotalContribution": 64883.8278522241, "CM_Per_TEU": 1474.6324511869113}, {"POL Code": "CNXGG", "DEL Code": "AEKLF", "Shipper": "Shenzhen United Logistics Development Co.,Ltd", "TEU": 21, "Revenue": 78529.5952021553, "TotalContribution": 64858.0380961209, "CM_Per_TEU": 3088.478004577186}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "YQN South-Logistics (Shanghai) Co., Ltd", "TEU": 18, "Revenue": 73793.548263204, "TotalContribution": 64143.512825295, "CM_Per_TEU": 3563.5284902941667}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "DP WORLD CHINA CO., LTD", "TEU": 25, "Revenue": 75796.8220683901, "TotalContribution": 63734.8383488421, "CM_Per_TEU": 2549.3935339536843}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "NINGBO  HAPPYPORT LOGISTICS CO.,LTD", "TEU": 20, "Revenue": 72723.6240738591, "TotalContribution": 63180.572653139796, "CM_Per_TEU": 3159.02863265699}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "Passion (Shanghai) Shipping Co., Ltd", "TEU": 20, "Revenue": 72652.5013607099, "TotalContribution": 61578.6562292369, "CM_Per_TEU": 3078.9328114618447}, {"POL Code": "CNXGG", "DEL Code": "SAJED", "Shipper": "HAIKOU HAIXINCHENG BUILDING MATERIALS TRADING CO.,LTD", "TEU": 94, "Revenue": 176084.67061127519, "TotalContribution": 57142.810332764, "CM_Per_TEU": 607.9022375825957}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "SANCO INTERNATIONAL LOGISTICS LTD", "TEU": 17, "Revenue": 64415.0763849045, "TotalContribution": 55978.985608141804, "CM_Per_TEU": 3292.8815063612824}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "NINGBO YAOHONG INTERNATIONAL FORWARDING AGENCY CO.,LTD", "TEU": 17, "Revenue": 63887.1984633228, "TotalContribution": 55573.0586865601, "CM_Per_TEU": 3269.003452150594}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "CIMC GOLD WIDE TECHNOLOGY LOGISTICS GROUP CO., LIMITED", "TEU": 18, "Revenue": 63000.8573207649, "TotalContribution": 53230.2608828561, "CM_Per_TEU": 2957.2367157142276}, {"POL Code": "CNTAO", "DEL Code": "EGSOK", "Shipper": "CTS INTERNATIONAL LOGISTICS CORPORATION LIMITED", "TEU": 88, "Revenue": 156149.458530046, "TotalContribution": 52621.1161019298, "CM_Per_TEU": 597.9672284310204}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "Shenzhen United Logistics Development Co.,Ltd", "TEU": 20, "Revenue": 61716.2682131773, "TotalContribution": 52278.709823831305, "CM_Per_TEU": 2613.9354911915652}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "Worldwide Logistics Co., Ltd", "TEU": 14, "Revenue": 59699.92197420121, "TotalContribution": 51837.338088182696, "CM_Per_TEU": 3702.667006298764}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD", "TEU": 18, "Revenue": 59971.7416395486, "TotalContribution": 50975.1747321725, "CM_Per_TEU": 2831.954151787361}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "CTS INTERNATIONAL LOGISTICS CORPORATION LIMITED", "TEU": 12, "Revenue": 58266.17176777629, "TotalContribution": 50698.4134154645, "CM_Per_TEU": 4224.867784622042}, {"POL Code": "CNSHK", "DEL Code": "AEJEA", "Shipper": "Ningbo Tongze International Logistics Co., LTD", "TEU": 16, "Revenue": 57847.999760280596, "TotalContribution": 50268.85104880411, "CM_Per_TEU": 3141.8031905502567}, {"POL Code": "CNSHA", "DEL Code": "DJJIB", "Shipper": "YQN South-Logistics (Shanghai) Co., Ltd", "TEU": 44, "Revenue": 105085.32284198861, "TotalContribution": 50024.5587480005, "CM_Per_TEU": 1136.921789727284}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "Worldwide Logistics Co., Ltd", "TEU": 16, "Revenue": 57117.1841747384, "TotalContribution": 49739.4102381627, "CM_Per_TEU": 3108.713139885169}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "YQN South-Logistics (Shanghai) Co., Ltd", "TEU": 17, "Revenue": 58036.7417616615, "TotalContribution": 49079.467670535, "CM_Per_TEU": 2887.0275100314707}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD", "TEU": 18, "Revenue": 55179.9189723823, "TotalContribution": 46961.6612937348, "CM_Per_TEU": 2608.981182985267}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "ZHONGJUN SUPPLY CHAIN MANAGEMENT(SHANGHAI)CO.,LTD", "TEU": 13, "Revenue": 53800.7014726091, "TotalContribution": 46019.6576227749, "CM_Per_TEU": 3539.9736632903773}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "Worldwide-Logistics Shanghai Co.,Ltd", "TEU": 14, "Revenue": 51693.4188939098, "TotalContribution": 45094.7858431296, "CM_Per_TEU": 3221.056131652114}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "Shipper": "QINGDAO FOREVER SAILING INTERNATIONAL LOGISTICS CO.,LTD", "TEU": 14, "Revenue": 53179.7715262006, "TotalContribution": 44797.2757876961, "CM_Per_TEU": 3199.805413406864}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "SHENZHEN A&E CONTAINER TRANSPORTATION CO.,LTD", "TEU": 14, "Revenue": 50515.2992634717, "TotalContribution": 43816.0542126916, "CM_Per_TEU": 3129.7181580494}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "Shipper": "Unitex Int'l Forwarding MED (Qingdao) Ltd", "TEU": 16, "Revenue": 50682.2130259362, "TotalContribution": 42781.8211082685, "CM_Per_TEU": 2673.8638192667813}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "Unitrans Logistics (Shanghai) Co., Ltd", "TEU": 10, "Revenue": 48876.1354973539, "TotalContribution": 42740.149687866404, "CM_Per_TEU": 4274.014968786641}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "Ningbo kostar supply chain co., ltd", "TEU": 16, "Revenue": 50404.7524561064, "TotalContribution": 42612.9585195311, "CM_Per_TEU": 2663.309907470694}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "MILLENNIUM LOGISTICS (SHENZHEN) LTD", "TEU": 16, "Revenue": 50437.473619413504, "TotalContribution": 42604.0819079371, "CM_Per_TEU": 2662.7551192460687}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "NINGBO  HAPPYPORT LOGISTICS CO.,LTD", "TEU": 16, "Revenue": 50048.4195889883, "TotalContribution": 42350.7106524129, "CM_Per_TEU": 2646.919415775806}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD", "TEU": 13, "Revenue": 47396.2700312284, "TotalContribution": 40241.8828397288, "CM_Per_TEU": 3095.529449209908}, {"POL Code": "CNTAO", "DEL Code": "AEKLF", "Shipper": "WIDE-TRANS INTERNATIONAL LOGISTICS (QINGDAO) CO .,LTD", "TEU": 15, "Revenue": 47923.8514081914, "TotalContribution": 40124.9301836204, "CM_Per_TEU": 2674.9953455746936}, {"POL Code": "CNTAO", "DEL Code": "AEJEA", "Shipper": "SHENZHEN EAGLE IMP & EXP CO.,LTD", "TEU": 13, "Revenue": 46205.984856844196, "TotalContribution": 39206.6926219818, "CM_Per_TEU": 3015.899432460138}, {"POL Code": "CNTAO", "DEL Code": "SAJED", "Shipper": "SINOTRANS CENTRAL CHINA CO.,LTD", "TEU": 77, "Revenue": 136478.3693995512, "TotalContribution": 38812.8361904471, "CM_Per_TEU": 504.06280766814416}, {"POL Code": "CNNGB", "DEL Code": "AEJEA", "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD", "TEU": 12, "Revenue": 43969.974619251, "TotalContribution": 38028.0501668196, "CM_Per_TEU": 3169.0041805683}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "SHANGHAI BROTHERHOOD INTERNATIONAL FREIGHT CO.,LTD", "TEU": 12, "Revenue": 44027.8634401074, "TotalContribution": 37956.8442537246, "CM_Per_TEU": 3163.07035447705}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "COSCO SHIPPING LOGISTICS (SHANGHAI)", "TEU": 12, "Revenue": 43598.6740129845, "TotalContribution": 37722.8428266017, "CM_Per_TEU": 3143.5702355501417}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "SINOTRANS ZHEJIANG CO.,LTD", "TEU": 13, "Revenue": 42452.4206264679, "TotalContribution": 35993.740333849, "CM_Per_TEU": 2768.749256449923}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD", "TEU": 13, "Revenue": 41203.8686650359, "TotalContribution": 34975.4804038058, "CM_Per_TEU": 2690.421569523523}, {"POL Code": "CNXGG", "DEL Code": "SAJED", "Shipper": "Shenzhen United Logistics Development Co.,Ltd", "TEU": 47, "Revenue": 94771.0349121036, "TotalContribution": 34693.6995871993, "CM_Per_TEU": 738.1638210042404}, {"POL Code": "CNSHK", "DEL Code": "AEKLF", "Shipper": "CIMC WETRANS INTERNATIONAL LOGISTICS CO., LTD", "TEU": 12, "Revenue": 37677.6853202562, "TotalContribution": 32055.8332866487, "CM_Per_TEU": 2671.3194405540585}, {"POL Code": "CNNGB", "DEL Code": "AEKLF", "Shipper": "Safround Logistics Co.,Ltd", "TEU": 12, "Revenue": 37304.3335105657, "TotalContribution": 31626.5000581341, "CM_Per_TEU": 2635.541671511175}, {"POL Code": "CNSHA", "DEL Code": "EGSOK", "Shipper": "COSCO SHIPPING LOGISTICS (SHANGHAI)", "TEU": 44, "Revenue": 82517.6487730956, "TotalContribution": 31289.5763158855, "CM_Per_TEU": 711.1267344519432}, {"POL Code": "CNSHA", "DEL Code": "AEJEA", "Shipper": "Shanghai Winwell Supplychain Management Ltd", "TEU": 9, "Revenue": 35856.5889048671, "TotalContribution": 31265.2531004963, "CM_Per_TEU": 3473.917011166255}, {"POL Code": "CNSHA", "DEL Code": "SAJED", "Shipper": "SHANGHAI NOBLE INTERNATIONAL LOGISTICS CO.,LTD", "TEU": 47, "Revenue": 89333.5389368149, "TotalContribution": 30652.2099351006, "CM_Per_TEU": 652.1746794702256}, {"POL Code": "CNSHA", "DEL Code": "AEKLF", "Shipper": "SHENZHEN UNITED LOGISTICS DEVELOPMENT CO.,LTD", "TEU": 11, "Revenue": 35744.0715313525, "TotalContribution": 30255.6638625846, "CM_Per_TEU": 2750.5148965986}], "vessel_bench": {"AEJEA": {"teu": 2012, "cm": 6522013.04, "per_teu": 3241.56, "teu_20gp": 288, "teu_40hc": 1716}, "AEKLF": {"teu": 1440, "cm": 4072769.22, "per_teu": 2828.31, "teu_20gp": 266, "teu_40hc": 1174}, "AESCT": {"teu": 2, "cm": 6191.62, "per_teu": 3095.81, "teu_20gp": 0, "teu_40hc": 2}, "DJJIB": {"teu": 102, "cm": 100875.23, "per_teu": 988.97, "teu_20gp": 40, "teu_40hc": 62}, "EGSOK": {"teu": 139, "cm": 72221.73, "per_teu": 519.58, "teu_20gp": 3, "teu_40hc": 136}, "INDER": {"teu": 31, "cm": 24388.53, "per_teu": 786.73, "teu_20gp": 1, "teu_40hc": 30}, "INMUN": {"teu": 186, "cm": 157295.88, "per_teu": 845.68, "teu_20gp": 0, "teu_40hc": 186}, "INSSA": {"teu": 20, "cm": 14130.29, "per_teu": 706.51, "teu_20gp": 0, "teu_40hc": 20}, "JOAQJ": {"teu": 11, "cm": 16842.63, "per_teu": 1531.15, "teu_20gp": 9, "teu_40hc": 2}, "MYPKG": {"teu": 142, "cm": 88085.53, "per_teu": 620.32, "teu_20gp": 0, "teu_40hc": 142}, "PKKHI": {"teu": 108, "cm": 76857.01, "per_teu": 711.64, "teu_20gp": 12, "teu_40hc": 96}, "SADMM": {"teu": 2, "cm": 8164.21, "per_teu": 4082.11, "teu_20gp": 2, "teu_40hc": 0}, "SAJED": {"teu": 1006, "cm": 717263.5, "per_teu": 712.99, "teu_20gp": 128, "teu_40hc": 878}, "SARUH": {"teu": 1, "cm": 4084.06, "per_teu": 4084.06, "teu_20gp": 1, "teu_40hc": 0}, "SDPZU": {"teu": 139, "cm": 93977.61, "per_teu": 676.1, "teu_20gp": 21, "teu_40hc": 118}, "YEADE": {"teu": 115, "cm": 97482.72, "per_teu": 847.68, "teu_20gp": 17, "teu_40hc": 98}}, "fak_data": [{"POL": "CNNGB", "POD": "AEKLF", "Size": "20'", "FAK": 4000, "OFT_Avg": 4261.0, "Diff": 261.0, "DiffPct": 6.5, "Count": 18, "Status": "Above"}, {"POL": "CNNGB", "POD": "AEKLF", "Size": "40'", "FAK": 4800, "OFT_Avg": 5078.0, "Diff": 278.0, "DiffPct": 5.8, "Count": 106, "Status": "Above"}, {"POL": "CNNGB", "POD": "DJJIB", "Size": "40'", "FAK": 3600, "OFT_Avg": 3400.0, "Diff": -200.0, "DiffPct": -5.6, "Count": 3, "Status": "Below"}, {"POL": "CNNGB", "POD": "SAJED", "Size": "20'", "FAK": 2600, "OFT_Avg": 2450.0, "Diff": -150.0, "DiffPct": -5.8, "Count": 1, "Status": "Below"}, {"POL": "CNNGB", "POD": "SDPZU", "Size": "40'", "FAK": 4600, "OFT_Avg": 4400.0, "Diff": -200.0, "DiffPct": -4.3, "Count": 1, "Status": "Below"}, {"POL": "CNNGB", "POD": "YEADE", "Size": "40'", "FAK": 5100, "OFT_Avg": 4900.0, "Diff": -200.0, "DiffPct": -3.9, "Count": 4, "Status": "Below"}, {"POL": "CNSHA", "POD": "AEKLF", "Size": "20'", "FAK": 4000, "OFT_Avg": 4121.0, "Diff": 121.0, "DiffPct": 3.0, "Count": 52, "Status": "Above"}, {"POL": "CNSHA", "POD": "AEKLF", "Size": "40'", "FAK": 5000, "OFT_Avg": 5214.0, "Diff": 214.0, "DiffPct": 4.3, "Count": 122, "Status": "Above"}, {"POL": "CNSHA", "POD": "DJJIB", "Size": "20'", "FAK": 2600, "OFT_Avg": 2383.0, "Diff": -217.0, "DiffPct": -8.3, "Count": 6, "Status": "Below"}, {"POL": "CNSHA", "POD": "DJJIB", "Size": "40'", "FAK": 3700, "OFT_Avg": 3500.0, "Diff": -200.0, "DiffPct": -5.4, "Count": 4, "Status": "Below"}, {"POL": "CNSHA", "POD": "EGSOK", "Size": "40'", "FAK": 3700, "OFT_Avg": 3400.0, "Diff": -300.0, "DiffPct": -8.1, "Count": 1, "Status": "Below"}, {"POL": "CNSHA", "POD": "SAJED", "Size": "20'", "FAK": 2600, "OFT_Avg": 2689.0, "Diff": 89.0, "DiffPct": 3.4, "Count": 23, "Status": "Above"}, {"POL": "CNSHA", "POD": "SAJED", "Size": "40'", "FAK": 3700, "OFT_Avg": 3339.0, "Diff": -361.0, "DiffPct": -9.7, "Count": 28, "Status": "Below"}, {"POL": "CNSHA", "POD": "SDPZU", "Size": "20'", "FAK": 3300, "OFT_Avg": 3050.0, "Diff": -250.0, "DiffPct": -7.6, "Count": 5, "Status": "Below"}, {"POL": "CNSHA", "POD": "SDPZU", "Size": "40'", "FAK": 4700, "OFT_Avg": 4417.0, "Diff": -283.0, "DiffPct": -6.0, "Count": 12, "Status": "Below"}, {"POL": "CNSHA", "POD": "YEADE", "Size": "40'", "FAK": 5200, "OFT_Avg": 4878.0, "Diff": -322.0, "DiffPct": -6.2, "Count": 9, "Status": "Below"}, {"POL": "CNSHK", "POD": "AEKLF", "Size": "20'", "FAK": 4000, "OFT_Avg": 4421.0, "Diff": 421.0, "DiffPct": 10.5, "Count": 48, "Status": "Above"}, {"POL": "CNSHK", "POD": "AEKLF", "Size": "40'", "FAK": 4800, "OFT_Avg": 5091.0, "Diff": 291.0, "DiffPct": 6.1, "Count": 194, "Status": "Above"}, {"POL": "CNSHK", "POD": "SAJED", "Size": "20'", "FAK": 2500, "OFT_Avg": 2617.0, "Diff": 117.0, "DiffPct": 4.7, "Count": 3, "Status": "Above"}, {"POL": "CNSHK", "POD": "SAJED", "Size": "40'", "FAK": 3500, "OFT_Avg": 3407.0, "Diff": -93.0, "DiffPct": -2.7, "Count": 14, "Status": "Below"}, {"POL": "CNSHK", "POD": "SDPZU", "Size": "20'", "FAK": 3250, "OFT_Avg": 3550.0, "Diff": 300.0, "DiffPct": 9.2, "Count": 1, "Status": "Above"}, {"POL": "CNSHK", "POD": "SDPZU", "Size": "40'", "FAK": 4500, "OFT_Avg": 4400.0, "Diff": -100.0, "DiffPct": -2.2, "Count": 5, "Status": "Below"}, {"POL": "CNSHK", "POD": "YEADE", "Size": "40'", "FAK": 5000, "OFT_Avg": 4800.0, "Diff": -200.0, "DiffPct": -4.0, "Count": 2, "Status": "Below"}, {"POL": "CNTAO", "POD": "AEKLF", "Size": "20'", "FAK": 4000, "OFT_Avg": 3861.0, "Diff": -139.0, "DiffPct": -3.5, "Count": 58, "Status": "Below"}, {"POL": "CNTAO", "POD": "AEKLF", "Size": "40'", "FAK": 5000, "OFT_Avg": 4942.0, "Diff": -58.0, "DiffPct": -1.2, "Count": 118, "Status": "Below"}, {"POL": "CNTAO", "POD": "DJJIB", "Size": "40'", "FAK": 4000, "OFT_Avg": 3500.0, "Diff": -500.0, "DiffPct": -12.5, "Count": 3, "Status": "Below"}, {"POL": "CNTAO", "POD": "EGSOK", "Size": "40'", "FAK": 3500, "OFT_Avg": 3175.0, "Diff": -325.0, "DiffPct": -9.3, "Count": 2, "Status": "Below"}, {"POL": "CNTAO", "POD": "SAJED", "Size": "20'", "FAK": 3000, "OFT_Avg": 2550.0, "Diff": -450.0, "DiffPct": -15.0, "Count": 3, "Status": "Below"}, {"POL": "CNTAO", "POD": "SAJED", "Size": "40'", "FAK": 3500, "OFT_Avg": 3041.0, "Diff": -459.0, "DiffPct": -13.1, "Count": 27, "Status": "Below"}, {"POL": "CNTAO", "POD": "SDPZU", "Size": "20'", "FAK": 3800, "OFT_Avg": 3550.0, "Diff": -250.0, "DiffPct": -6.6, "Count": 1, "Status": "Below"}, {"POL": "CNTAO", "POD": "SDPZU", "Size": "40'", "FAK": 5000, "OFT_Avg": 4500.0, "Diff": -500.0, "DiffPct": -10.0, "Count": 1, "Status": "Below"}, {"POL": "CNTAO", "POD": "YEADE", "Size": "20'", "FAK": 3800, "OFT_Avg": 3550.0, "Diff": -250.0, "DiffPct": -6.6, "Count": 1, "Status": "Below"}, {"POL": "CNTAO", "POD": "YEADE", "Size": "40'", "FAK": 5200, "OFT_Avg": 4750.0, "Diff": -450.0, "DiffPct": -8.7, "Count": 1, "Status": "Below"}, {"POL": "CNXGG", "POD": "AEKLF", "Size": "20'", "FAK": 4000, "OFT_Avg": 3843.0, "Diff": -157.0, "DiffPct": -3.9, "Count": 22, "Status": "Below"}, {"POL": "CNXGG", "POD": "AEKLF", "Size": "40'", "FAK": 4800, "OFT_Avg": 4875.0, "Diff": 75.0, "DiffPct": 1.6, "Count": 12, "Status": "Above"}, {"POL": "CNXGG", "POD": "DJJIB", "Size": "20'", "FAK": 2600, "OFT_Avg": 2550.0, "Diff": -50.0, "DiffPct": -1.9, "Count": 1, "Status": "Below"}, {"POL": "CNXGG", "POD": "EGSOK", "Size": "20'", "FAK": 2600, "OFT_Avg": 2550.0, "Diff": -50.0, "DiffPct": -1.9, "Count": 3, "Status": "Below"}, {"POL": "CNXGG", "POD": "EGSOK", "Size": "40'", "FAK": 3700, "OFT_Avg": 3200.0, "Diff": -500.0, "DiffPct": -13.5, "Count": 1, "Status": "Below"}, {"POL": "CNXGG", "POD": "JOAQJ", "Size": "20'", "FAK": 3300, "OFT_Avg": 2850.0, "Diff": -450.0, "DiffPct": -13.6, "Count": 2, "Status": "Below"}, {"POL": "CNXGG", "POD": "SAJED", "Size": "20'", "FAK": 2600, "OFT_Avg": 2580.0, "Diff": -20.0, "DiffPct": -0.8, "Count": 10, "Status": "Below"}, {"POL": "CNXGG", "POD": "SAJED", "Size": "40'", "FAK": 3600, "OFT_Avg": 3200.0, "Diff": -400.0, "DiffPct": -11.1, "Count": 31, "Status": "Below"}, {"POL": "CNXGG", "POD": "SDPZU", "Size": "20'", "FAK": 3100, "OFT_Avg": 3550.0, "Diff": 450.0, "DiffPct": 14.5, "Count": 4, "Status": "Above"}, {"POL": "CNXGG", "POD": "SDPZU", "Size": "40'", "FAK": 4600, "OFT_Avg": 4700.0, "Diff": 100.0, "DiffPct": 2.2, "Count": 5, "Status": "Above"}, {"POL": "CNXGG", "POD": "YEADE", "Size": "20'", "FAK": 3300, "OFT_Avg": 3550.0, "Diff": 250.0, "DiffPct": 7.6, "Count": 1, "Status": "Above"}, {"POL": "CNXGG", "POD": "YEADE", "Size": "40'", "FAK": 5100, "OFT_Avg": 4900.0, "Diff": -200.0, "DiffPct": -3.9, "Count": 2, "Status": "Below"}, {"POL": "CNXMN", "POD": "AEKLF", "Size": "20'", "FAK": 4000, "OFT_Avg": 4083.0, "Diff": 83.0, "DiffPct": 2.1, "Count": 3, "Status": "Above"}, {"POL": "CNXMN", "POD": "AEKLF", "Size": "40'", "FAK": 4800, "OFT_Avg": 5417.0, "Diff": 617.0, "DiffPct": 12.8, "Count": 12, "Status": "Above"}, {"POL": "CNXMN", "POD": "SAJED", "Size": "20'", "FAK": 2600, "OFT_Avg": 2600.0, "Diff": 0.0, "DiffPct": 0.0, "Count": 7, "Status": "Equal"}, {"POL": "CNXMN", "POD": "SAJED", "Size": "40'", "FAK": 3600, "OFT_Avg": 3667.0, "Diff": 67.0, "DiffPct": 1.9, "Count": 12, "Status": "Above"}, {"POL": "CNXMN", "POD": "SDPZU", "Size": "20'", "FAK": 3100, "OFT_Avg": 3600.0, "Diff": 500.0, "DiffPct": 16.1, "Count": 1, "Status": "Above"}, {"POL": "CNXMN", "POD": "YEADE", "Size": "20'", "FAK": 3300, "OFT_Avg": 3650.0, "Diff": 350.0, "DiffPct": 10.6, "Count": 2, "Status": "Above"}, {"POL": "CNXMN", "POD": "YEADE", "Size": "40'", "FAK": 5100, "OFT_Avg": 5200.0, "Diff": 100.0, "DiffPct": 2.0, "Count": 2, "Status": "Above"}]};
 renderAll();
 </script>
 </body>
