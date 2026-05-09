@@ -208,6 +208,21 @@ tbody tr.region-header-row + tr td { border-top:none; }
       <div class="section-title" style="color:#fff;font-size:13px;letter-spacing:1.5px;">📊 SUMMARY — 核心指标速览</div>
       <div style="font-size:10px;color:rgba(255,255,255,0.7);">汇总所有 TOP 排名，下钻明细请见下方各区块</div>
     </div>
+    <!-- 区域 POD 标签 -->
+    <div style="display:flex;gap:16px;padding:10px 20px;flex-wrap:wrap;font-size:11px;background:#f8f9fa;border-bottom:1px solid var(--border-light);">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="background:#1a6bb5;color:#fff;padding:2px 10px;border-radius:12px;font-weight:700;font-size:10px;">中东 ME</span>
+        <span style="color:var(--text2);font-family:'Consolas',monospace;">AEJEA · AEKLF · OMSOH · AESCT · SADMM · SARUH</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="background:#0d6e3e;color:#fff;padding:2px 10px;border-radius:12px;font-weight:700;font-size:10px;">红海 RS</span>
+        <span style="color:var(--text2);font-family:'Consolas',monospace;">SAJED · SDPZU · EGSOK · YEADE · DJJIB · JOAQJ</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="background:#5f6368;color:#fff;padding:2px 10px;border-radius:12px;font-weight:700;font-size:10px;">其他</span>
+        <span style="color:var(--text3);font-size:10px;">非中东/红海目的港</span>
+      </div>
+    </div>
 
     <!-- 单收区域对比 TOP -->
     <div class="top3-cards" id="top3-revenue-cards" style="padding:16px 20px 8px;"></div>
@@ -504,6 +519,42 @@ tbody tr.region-header-row + tr td { border-top:none; }
 
 <script>
 
+// computeFakVsOft: 计算 FAK vs OFT 比例（基于 level4 明细）
+function computeFakVsOft() {
+  const level4 = DATA.level4 || [];
+  const fakData = DATA.fak_data || [];
+  let aboveTeu = 0, belowTeu = 0, totalTeu = 0;
+  const fakMap = {};
+  fakData.forEach(r => {
+    const key = r.POL + '|' + r.POD + '|' + r.Size;
+    fakMap[key] = r;
+  });
+  level4.forEach(r => {
+    const pol = r['POL Code'] || '';
+    const pod = r['DEL Code'] || '';
+    const teu = r.Total_TEU || 0;
+    if (!teu) return;
+    // 查 FAK（40' 优先）
+    let fak = null;
+    let f = fakMap[pol + '|' + pod + "|40'"];
+    if (f) { fak = f.FAK; }
+    else { f = fakMap[pol + '|' + pod + "|20'"]; if (f) { fak = f.FAK; } }
+    if (fak === null || fak === undefined) return;
+    // 用 Combined_OFT_Avg 作为实际运价
+    const actual = r.Combined_OFT_Avg || 0;
+    if (actual >= fak) { aboveTeu += teu; }
+    else { belowTeu += teu; }
+    totalTeu += teu;
+  });
+  return {
+    abovePct: totalTeu > 0 ? (aboveTeu / totalTeu * 100) : 0,
+    belowPct: totalTeu > 0 ? (belowTeu / totalTeu * 100) : 0,
+    aboveTeu,
+    belowTeu,
+    totalTeu
+  };
+}
+
 // window.DATA will be set by inject_data.py at the end of the script
 
 const fmt = {
@@ -603,11 +654,29 @@ function renderAll() {
   const fakPctSub = vesselFakAvg > 0 ? '基准 FAK $' + Math.round(vesselFakAvg).toLocaleString() : '无 FAK 数据';
 
   // KPI strip
+
+  // FAK vs OFT 比例
+  const fakVs = computeFakVsOft();
+  const fakAboveColor = fakVs.abovePct >= 80 ? "#0d6e3e" : fakVs.abovePct >= 60 ? "#b45309" : "#c0392b";
+  const fakBelowColor = fakVs.belowPct >= 80 ? "#0d6e3e" : fakVs.belowPct >= 60 ? "#b45309" : "#c0392b";
+  const fakAboveBg = fakVs.abovePct >= 80 ? "#e6f4ed" : fakVs.abovePct >= 60 ? "#fff8e1" : "#fce8e6";
+  const fakBelowBg = fakVs.belowPct >= 80 ? "#e6f4ed" : fakVs.belowPct >= 60 ? "#fff8e1" : "#fce8e6";
+
   document.getElementById('kpi-strip').innerHTML =
     '<div class="kpi-cell" style="background:#fff8e1;border-left:4px solid #b45309;">' +
       '<div class="kpi-label" style="color:#b45309;font-size:10px;">★ 单收占 FAK 均值</div>' +
       fakPctHtml +
       '<div class="kpi-sub" style="color:#b45309;">' + fakPctSub + '</div>' +
+    '</div>' +
+    '<div class="kpi-cell" style="border-left:4px solid #0f4c81;">' +
+      '<div class="kpi-label">≥ FAK</div>' +
+      '<div style="font-size:22px;font-weight:700;color:' + fakAboveColor + ';">' + fakVs.abovePct.toFixed(1) + '%</div>' +
+      '<div class="kpi-sub">' + fmt.teu(fakVs.aboveTeu) + ' TEU</div>' +
+    '</div>' +
+    '<div class="kpi-cell" style="border-left:4px solid #c0392b;">' +
+      '<div class="kpi-label">< FAK</div>' +
+      '<div style="font-size:22px;font-weight:700;color:' + fakBelowColor + ';">' + fakVs.belowPct.toFixed(1) + '%</div>' +
+      '<div class="kpi-sub">' + fmt.teu(fakVs.belowTeu) + ' TEU</div>' +
     '</div>' +
     [
       { label:'Total Teu', value:fmt.teu(d.total_teu), sub:'TEU' },
@@ -616,7 +685,6 @@ function renderAll() {
       { label:'Total CM', value:fmt.usd(d.total_contribution), sub:'Contribution (USD)' },
       { label:'AVG CM', value:fmt.usd(d.vessel_avg_cm_per_teu), sub:'CM/TEU' },
     ].map(c => '<div class="kpi-cell"><div class="kpi-label">' + c.label + '</div><div class="kpi-value' + (c.highlight ? '' : ' secondary') + '">' + c.value + '</div><div class="kpi-sub">' + c.sub + '</div></div>').join('');
-
   renderTEU();
   renderCM();
   renderRevenueTop3();
