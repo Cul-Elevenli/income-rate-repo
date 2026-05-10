@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -827,7 +827,7 @@ function renderCM() {
       const isTarget = region === 'me' ? ME_PODS.has(pod) : region === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
       if (!isTarget) return;
       if (!polMap[pol]) polMap[pol] = { pol, teu:0, contribution:0, cm_per_teu:0, vs_vessel_pct:0 };
-      polMap[pol].teu += r.CM_TEU||0;
+      polMap[pol].teu += r.TEU||0;
       polMap[pol].contribution += r.TotalContribution||0;
     });
     Object.values(polMap).forEach(p => {
@@ -902,7 +902,7 @@ function renderRevenueTop3() {
       const isTarget = region === 'me' ? ME_PODS.has(pod) : region === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
       if (!isTarget) return;
       if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, cm_per_teu:0, vs_vessel_pct:0 };
-      polMap[pol].teu += r.CM_TEU||0;
+      polMap[pol].teu += r.TEU||0;
       polMap[pol].revenue += r.Revenue||0;
     });
     Object.values(polMap).forEach(p => {
@@ -972,12 +972,12 @@ function renderRevenueRegionCompare() {
       const isTarget = regionKey === 'me' ? ME_PODS.has(pod) : regionKey === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
       if (!isTarget) return;
       if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, fakSum:0, fakTeu:0 };
-      polMap[pol].teu += r.CM_TEU||0;
+      polMap[pol].teu += r.TEU||0;
       polMap[pol].revenue += r.Revenue||0;
       const fak = getFak(pol, pod);
       if (fak !== null) {
-        polMap[pol].fakSum += fak * (r.CM_TEU||0);
-        polMap[pol].fakTeu += r.CM_TEU||0;
+        polMap[pol].fakSum += fak * (r.TEU||0);
+        polMap[pol].fakTeu += r.TEU||0;
       }
     });
     Object.values(polMap).forEach(p => {
