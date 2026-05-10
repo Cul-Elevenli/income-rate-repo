@@ -524,36 +524,47 @@ tbody tr.region-header-row + tr td { border-top:none; }
 function computeFakVsOft() {
   const level4 = DATA.level4 || [];
   const fakData = DATA.fak_data || [];
-  let aboveTeu = 0, belowTeu = 0, totalTeu = 0;
+  let above20 = 0, below20 = 0, total20 = 0;
+  let above40 = 0, below40 = 0, total40 = 0;
+  
   const fakMap = {};
   fakData.forEach(r => {
     const key = r.POL + '|' + r.POD + '|' + r.Size;
-    fakMap[key] = r;
+    fakMap[key] = r.FAK;
   });
+  
   level4.forEach(r => {
     const pol = r['POL Code'] || '';
     const pod = r['DEL Code'] || '';
     const teu = r.TEU || 0;
     if (!teu) return;
-    // 查 FAK（40' 优先）
-    let fak = null;
-    let f = fakMap[pol + '|' + pod + "|40'"];
-    if (f) { fak = f.FAK; }
-    else { f = fakMap[pol + '|' + pod + "|20'"]; if (f) { fak = f.FAK; } }
-    if (fak === null || fak === undefined) return;
-    // 用 Combined_OFT_Avg 作为实际运价
-    const boxFactor = (r.Box_Type === '20GP') ? 1 : 2;
-    const actualPerBox = (r.Revenue_Per_TEU || 0) * boxFactor;
-    if (actualPerBox >= fak) { aboveTeu += teu; }
-    else { belowTeu += teu; }
-    totalTeu += teu;
+    if (r.Box_Type === '20GP') {
+      const fak20 = fakMap[pol + '|' + pod + "|20'"];
+      if (!fak20) return;
+      const actual = r.Revenue_Per_TEU * 1;
+      if (actual >= fak20) { above20 += teu; }
+      else { below20 += teu; }
+      total20 += teu;
+    } else {
+      const fak40 = fakMap[pol + '|' + pod + "|40'"];
+      if (!fak40) return;
+      const actual = r.Revenue_Per_TEU * 2;
+      if (actual >= fak40) { above40 += teu; }
+      else { below40 += teu; }
+      total40 += teu;
+    }
   });
+  
   return {
-    abovePct: totalTeu > 0 ? (aboveTeu / totalTeu * 100) : 0,
-    belowPct: totalTeu > 0 ? (belowTeu / totalTeu * 100) : 0,
-    aboveTeu,
-    belowTeu,
-    totalTeu
+    above20, below20, total20,
+    above40, below40, total40,
+    abovePct20: total20 > 0 ? (above20 / total20 * 100) : 0,
+    belowPct20: total20 > 0 ? (below20 / total20 * 100) : 0,
+    abovePct40: total40 > 0 ? (above40 / total40 * 100) : 0,
+    belowPct40: total40 > 0 ? (below40 / total40 * 100) : 0,
+    aboveTeu: above20 + above40,
+    belowTeu: below20 + below40,
+    totalTeu: total20 + total40
   };
 }
 
@@ -658,35 +669,35 @@ function renderAll() {
   // KPI strip
 
   // FAK vs OFT 比例
-  const fakVs = computeFakVsOft();
-  const fakAboveColor = fakVs.abovePct >= 80 ? "#0d6e3e" : fakVs.abovePct >= 60 ? "#b45309" : "#c0392b";
-  const fakBelowColor = fakVs.belowPct >= 80 ? "#0d6e3e" : fakVs.belowPct >= 60 ? "#b45309" : "#c0392b";
-  const fakAboveBg = fakVs.abovePct >= 80 ? "#e6f4ed" : fakVs.abovePct >= 60 ? "#fff8e1" : "#fce8e6";
-  const fakBelowBg = fakVs.belowPct >= 80 ? "#e6f4ed" : fakVs.belowPct >= 60 ? "#fff8e1" : "#fce8e6";
-
-  document.getElementById('kpi-strip').innerHTML =
-    '<div class="kpi-cell" style="background:#fff8e1;border-left:4px solid #b45309;">' +
-      '<div class="kpi-label" style="color:#b45309;font-size:10px;">★ 单收占 FAK 均值</div>' +
-      fakPctHtml +
-      '<div class="kpi-sub" style="color:#b45309;">' + fakPctSub + '</div>' +
-    '</div>' +
-    '<div class="kpi-cell" style="border-left:4px solid #0f4c81;">' +
-      '<div class="kpi-label">≥ FAK</div>' +
-      '<div style="font-size:22px;font-weight:700;color:' + fakAboveColor + ';">' + fakVs.abovePct.toFixed(1) + '%</div>' +
-      '<div class="kpi-sub">' + fmt.teu(fakVs.aboveTeu) + ' TEU</div>' +
+  const fakResult = computeFakVsOft();
+  // 20GP badges
+  const above20Color = fakResult.abovePct20 >= 80 ? "#0d6e3e" : fakResult.abovePct20 >= 60 ? "#b45309" : "#c0392b";
+  const below20Color = fakResult.belowPct20 >= 80 ? "#0d6e3e" : fakResult.belowPct20 >= 60 ? "#b45309" : "#c0392b";
+  // 40HC badges  
+  const above40Color = fakResult.abovePct40 >= 80 ? "#0d6e3e" : fakResult.abovePct40 >= 60 ? "#b45309" : "#c0392b";
+  const below40Color = fakResult.belowPct40 >= 80 ? "#0d6e3e" : fakResult.belowPct40 >= 60 ? "#b45309" : "#c0392b";
+  
+  const fakKpiHtml =
+    '<div class="kpi-cell" style="background:#e8f5e9;border-left:4px solid #2e7d32;">' +
+      '<div class="kpi-label" style="color:#2e7d32;font-size:10px;">⭐ 20GP 高于 FAK</div>' +
+      '<div style="font-size:22px;font-weight:700;color:' + above20Color + ';">' + fakResult.abovePct20.toFixed(1) + '%</div>' +
+      '<div class="kpi-sub">' + fmt.teu(fakResult.above20) + ' TEU</div>' +
     '</div>' +
     '<div class="kpi-cell" style="border-left:4px solid #c0392b;">' +
-      '<div class="kpi-label">< FAK</div>' +
-      '<div style="font-size:22px;font-weight:700;color:' + fakBelowColor + ';">' + fakVs.belowPct.toFixed(1) + '%</div>' +
-      '<div class="kpi-sub">' + fmt.teu(fakVs.belowTeu) + ' TEU</div>' +
+      '<div class="kpi-label" style="color:#c0392b;font-size:10px;">20GP 低于 FAK</div>' +
+      '<div style="font-size:22px;font-weight:700;color:' + below20Color + ';">' + fakResult.belowPct20.toFixed(1) + '%</div>' +
+      '<div class="kpi-sub">' + fmt.teu(fakResult.below20) + ' TEU</div>' +
     '</div>' +
-    [
-      { label:'Total Teu', value:fmt.teu(d.total_teu), sub:'TEU' },
-      { label:'总营收', value:fmt.usd(d.total_revenue), sub:'USD' },
-      { label:'单箱收入', value:fmt.usd(d.cm_per_teu), sub:'OFT/TEU', highlight: true },
-      { label:'Total CM', value:fmt.usd(d.total_contribution), sub:'Contribution (USD)' },
-      { label:'AVG CM', value:fmt.usd(d.vessel_avg_cm_per_teu), sub:'CM/TEU' },
-    ].map(c => '<div class="kpi-cell"><div class="kpi-label">' + c.label + '</div><div class="kpi-value' + (c.highlight ? '' : ' secondary') + '">' + c.value + '</div><div class="kpi-sub">' + c.sub + '</div></div>').join('');
+    '<div class="kpi-cell" style="background:#fff3e0;border-left:4px solid #e65100;">' +
+      '<div class="kpi-label" style="color:#e65100;font-size:10px;">⭐ 40HC 高于 FAK</div>' +
+      '<div style="font-size:22px;font-weight:700;color:' + above40Color + ';">' + fakResult.abovePct40.toFixed(1) + '%</div>' +
+      '<div class="kpi-sub">' + fmt.teu(fakResult.above40) + ' TEU</div>' +
+    '</div>' +
+    '<div class="kpi-cell" style="border-left:4px solid #c0392b;">' +
+      '<div class="kpi-label" style="color:#c0392b;font-size:10px;">40HC 低于 FAK</div>' +
+      '<div style="font-size:22px;font-weight:700;color:' + below40Color + ';">' + fakResult.belowPct40.toFixed(1) + '%</div>' +
+      '<div class="kpi-sub">' + fmt.teu(fakResult.below40) + ' TEU</div>' +
+    '</div>';
   renderTEU();
   renderCM();
   renderRevenueTop3();
