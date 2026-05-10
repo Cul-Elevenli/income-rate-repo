@@ -667,12 +667,13 @@ function renderAll() {
   const fakPctSub = vesselFakAvg > 0 ? '基准 FAK $' + Math.round(vesselFakAvg).toLocaleString() : '无 FAK 数据';
 
   // KPI strip: 先放 5 个核心指标，再接 4 个 FAK 对比卡片
-  const summaryCells = ['总 TEU','总收入','总 CM','Revenue/TEU','CM/TEU'];
+  const revenuePerTeu = d.total_teu > 0 ? (d.total_revenue / d.total_teu) : 0;
+  const summaryCells = ['总 TEU','总收入','总 CM','单收/TEU','CM/TEU'];
   const summaryVals = [
     { v: fmt.teu(d.total_teu), s: 'TEU' },
     { v: fmt.usd(d.total_revenue), s: 'USD' },
     { v: fmt.usd(d.total_contribution), s: 'CM (USD)' },
-    { v: fmt.usd(d.revenue_per_teu || 0), s: '运费/TEU' },
+    { v: fmt.usd(revenuePerTeu), s: 'Revenue/TEU' },
     { v: fmt.usd(d.cm_per_teu), s: fakPctSub },
   ];
   let summaryKpiHtml = '';
