@@ -698,6 +698,10 @@ function renderAll() {
       '<div style="font-size:22px;font-weight:700;color:' + below40Color + ';">' + fakResult.belowPct40.toFixed(1) + '%</div>' +
       '<div class="kpi-sub">' + fmt.teu(fakResult.below40) + ' TEU</div>' +
     '</div>';
+
+  // Inject KPI strip
+  document.getElementById('kpi-strip').innerHTML = fakKpiHtml;
+
   renderTEU();
   renderCM();
   renderRevenueTop3();
