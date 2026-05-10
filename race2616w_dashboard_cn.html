@@ -199,8 +199,11 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <strong>术语：</strong>Contribution（CM） = 收入 − 成本（集装箱装卸费 ＋ 箱成本 ＋ 口岸运营佣金成本），反映单箱收益贡献。FAK 基准以最后一次公布价格为准。数据首次出具，如有异常欢迎各口岸反馈。
   </div>
 
-  <!-- KPI Strip -->
+  <!-- KPI Strip: 核心指标 -->
   <div class="kpi-strip" id="kpi-strip"></div>
+
+  <!-- FAK KPI Strip: 箱型对比 -->
+  <div class="kpi-strip" id="kpi-strip-fak" style="margin-top:0;margin-bottom:28px;"></div>
 
   <!-- ============ EXECUTIVE SUMMARY: 所有 TOP 模块汇总 ============ -->
   <div class="section" id="executive-summary" style="background:linear-gradient(180deg,#fafbfc 0%,#fff 100%);border:2px solid var(--accent);">
@@ -715,8 +718,9 @@ function renderAll() {
       '<div class="kpi-sub">' + fmt.teu(fakResult.below40) + ' TEU</div>' +
     '</div>';
 
-  // Inject KPI strip: 先放 5 个核心指标，再接 4 个 FAK 对比卡片
-  document.getElementById('kpi-strip').innerHTML = summaryKpiHtml + fakKpiHtml;
+  // Inject KPI strip: 第一行 5 个核心指标，第二行 4 个 FAK 箱型对比
+  document.getElementById('kpi-strip').innerHTML = summaryKpiHtml;
+  document.getElementById('kpi-strip-fak').innerHTML = fakKpiHtml;
 
   renderTEU();
   renderCM();
