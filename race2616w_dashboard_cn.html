@@ -542,8 +542,9 @@ function computeFakVsOft() {
     else { f = fakMap[pol + '|' + pod + "|20'"]; if (f) { fak = f.FAK; } }
     if (fak === null || fak === undefined) return;
     // 用 Combined_OFT_Avg 作为实际运价
-    const actual = r.Revenue_Per_TEU || 0;
-    if (actual >= fak) { aboveTeu += teu; }
+    const boxFactor = (r.Box_Type === '20GP') ? 1 : 2;
+    const actualPerBox = (r.Revenue_Per_TEU || 0) * boxFactor;
+    if (actualPerBox >= fak) { aboveTeu += teu; }
     else { belowTeu += teu; }
     totalTeu += teu;
   });
