@@ -666,7 +666,22 @@ function renderAll() {
     : '<div class="kpi-value" style="font-size:22px;color:var(--text3);">—</div>';
   const fakPctSub = vesselFakAvg > 0 ? '基准 FAK $' + Math.round(vesselFakAvg).toLocaleString() : '无 FAK 数据';
 
-  // KPI strip
+  // KPI strip: 先放 5 个核心指标，再接 4 个 FAK 对比卡片
+  const summaryCells = ['总 TEU','总收入','总 CM','Revenue/TEU','CM/TEU'];
+  const summaryVals = [
+    { v: fmt.teu(d.total_teu), s: 'TEU' },
+    { v: fmt.usd(d.total_revenue), s: 'USD' },
+    { v: fmt.usd(d.total_contribution), s: 'CM (USD)' },
+    { v: fmt.usd(d.revenue_per_teu || 0), s: '运费/TEU' },
+    { v: fmt.usd(d.cm_per_teu), s: fakPctSub },
+  ];
+  let summaryKpiHtml = '';
+  for (let i = 0; i < summaryCells.length; i++) {
+    const valHtml = (i === 4 && fakPct !== null)
+      ? '<div style="display:flex;align-items:baseline;gap:8px;"><span>' + summaryVals[i].v + '</span><span style="font-size:18px;font-weight:700;color:' + (fakPct >= 80 ? '#0d6e3e' : fakPct >= 60 ? '#b45309' : '#c0392b') + ';">' + fakPct.toFixed(1) + '%</span></div>'
+      : '<div class="kpi-value">' + summaryVals[i].v + '</div>';
+    summaryKpiHtml += '<div class="kpi-cell"><div class="kpi-label">' + summaryCells[i] + '</div>' + valHtml + '<div class="kpi-sub">' + (summaryVals[i].s || '') + '</div></div>';
+  }
 
   // FAK vs OFT 比例
   const fakResult = computeFakVsOft();
@@ -699,8 +714,8 @@ function renderAll() {
       '<div class="kpi-sub">' + fmt.teu(fakResult.below40) + ' TEU</div>' +
     '</div>';
 
-  // Inject KPI strip
-  document.getElementById('kpi-strip').innerHTML = fakKpiHtml;
+  // Inject KPI strip: 先放 5 个核心指标，再接 4 个 FAK 对比卡片
+  document.getElementById('kpi-strip').innerHTML = summaryKpiHtml + fakKpiHtml;
 
   renderTEU();
   renderCM();
