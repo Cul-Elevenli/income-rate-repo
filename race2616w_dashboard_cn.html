@@ -654,19 +654,17 @@ function renderAll() {
 
   document.getElementById('kpi-strip').innerHTML =
     '<div class="kpi-cell" style="background:#fff8e1;border-left:4px solid #b45309;">' +
-      '<div class="kpi-label" style="color:#b45309;font-size:10px;">★ CM/TEU 占 FAK 均值</div>' +
+      '<div class="kpi-label" style="color:#b45309;font-size:10px;">★ Revenue/TEU 占 FAK 均值</div>' +
       fakPctHtml +
       '<div class="kpi-sub" style="color:#b45309;">' + fakPctSub + '</div>' +
     '</div>' +
     '<div class="kpi-cell" style="background:#e8f5e9;border-left:4px solid #2e7d32;">' +
       '<div class="kpi-label" style="color:#2e7d32;font-size:10px;">单收 20GP</div>' +
       '<div style="font-size:22px;font-weight:700;color:' + revColor20 + ';">' + (kpiOft20 > 0 ? fmt.usd(kpiOft20) : '—') + '</div>' +
-      '<div class="kpi-sub" style="color:' + revColor20 + ';">vs FAK 40\'/2 ' + (kpiFak20Pct ? kpiFak20Pct.toFixed(1) + '%' : '—') + '</div>' +
     '</div>' +
     '<div class="kpi-cell" style="border-left:4px solid #e65100;">' +
       '<div class="kpi-label" style="color:#e65100;font-size:10px;">单收 40HC</div>' +
       '<div style="font-size:22px;font-weight:700;color:' + revColor40 + ';">' + (kpiOft40 > 0 ? fmt.usd(kpiOft40) : '—') + '</div>' +
-      '<div class="kpi-sub" style="color:' + revColor40 + ';">vs FAK ' + (kpiFak40Pct ? kpiFak40Pct.toFixed(1) + '%' : '—') + '</div>' +
     '</div>' +
     [
       { label:'Total Teu', value:fmt.teu(d.total_teu), sub:'TEU' },
@@ -992,8 +990,6 @@ function renderRevenueTop3() {
     return '<div class="top3-card"><div class="top3-card-head region-' + regionClass + '">' + regionLabel + '</div>' +
       arr.map((d,i) => {
         const bw = max > 0 ? ((d.cm_per_teu||0)/max*100) : 0;
-        const pc = d.vs_fak_pct||0;
-        const pColor = pc >= 80 ? '#0d6e3e' : pc >= 60 ? '#b45309' : '#c0392b';
         return '<div class="top3-row">' +
           '<div class="top3-rank">' + (i+1) + '</div>' +
           '<div class="top3-info">' +
@@ -1002,7 +998,6 @@ function renderRevenueTop3() {
           '</div>' +
           '<div class="top3-metric">' +
             '<div class="top3-teu">' + fmt.usd(d.cm_per_teu) + '/TEU</div>' +
-            '<div class="top3-sub" style="color:' + pColor + ';font-weight:700;">vs FAK ' + pc.toFixed(1) + '%</div>' +
           '</div>' +
         '</div>';
       }).join('') + '</div>';
