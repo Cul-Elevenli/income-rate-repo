@@ -773,7 +773,7 @@ function renderTEU() {
         return '<div class="top3-row">' +
           '<div class="top3-rank">' + (i+1) + '</div>' +
           '<div class="top3-info">' +
-            '<div class="top3-code">' + (d['POL Code']||'') + '</div>' +
+            '<div class="top3-code">' + ((d['POL Code'])||d.pol||'') + '</div>' +
             '<div class="top3-bar-wrap"><div class="top3-bar-track"><div class="top3-bar-fill" style="width:' + bw + '%"></div></div></div>' +
           '</div>' +
           '<div class="top3-metric">' +
