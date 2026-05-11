@@ -287,7 +287,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
   <!-- ============ SECTION 2: CM 分析 ============ -->
   <div class="section">
     <div class="section-head">
-      <div class="section-title">CM 分析 — POD 总览（点击 POD 行展开 POL 明细）</div>
+      <div class="section-title">CM 分析 — POD 各区域总览</div>
     </div>
     <div class="section-kpi" id="cm-kpi"></div>
 
@@ -297,7 +297,6 @@ tbody tr.region-header-row + tr td { border-top:none; }
     </div>
     <table id="cm-me-table">
       <thead><tr>
-        <th style="width:32px;"></th>
         <th>POD</th>
         <th class="num">CM 总额 (USD)</th>
         <th class="num">CM/TEU</th>
@@ -313,7 +312,6 @@ tbody tr.region-header-row + tr td { border-top:none; }
     </div>
     <table id="cm-rs-table">
       <thead><tr>
-        <th style="width:32px;"></th>
         <th>POD</th>
         <th class="num">CM 总额 (USD)</th>
         <th class="num">CM/TEU</th>
@@ -329,7 +327,6 @@ tbody tr.region-header-row + tr td { border-top:none; }
     </div>
     <table id="cm-other-table">
       <thead><tr>
-        <th style="width:32px;"></th>
         <th>POD</th>
         <th class="num">CM 总额 (USD)</th>
         <th class="num">CM/TEU</th>
@@ -339,7 +336,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
       <tbody id="cm-other-tbody"></tbody>
     </table>
 
-    <div class="note">* 点击任意 POD 行展开，查看中国 POL 明细。▲ = 高于船舶平均 CM/TEU，▼ = 低于船舶平均 CM/TEU，— = 持平。</div>
+    <div class="note">* ▲ = 高于船舶平均 CM/TEU，▼ = 低于船舶平均 CM/TEU，— = 持平。</div>
   </div>
 
 
@@ -922,7 +919,7 @@ function renderCM() {
   const mePods = pods.filter(d => ME_PODS.has((d['DEL Code']||'').toUpperCase()));
   const rsPods = pods.filter(d => RS_PODS.has((d['DEL Code']||'').toUpperCase()));
   const othPods = pods.filter(d => { const u=(d['DEL Code']||'').toUpperCase(); return !ME_PODS.has(u)&&!RS_PODS.has(u); });
-  function renderCmTbody(id,arr){const tb=document.getElementById(id);if(!tb)return;tb.innerHTML=[...arr].sort((a,b)=>(b.cm_per_teu||0)-(a.cm_per_teu||0)).map(d=>{const v=d.vs_vessel_pct||0,c=v>2?'positive':v<-2?'negative':'';const ar=v>2?'<span style="color:var(--positive);font-weight:700;font-size:14px;">▲</span>':v<-2?'<span style="color:var(--negative);font-weight:700;font-size:14px;">▼</span>':'<span style="color:var(--neutral);font-size:14px;">—</span>';const tx=v>0?'+'+v.toFixed(1)+'%':v===0?'0.0%':v.toFixed(1)+'%';const k=(d['DEL Code']||'').replace(/[^A-Z0-9]/g,'');return'<tr class="clickable" onclick="toggleRow(\'cm\',\''+k+'\')"><td><span class="arrow" id="cm-arrow-'+k+'">▶</span></td><td class="code">'+(d['DEL Code']||'')+'</td><td class="num">'+fmt.usd(d.contribution)+'</td><td class="num '+c+'"><strong>'+fmt.usd(d.cm_per_teu)+'</strong></td><td class="num neutral">'+fmt.usd(d.vessel_cm_per_teu)+'</td><td class="num '+c+'"><strong>'+ar+' '+tx+'</strong></td></tr><tr class="detail-row" id="cm-detail-'+k+'" style="display:none"><td colspan="6"><div class="detail-inner" id="cm-inner-'+k+'"></div></td></tr>';}).join('');}
+  function renderCmTbody(id,arr){const tb=document.getElementById(id);if(!tb)return;tb.innerHTML=[...arr].sort((a,b)=>(b.cm_per_teu||0)-(a.cm_per_teu||0)).map(d=>{const v=d.vs_vessel_pct||0,c=v>2?'positive':v<-2?'negative':'';const ar=v>2?'<span style="color:var(--positive);font-weight:700;font-size:13px;">▲</span>':v<-2?'<span style="color:var(--negative);font-weight:700;font-size:13px;">▼</span>':'<span style="color:var(--neutral);font-size:13px;">—</span>';const tx=v>0?'+'+v.toFixed(1)+'%':v===0?'0.0%':v.toFixed(1)+'%';return'<tr><td class="code">'+(d['DEL Code']||'')+'</td><td class="num">'+fmt.usd(d.contribution)+'</td><td class="num '+c+'"><strong>'+fmt.usd(d.cm_per_teu)+'</strong></td><td class="num neutral">'+fmt.usd(d.vessel_cm_per_teu)+'</td><td class="num '+c+'"><strong>'+ar+' '+tx+'</strong></td></tr>';}).join('');}
   renderCmTbody('cm-me-tbody',mePods);
   renderCmTbody('cm-rs-tbody',rsPods);
   renderCmTbody('cm-other-tbody',othPods);
