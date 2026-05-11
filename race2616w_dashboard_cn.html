@@ -1166,9 +1166,10 @@ function renderShippers() {
   allRows.forEach(d => {
     const name = d.Shipper||'';
     if (!name) return;
-    if (!aggMap[name]) aggMap[name] = { name, teu:0, TotalC:0, rows:[], routes:0 };
+    if (!aggMap[name]) aggMap[name] = { name, teu:0, TotalC:0, Revenue:0, rows:[], routes:0 };
     aggMap[name].teu += d.TEU||0;
     aggMap[name].TotalC += d.TotalContribution||0;
+    aggMap[name].Revenue += d.Revenue||0;
     aggMap[name].routes += 1;
     aggMap[name].rows.push(d);
   });
@@ -1257,15 +1258,13 @@ function renderShippers() {
     { label:'货代', style:'' },
   ];
   if (hasFinancial) {
-    thCols.push({ label:'CM/TEU', style:'text-align:right;' });
+    thCols.push({ label:'单收 CM/TEU', style:'text-align:right;' });
     thCols.push({ label:'vs 口岸均', style:'text-align:right;' });
-    thCols.push({ label:'vs 整船均', style:'text-align:right;' });
-    thCols.push({ label:'Total CM (USD)', style:'text-align:right;' });
+    thCols.push({ label:'TOTAL 收益', style:'text-align:right;' });
   }
   thCols.push({ label:'TEU', style:'text-align:right;' });
   thCols.push({ label:'占比', style:'text-align:right;' });
   thCols.push({ label:'航段', style:'text-align:center;' });
-  thCols.push({ label:'占 FAK %', style:'text-align:center;color:#b45309;' });
 
   const theadRow = document.getElementById('shipper-thead-row');
   theadRow.innerHTML = thCols.map(c =>
@@ -1317,15 +1316,11 @@ function renderShippers() {
     if (hasFinancial) {
       cells.push('<td class="num accent"><strong>' + fmt.usd(m.C_Per_TEU) + '</strong></td>');
       cells.push('<td class="num ' + (vsPodPct===null?'':vsPodPct>2?'positive':vsPodPct<-2?'negative':'') + '">' + (vsPodPct===null?'—':badge(vsPodPct)) + '</td>');
-      cells.push('<td class="num ' + (vsV===null?'':vsV>2?'positive':vsV<-2?'negative':'') + '">' + (vsV===null?'—':badge(vsV)) + '</td>');
-      cells.push('<td class="num" style="font-size:12px;">' + fmt.usd(m.TotalC) + '</td>');
+      cells.push('<td class="num" style="font-size:12px;">' + fmt.usd(m.Revenue) + '</td>');
     }
     cells.push('<td class="num"><strong>' + fmt.teu(m.teu) + '</strong></td>');
     cells.push('<td class="num">' + pct + '%</td>');
     cells.push('<td class="num neutral" style="text-align:center;cursor:pointer;color:var(--accent);font-weight:700;" onclick="toggleShipperRow(\'' + encodeURIComponent(m.name) + '\')" title="点击展开航段明细"><span id="shipper-arrow-' + encodeURIComponent(m.name) + '" class="arrow">▶</span>' + m.routes + ' 个航段</td>');
-    // FAK vs OFT comparison: look up each route in DATA.fak_data
-    const fakInfo = buildFakInfo(m.rows);
-    cells.push('<td style="text-align:center;">' + fakInfo + '</td>');
     return '<tr class="clickable" onclick="toggleShipperRow(\'' + encodeURIComponent(m.name) + '\')">' + cells.join('') + '</tr>' +
            '<tr class="detail-row" id="shipper-detail-' + encodeURIComponent(m.name) + '" style="display:none"><td colspan="' + thCols.length + '"><div class="detail-inner" id="shipper-inner-' + encodeURIComponent(m.name) + '"></div></td></tr>';
   }).join('');
