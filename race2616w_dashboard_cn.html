@@ -670,6 +670,7 @@ function renderAll() {
       { label:'Total Teu', value:fmt.teu(d.total_teu), sub:'TEU' },
       { label:'总营收', value:fmt.usd(d.total_revenue), sub:'USD' },
       { label:'Total CM', value:fmt.usd(d.total_contribution), sub:'Contribution (USD)' },
+      { label:'CM/TEU', value:fmt.usd(d.cm_per_teu), sub:'Avg CM per TEU' },
     ].map(c => '<div class="kpi-cell"><div class="kpi-label">' + c.label + '</div><div class="kpi-value secondary">' + c.value + '</div><div class="kpi-sub">' + c.sub + '</div></div>').join('');
 
   // FAK vs OFT 分布统计的第二行 KPI
