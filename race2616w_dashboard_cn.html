@@ -642,17 +642,20 @@ function renderAll() {
       const teu = r.TEU || 0;
       if (!teu) return;
       const revPerTeu = teu > 0 ? (r.Revenue||0) / teu : 0;
+      const boxFactor = r.Box_Type === '20GP' ? 1 : 2;
       if (r.Box_Type === '20GP') {
         const fak20b = fakData.find(f => f.POL === pol && f.POD === pod && f.Size === "20'");
         if (fak20b && fak20b.FAK > 0) {
           total20 += teu;
-          if (revPerTeu >= fak20b.FAK) { aboveTeu20 += teu; }
+          const revPerBox = revPerTeu * boxFactor;
+          if (revPerBox >= fak20b.FAK) { aboveTeu20 += teu; }
         }
       } else {
         const fak40 = fakData.find(f => f.POL === pol && f.POD === pod && f.Size === "40'");
         if (fak40 && fak40.FAK > 0) {
           total40 += teu;
-          if (revPerTeu >= fak40.FAK) { aboveTeu40 += teu; }
+          const revPerBox = revPerTeu * boxFactor;
+          if (revPerBox >= fak40.FAK) { aboveTeu40 += teu; }
         }
       }
     });
