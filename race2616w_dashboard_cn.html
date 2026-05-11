@@ -227,18 +227,22 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div style="padding:8px 20px 16px;">
       <div id="top3-shipper-summary"></div>
     </div>
+
+    <!-- 气泡图：中东 -->
+    <div style="padding:12px 20px 4px;">
+      <div style="font-size:11px;font-weight:700;color:#1a6bb5;margin-bottom:6px;">◆ 中东 — 口岸气泡图</div>
+      <div id="pol-bubble-chart-me"></div>
+    </div>
+
+    <!-- 气泡图：红海 -->
+    <div style="padding:4px 20px 16px;">
+      <div style="font-size:11px;font-weight:700;color:#0d6e3e;margin-bottom:6px;">◆ 红海 — 口岸气泡图</div>
+      <div id="pol-bubble-chart-rs"></div>
+    </div>
   </div>
 
-  <!-- ============ SECTION: POL 气泡图 ============ -->
-  <div class="section">
-    <div class="section-head">
-      <div class="section-title">口岸气泡图 — TEU 规模 vs CM/TEU 效率</div>
-    </div>
-    <div style="padding:16px 20px;">
-      <div id="pol-bubble-chart"></div>
-    </div>
-    <div class="note">* 气泡大小 = CM 总额 (USD)。颜色：<span style="color:var(--positive);font-weight:600;">绿色</span> = 高于整船平均单收，<span style="color:var(--negative);font-weight:600;">红色</span> = 低于整船平均单收。悬停查看详情。</div>
-  </div>
+  <!-- 各项数据细分情况 -->
+  <div style="margin:32px 0 16px;font-size:18px;font-weight:700;color:var(--accent);border-bottom:2px solid var(--accent);padding-bottom:8px;">📋 各项数据细分情况</div>
 
   <!-- ============ SECTION 1B: 单收区域对比 ============ -->
   <div class="section">
@@ -257,7 +261,6 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">总营收 (USD)</th>
         <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK</th>
-        <th class="num">vs FAK</th>
       </tr></thead>
       <tbody id="revenue-me-tbody"></tbody>
     </table>
@@ -273,7 +276,6 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">总营收 (USD)</th>
         <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK</th>
-        <th class="num">vs FAK</th>
       </tr></thead>
       <tbody id="revenue-rs-tbody"></tbody>
     </table>
@@ -289,65 +291,65 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">总营收 (USD)</th>
         <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK</th>
-        <th class="num">vs FAK</th>
       </tr></thead>
       <tbody id="revenue-oth-tbody"></tbody>
     </table>
+    <div style="padding:8px 20px;font-size:11px;color:var(--text2);font-style:italic;">* 印巴等地区，货量较少参考性低，缺失数据不做展示。</div>
 
-    <div class="note">* 按区域划分，展示各 POL 单箱运费收入（Revenue/TEU）与 FAK 基准价对比。绿色 = ≥80% FAK，橙色 60–80%，红色 &lt;60%。</div>
+    <div class="note">* 按区域划分，展示各 POL 单箱运费收入（Revenue/TEU）与 FAK 基准运价。绿色 = ≥80% FAK，橙色 60–80%，红色 &lt;60%。</div>
   </div>
 
 
   <!-- ============ SECTION 2: CM 分析 ============ -->
   <div class="section">
     <div class="section-head">
-      <div class="section-title">CM 分析 — POD 各区域总览</div>
+      <div class="section-title">CM 分析 — POL 各区域总览</div>
     </div>
     <div class="section-kpi" id="cm-kpi"></div>
 
-    <!-- 中东 POD -->
+    <!-- 中东 POL -->
     <div class="section-head" style="background:#e8f1fb;border-bottom:1px solid var(--border);">
-      <div class="section-title" style="color:#1a6bb5;">◆ 中东 POD</div>
+      <div class="section-title" style="color:#1a6bb5;">◆ 中东 POL</div>
     </div>
     <table id="cm-me-table">
       <thead><tr>
-        <th>POD</th>
-        <th class="num">CM 总额 (USD)</th>
+        <th>POL</th>
+        <th class="num">总量 CM (USD)</th>
         <th class="num">CM/TEU</th>
-        <th class="num">AVG CM</th>
+        <th class="num">总量CM占比</th>
       </tr></thead>
       <tbody id="cm-me-tbody"></tbody>
     </table>
 
-    <!-- 红海 POD -->
+    <!-- 红海 POL -->
     <div class="section-head" style="background:#e6f4ed;border-bottom:1px solid var(--border);">
-      <div class="section-title" style="color:#0d6e3e;">◆ 红海 POD</div>
+      <div class="section-title" style="color:#0d6e3e;">◆ 红海 POL</div>
     </div>
     <table id="cm-rs-table">
       <thead><tr>
-        <th>POD</th>
-        <th class="num">CM 总额 (USD)</th>
+        <th>POL</th>
+        <th class="num">总量 CM (USD)</th>
         <th class="num">CM/TEU</th>
-        <th class="num">AVG CM</th>
+        <th class="num">总量CM占比</th>
       </tr></thead>
       <tbody id="cm-rs-tbody"></tbody>
     </table>
 
-    <!-- 其他 POD -->
+    <!-- 其他 POL -->
     <div class="section-head" style="background:#f1f3f4;border-bottom:1px solid var(--border);">
-      <div class="section-title" style="color:#5f6368;">◆ 其他 POD</div>
+      <div class="section-title" style="color:#5f6368;">◆ 其他 POL</div>
     </div>
     <table id="cm-other-table">
       <thead><tr>
-        <th>POD</th>
-        <th class="num">CM 总额 (USD)</th>
+        <th>POL</th>
+        <th class="num">总量 CM (USD)</th>
         <th class="num">CM/TEU</th>
-        <th class="num">AVG CM</th>
+        <th class="num">总量CM占比</th>
       </tr></thead>
       <tbody id="cm-other-tbody"></tbody>
     </table>
 
-    <div class="note">* 各 POD 的 CM/TEU 与该 POD 的 FAK 40'/2 基准对比显示百分比。绿色 ≥80%/橙色 60-80%/红色 &lt;60%。</div>
+    <div class="note">* 按 POL 汇总 CM/TEU 与总量 CM。绿色 ≥ 整船平均单收，橙色 ±2%，红色 &lt; 整船平均单收。</div>
   </div>
 
 
@@ -360,15 +362,15 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="section-head" style="background:#e8f1fb;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#1a6bb5;">◆ 中东 POD</div>
     </div>
-    <table id="teu-me-table"><thead><tr><th style="width:32px;"></th><th>POD</th><th class="num">TEU</th><th class="num">20GP</th><th class="num">40HC</th><th class="num">占比</th></tr></thead><tbody id="teu-me-tbody"></tbody></table>
+    <table id="teu-me-table"><thead><tr><th style="width:32px;"></th><th>POD</th><th class="num">TEU</th><th class="num">20GP</th><th class="num">40HC</th></tr></thead><tbody id="teu-me-tbody"></tbody></table>
     <div class="section-head" style="background:#e6f4ed;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#0d6e3e;">◆ 红海 POD</div>
     </div>
-    <table id="teu-rs-table"><thead><tr><th style="width:32px;"></th><th>POD</th><th class="num">TEU</th><th class="num">20GP</th><th class="num">40HC</th><th class="num">占比</th></tr></thead><tbody id="teu-rs-tbody"></tbody></table>
+    <table id="teu-rs-table"><thead><tr><th style="width:32px;"></th><th>POD</th><th class="num">TEU</th><th class="num">20GP</th><th class="num">40HC</th></tr></thead><tbody id="teu-rs-tbody"></tbody></table>
     <div class="section-head" style="background:#f1f3f4;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#5f6368;">◆ 其他 POD</div>
     </div>
-    <table id="teu-other-table"><thead><tr><th style="width:32px;"></th><th>POD</th><th class="num">TEU</th><th class="num">20GP</th><th class="num">40HC</th><th class="num">占比</th></tr></thead><tbody id="teu-other-tbody"></tbody></table>
+    <table id="teu-other-table"><thead><tr><th style="width:32px;"></th><th>POD</th><th class="num">TEU</th><th class="num">20GP</th><th class="num">40HC</th></tr></thead><tbody id="teu-other-tbody"></tbody></table>
   </div>
 
   <!-- ============ SECTION 3: Top Shippers ============ -->
@@ -704,7 +706,8 @@ function renderAll() {
   renderRevenueRegionCompare();
   renderShippers();
   renderPOLRank();
-  renderBubbleChart();
+  renderBubbleChart('me', 'pol-bubble-chart-me');
+  renderBubbleChart('rs', 'pol-bubble-chart-rs');
   renderFAK();
   renderShipperSummary();
 }
@@ -780,10 +783,9 @@ function renderTEU() {
     const tb=document.getElementById(id);if(!tb)return;
     const polDetail = showPolDetail && id==='teu-rs-tbody';
     tb.innerHTML=[...arr].sort((a,b)=>(b.teu||0)-(a.teu||0)).map(d=>{
-      const pct=totalTeu>0?(d.teu/totalTeu*100).toFixed(1):0;
       const barW=maxTeu>0?(d.teu/maxTeu*100):0;
       const k=(d['DEL Code']||'').replace(/[^A-Z0-9]/g,'');
-      const row='<tr class="clickable" onclick="toggleRow(\'teu\',\''+k+'\')"><td><span class="arrow" id="teu-arrow-'+k+'">▶</span></td><td class="code">'+(d['DEL Code']||'')+'</td><td class="num accent"><strong>'+fmt.teu(d.teu)+'</strong></td><td class="num">'+fmt.teu(d.teu_20gp||0)+'</td><td class="num">'+fmt.teu(d.teu_40hc||0)+'</td><td class="num">'+pct+'%</td></tr>';
+      const row='<tr class="clickable" onclick="toggleRow(\'teu\',\''+k+'\')"><td><span class="arrow" id="teu-arrow-'+k+'">▶</span></td><td class="code">'+(d['DEL Code']||'')+'</td><td class="num accent"><strong>'+fmt.teu(d.teu)+'</strong></td><td class="num">'+fmt.teu(d.teu_20gp||0)+'</td><td class="num">'+fmt.teu(d.teu_40hc||0)+'</td></tr>';
       // Inline POL sub-rows for Red Sea pods (when toggle is on)
       if (polDetail) {
         // Aggregate by POL Code for inline display (multiple rows per POL from box types)
@@ -922,28 +924,29 @@ function renderCM() {
     { label:'Total CM', val:fmt.usd(DATA.level1.total_contribution) },
     { label:'平均 CM/TEU', val:fmt.usd(DATA.level1.cm_per_teu) },
     { label:'船舶平均', val:fmt.usd(vesselAvg) },
-    { label:'POD 数量', val:pods.length },
+    { label:'POL 数量', val:mePolCm.length + rsPolCm.length + othPolCm.length },
   ].map(i => '<div class="item"><span>' + i.label + ':</span><span class="val">' + i.val + '</span></div>').join('');
 
-  // 分区：中东 / 红海 / 其他
-  const mePods = pods.filter(d => ME_PODS.has((d['DEL Code']||'').toUpperCase()));
-  const rsPods = pods.filter(d => RS_PODS.has((d['DEL Code']||'').toUpperCase()));
-  const othPods = pods.filter(d => { const u=(d['DEL Code']||'').toUpperCase(); return !ME_PODS.has(u)&&!RS_PODS.has(u); });
-
-  function renderCmTbody(id, arr) {
+  // 分区：中东 / 红海 / 其他 POL（使用 buildRegionPolList 已构建的数据）
+  function renderCmPolTbody(id, arr, regionTotal) {
     const tb = document.getElementById(id); if (!tb) return;
     tb.innerHTML = [...arr].sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0)).map(d => {
+      const cmPct = regionTotal > 0 ? ((d.contribution||0)/regionTotal*100).toFixed(1) : '0.0';
+      const vsV = d.vs_vessel_pct||0;
       return '<tr>' +
-        '<td class="code">' + (d['DEL Code']||'') + '</td>' +
-        '<td class="num">' + fmt.usd(d.contribution) + '</td>' +
-        '<td class="num ' + (d.vs_vessel_pct>2?'positive':d.vs_vessel_pct<-2?'negative':'') + '"><strong>' + fmt.usd(d.cm_per_teu) + '</strong></td>' +
-        '<td class="num neutral">' + fmt.usd(d.vessel_cm_per_teu) + '</td>' +
+        '<td class="code">' + d.pol + '</td>' +
+        '<td class="num">' + fmt.usd(d.contribution||0) + '</td>' +
+        '<td class="num ' + (vsV>2?'positive':vsV<-2?'negative':'') + '"><strong>' + fmt.usd(d.cm_per_teu||0) + '</strong></td>' +
+        '<td class="num neutral">' + cmPct + '%</td>' +
         '</tr>';
     }).join('');
   }
-  renderCmTbody('cm-me-tbody', mePods);
-  renderCmTbody('cm-rs-tbody', rsPods);
-  renderCmTbody('cm-other-tbody', othPods);
+  const meTotal = mePolCm.reduce((s,d) => s+(d.contribution||0), 0);
+  const rsTotal = rsPolCm.reduce((s,d) => s+(d.contribution||0), 0);
+  const othTotal = othPolCm.reduce((s,d) => s+(d.contribution||0), 0);
+  renderCmPolTbody('cm-me-tbody', mePolCm, meTotal);
+  renderCmPolTbody('cm-rs-tbody', rsPolCm, rsTotal);
+  renderCmPolTbody('cm-other-tbody', othPolCm, othTotal);
 }
 
 function renderRevenueTop3() {
@@ -1057,15 +1060,11 @@ function renderRevenueRegionCompare() {
       const fakPerTeu = p.avgFak !== null ? p.avgFak / 2 : null;
       const pct = fakPerTeu !== null && fakPerTeu > 0 ? (avgRev / fakPerTeu * 100) : null;
       const fakHtml = fakPerTeu !== null ? fmt.usd(fakPerTeu) : '—';
-      const vsFakHtml = pct !== null
-        ? '<span style="background:' + (pct>=80?'#e6f4ed':pct>=60?'#fff8e1':'#fce8e6') + ';color:' + (pct>=80?'#0d6e3e':pct>=60?'#b45309':'#c0392b') + ';font-weight:700;padding:2px 8px;border-radius:8px;">' + pct.toFixed(1) + '%</span>'
-        : '<span style="color:var(--text3);">—</span>';
       return '<tr><td class="code">' + p.pol + '</td>' +
         '<td class="num ' + (pct!==null?(pct>=80?'positive':pct>=60?'':'negative'):'') + '"><strong>' + fmt.usd(avgRev) + '</strong></td>' +
         '<td class="num">' + fmt.usd(p.revenue) + '</td>' +
         '<td class="num">' + fmt.teu(p.teu) + '</td>' +
-        '<td class="num" style="color:#b45309;">' + fakHtml + '</td>' +
-        '<td class="num">' + vsFakHtml + '</td></tr>';
+        '<td class="num" style="color:#b45309;">' + fakHtml + '</td></tr>';
     }).join('');
   }
 
@@ -1723,15 +1722,33 @@ function renderPOLRank() {
   }).join('');
 }
 
-function renderBubbleChart() {
-  const pols = [...DATA.level3].filter(d => (d.teu||0) > 0);
+function renderBubbleChart(region, containerId) {
+  // region: 'me' | 'rs' | null (all)
+  const allPols = [...DATA.level3].filter(d => (d.teu||0) > 0);
   const vesselAvg = DATA.level1.vessel_avg_cm_per_teu;
-  const maxTeu = Math.max(...pols.map(d => d.teu||0));
+
+  // Filter pols by region using level4 data
+  let pols;
+  if (region) {
+    const regionPods = region === 'me' ? ME_PODS : RS_PODS;
+    const polSet = new Set();
+    (DATA.level4||[]).forEach(r => {
+      const pod = (r['DEL Code']||'').toUpperCase();
+      const pol = r['POL Code']||'';
+      if (!pol || !pod) return;
+      if (regionPods.has(pod)) polSet.add(pol);
+    });
+    pols = allPols.filter(d => polSet.has(d['POL Code']||''));
+  } else {
+    pols = allPols;
+  }
+
+  const maxTeu = Math.max(...pols.map(d => d.teu||0), 1);
   const maxCm = Math.max(...pols.map(d => d.cm_per_teu||0));
   const minCm = Math.min(...pols.map(d => d.cm_per_teu||0));
   const maxContrib = Math.max(...pols.map(d => d.contribution||0));
 
-  const W = 620, H = 330;
+  const W = 560, H = 300;
   const pad = { top:20, right:30, bottom:50, left:70 };
   const chartW = W - pad.left - pad.right;
   const chartH = H - pad.top - pad.bottom;
@@ -1747,13 +1764,11 @@ function renderBubbleChart() {
 
   // Grid Y ticks
   const yTicks = 5;
-  const yStep = (yMax - yMin) / yTicks;
-  const yLabels = Array.from({length:yTicks+1}, (_,i) => yMin + i*yStep);
+  const yLabels = Array.from({length:yTicks+1}, (_,i) => yMin + i*(yMax-yMin)/yTicks);
 
   // X ticks
   const xTicks = 5;
-  const xStep = (xMax - xMin) / xTicks;
-  const xLabels = Array.from({length:xTicks+1}, (_,i) => xMin + i*xStep);
+  const xLabels = Array.from({length:xTicks+1}, (_,i) => xMin + i*(xMax-xMin)/xTicks);
 
   let circles = '';
   pols.forEach(d => {
@@ -1773,8 +1788,9 @@ function renderBubbleChart() {
   const vesselY = toY(vesselAvg);
   const vesselLabel = '<text x="' + (pad.left + chartW + 4) + '" y="' + vesselY + '" class="axis-label" font-size="9" fill="#0f4c81" font-weight="600">整船平均单收</text>';
 
+  const tipId = 'bubble-tip-' + (region||'all');
   let svg = '<div class="bubble-wrap" style="position:relative;width:' + W + 'px;">';
-  svg += '<div class="bubble-tooltip" id="bubble-tip"></div>';
+  svg += '<div class="bubble-tooltip" id="' + tipId + '"></div>';
   svg += '<svg class="bubble-svg" width="' + W + '" height="' + H + '">';
 
   // Grid lines
@@ -1803,11 +1819,12 @@ function renderBubbleChart() {
 
   svg += circles;
   svg += '</svg></div>';
-  document.getElementById('pol-bubble-chart').innerHTML = svg;
+  document.getElementById(containerId).innerHTML = svg;
 }
 
 function showBubbleTip(e, el) {
-  const tip = document.getElementById('bubble-tip');
+  const tipId = el.closest('.bubble-wrap').querySelector('.bubble-tooltip').id;
+  const tip = document.getElementById(tipId);
   if (!tip) return;
   tip.innerHTML = el.getAttribute('data-tip') || '';
   const rect = el.ownerSVGElement.getBoundingClientRect();
@@ -1818,8 +1835,7 @@ function showBubbleTip(e, el) {
 }
 
 function hideBubbleTip() {
-  const tip = document.getElementById('bubble-tip');
-  if (tip) tip.style.opacity = '0';
+  document.querySelectorAll('.bubble-tooltip').forEach(t => t.style.opacity = '0');
 }
 
 function renderFAK() {
