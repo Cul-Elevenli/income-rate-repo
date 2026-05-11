@@ -229,6 +229,17 @@ tbody tr.region-header-row + tr td { border-top:none; }
     </div>
   </div>
 
+  <!-- ============ SECTION: POL 气泡图 ============ -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">口岸气泡图 — TEU 规模 vs CM/TEU 效率</div>
+    </div>
+    <div style="padding:16px 20px;">
+      <div id="pol-bubble-chart"></div>
+    </div>
+    <div class="note">* 气泡大小 = CM 总额 (USD)。颜色：<span style="color:var(--positive);font-weight:600;">绿色</span> = 高于整船平均单收，<span style="color:var(--negative);font-weight:600;">红色</span> = 低于整船平均单收。悬停查看详情。</div>
+  </div>
+
   <!-- ============ SECTION 1B: 单收区域对比 ============ -->
   <div class="section">
     <div class="section-head">
@@ -427,17 +438,6 @@ tbody tr.region-header-row + tr td { border-top:none; }
       <tbody id="pol-rs-tbody"></tbody>
     </table>
     <div class="note">* 按 CM/TEU 从高到低排序。<strong style="color:#b45309;">占 FAK %</strong> = CM/TEU ÷ 该 POL 加权平均 FAK 运价，越高越好。绿色 ≥ 80%，橙色 60–80%，红色 &lt; 60%。</div>
-  </div>
-
-  <!-- ============ SECTION 5: POL 气泡图 ============ -->
-  <div class="section">
-    <div class="section-head">
-      <div class="section-title">口岸气泡图 — TEU 规模 vs CM/TEU 效率</div>
-    </div>
-    <div style="padding:16px 20px;">
-      <div id="pol-bubble-chart"></div>
-    </div>
-    <div class="note">* 气泡大小 = CM 总额 (USD)。颜色：<span style="color:var(--positive);font-weight:600;">绿色</span> = 高于整船平均单收，<span style="color:var(--negative);font-weight:600;">红色</span> = 低于整船平均单收。悬停查看详情。</div>
   </div>
 
   <!-- ============ SECTION 6: FAK 运价表 ============ -->
@@ -669,8 +669,8 @@ function renderAll() {
     [
       { label:'Total Teu', value:fmt.teu(d.total_teu), sub:'TEU' },
       { label:'总营收', value:fmt.usd(d.total_revenue), sub:'USD' },
-      { label:'Total CM', value:fmt.usd(d.total_contribution), sub:'Contribution (USD)' },
       { label:'CM/TEU', value:fmt.usd(d.cm_per_teu), sub:'Avg CM per TEU' },
+      { label:'Total CM', value:fmt.usd(d.total_contribution), sub:'Contribution (USD)' },
     ].map(c => '<div class="kpi-cell"><div class="kpi-label">' + c.label + '</div><div class="kpi-value secondary">' + c.value + '</div><div class="kpi-sub">' + c.sub + '</div></div>').join('');
 
   // FAK vs OFT 分布统计的第二行 KPI
@@ -743,7 +743,6 @@ function renderTEU() {
     const max = polTeuMax;
     return '<div class="top3-card"><div class="top3-card-head region-' + regionClass + '">' + regionLabel + '</div>' +
       arr.map((d,i) => {
-        const pct = totalTeu > 0 ? ((d.teu||0)/totalTeu*100).toFixed(1) : 0;
         const bw = max > 0 ? ((d.teu||0)/max*100) : 0;
         return '<div class="top3-row">' +
           '<div class="top3-rank">' + (i+1) + '</div>' +
@@ -753,14 +752,14 @@ function renderTEU() {
           '</div>' +
           '<div class="top3-metric">' +
             '<div class="top3-teu">' + fmt.teu(d.teu) + ' TEU</div>' +
-            '<div class="top3-sub">占总量 ' + pct + '%</div>' +
+            '<div class="top3-sub"></div>' +
           '</div>' +
         '</div>';
       }).join('') + '</div>';
   }
 
   document.getElementById('top3-teu-cards').innerHTML =
-    '<div class="top3-section-label">🏆 出口 TEU 排名前三 — 装货港（按目的港区域分组）</div>' +
+    '<div class="top3-section-label">🏆 出口 TEU 排名 — 装货港（按目的港区域分组）</div>' +
     '<div class="top3-cards-row">' +
       buildTop3TeuCol(mePolTeu, '🌊 中东', 'me') +
       buildTop3TeuCol(rsPolTeu, '🔴 红海', 'rs') +
