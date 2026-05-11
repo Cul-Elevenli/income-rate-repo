@@ -602,13 +602,32 @@ function renderAll() {
     : '<div class="kpi-value" style="font-size:22px;color:var(--text3);">—</div>';
   const fakPctSub = vesselFakAvg > 0 ? '基准 FAK $' + Math.round(vesselFakAvg).toLocaleString() : '无 FAK 数据';
 
-  // KPI strip: use pre-injected level1 values (computed by inject_fak_kpi.py)
-  const kpiFak40Pct = d.kpi_fak40_pct || 0;
-  const kpiFak20Pct = d.kpi_fak20_pct || 0;
-  const kpiOft40 = d.kpi_avg_oft_40 || 0;
-  const kpiFak40 = d.kpi_avg_fak40 || 0;
-  const kpiOft20 = d.kpi_avg_oft_20 || 0;
-  const kpiFak20 = d.kpi_avg_fak20 || 0;
+  // KPI strip: compute weighted avg Rev/TEU from level4 (OFT is null, use Revenue/TEU)
+  let oft20Rev=0, oft20Teu=0, oft20FakRev=0, oft40Rev=0, oft40Teu=0, oft40FakRev=0;
+  (DATA.level4||[]).forEach(r => {
+    const teu = r.TEU||0;
+    if (!teu) return;
+    const pol = r['POL Code']||'';
+    const pod = r['DEL Code']||'';
+    const revPerTeu = (r.Revenue||0)/teu;
+    if (r.Box_Type === '20GP') {
+      oft20Rev += revPerTeu * teu;
+      oft20Teu += teu;
+      const f = fakData.find(x => x.POL===pol && x.POD===pod && x.Size==="20'");
+      if (f && f.FAK > 0) { oft20FakRev += f.FAK * teu; }
+    } else {
+      oft40Rev += revPerTeu * teu;
+      oft40Teu += teu;
+      const f = fakData.find(x => x.POL===pol && x.POD===pod && x.Size==="40'");
+      if (f && f.FAK > 0) { oft40FakRev += f.FAK * teu; }
+    }
+  });
+  const kpiOft40 = oft40Teu > 0 ? Math.round(oft40Rev/oft40Teu) : 0;
+  const kpiFak40 = oft40Teu > 0 ? Math.round(oft40FakRev/oft40Teu) : 0;
+  const kpiFak40Pct = oft40FakRev > 0 ? Math.round(oft40Rev/oft40FakRev*1000)/10 : 0;
+  const kpiOft20 = oft20Teu > 0 ? Math.round(oft20Rev/oft20Teu) : 0;
+  const kpiFak20 = oft20Teu > 0 ? Math.round(oft20FakRev/oft20Teu) : 0;
+  const kpiFak20Pct = oft20FakRev > 0 ? Math.round(oft20Rev/oft20FakRev*1000)/10 : 0;
   const revColor20 = kpiFak20Pct >= 80 ? '#0d6e3e' : kpiFak20Pct >= 60 ? '#b45309' : '#c0392b';
   const revColor40 = kpiFak40Pct >= 80 ? '#0d6e3e' : kpiFak40Pct >= 60 ? '#b45309' : '#c0392b';
 
@@ -621,21 +640,19 @@ function renderAll() {
       const pol = r['POL Code'] || '';
       const pod = r['DEL Code'] || '';
       const teu = r.TEU || 0;
-      const oft = r.OFT || null;
-      if (!teu || !oft) return;
+      if (!teu) return;
+      const revPerTeu = teu > 0 ? (r.Revenue||0) / teu : 0;
       if (r.Box_Type === '20GP') {
         const fak20b = fakData.find(f => f.POL === pol && f.POD === pod && f.Size === "20'");
-        const fakVal = fak20b ? fak20b.FAK : 0;
-        if (fakVal > 0) {
+        if (fak20b && fak20b.FAK > 0) {
           total20 += teu;
-          if (oft >= fakVal) { aboveTeu20 += teu; }
+          if (revPerTeu >= fak20b.FAK) { aboveTeu20 += teu; }
         }
       } else {
         const fak40 = fakData.find(f => f.POL === pol && f.POD === pod && f.Size === "40'");
-        const fakVal = fak40 ? fak40.FAK : 0;
-        if (fakVal > 0) {
+        if (fak40 && fak40.FAK > 0) {
           total40 += teu;
-          if (oft >= fakVal) { aboveTeu40 += teu; }
+          if (revPerTeu >= fak40.FAK) { aboveTeu40 += teu; }
         }
       }
     });
@@ -681,7 +698,7 @@ function renderAll() {
   // FAK vs OFT 分布统计的第二行 KPI
   const fakKpiHtml =
     '<div class="kpi-cell" style="background:#e8f5e9;border-left:4px solid #2e7d32;">' +
-      '<div class="kpi-label" style="color:#2e7d32;font-size:10px;">⭐ 20GP 高于 FAK</div>' +
+      '<div class="kpi-label" style="color:#2e7d32;font-size:10px;">⭐ 20GP 高于等于 FAK</div>' +
       '<div style="font-size:22px;font-weight:700;color:' + above20Color + ';">' + fakResult.abovePct20.toFixed(1) + '%</div>' +
       '<div class="kpi-sub">' + fmt.teu(fakResult.above20) + ' TEU</div>' +
     '</div>' +
@@ -691,7 +708,7 @@ function renderAll() {
       '<div class="kpi-sub">' + fmt.teu(fakResult.below20) + ' TEU</div>' +
     '</div>' +
     '<div class="kpi-cell" style="background:#fff3e0;border-left:4px solid #e65100;">' +
-      '<div class="kpi-label" style="color:#e65100;font-size:10px;">⭐ 40HC 高于 FAK</div>' +
+      '<div class="kpi-label" style="color:#e65100;font-size:10px;">⭐ 40HC 高于等于 FAK</div>' +
       '<div style="font-size:22px;font-weight:700;color:' + above40Color + ';">' + fakResult.abovePct40.toFixed(1) + '%</div>' +
       '<div class="kpi-sub">' + fmt.teu(fakResult.above40) + ' TEU</div>' +
     '</div>' +
@@ -731,9 +748,9 @@ function renderTEU() {
       const isTarget = region === 'me' ? ME_PODS.has(pod) : region === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
       if (!isTarget) return;
       if (!polMap[pol]) polMap[pol] = { pol, teu:0 };
-      polMap[pol].teu += r.Total_TEU||0;
+      polMap[pol].teu += r.TEU||0;
     });
-    return Object.values(polMap).sort((a,b) => (b.teu||0)-(a.teu||0)).slice(0,3);
+    return Object.values(polMap).sort((a,b) => (b.teu||0)-(a.teu||0));
   }
 
   const mePolTeu = buildRegionPolTeuList('me');
@@ -845,14 +862,14 @@ function renderCM() {
       const isTarget = region === 'me' ? ME_PODS.has(pod) : region === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
       if (!isTarget) return;
       if (!polMap[pol]) polMap[pol] = { pol, teu:0, contribution:0, cm_per_teu:0, vs_vessel_pct:0 };
-      polMap[pol].teu += r.CM_TEU||0;
+      polMap[pol].teu += r.TEU||0;
       polMap[pol].contribution += r.TotalContribution||0;
     });
     Object.values(polMap).forEach(p => {
       p.cm_per_teu = p.teu > 0 ? p.contribution / p.teu : 0;
       p.vs_vessel_pct = vesselAvg > 0 ? (p.cm_per_teu / vesselAvg - 1) * 100 : 0;
     });
-    return Object.values(polMap).sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0)).slice(0,3);
+    return Object.values(polMap).sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0));
   }
 
   const mePolCm = buildRegionPolList('me');
@@ -920,14 +937,14 @@ function renderRevenueTop3() {
       const isTarget = region === 'me' ? ME_PODS.has(pod) : region === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
       if (!isTarget) return;
       if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, cm_per_teu:0, vs_vessel_pct:0 };
-      polMap[pol].teu += r.CM_TEU||0;
+      polMap[pol].teu += r.TEU||0;
       polMap[pol].revenue += r.Revenue||0;
     });
     Object.values(polMap).forEach(p => {
       p.cm_per_teu = p.teu > 0 ? p.revenue / p.teu : 0;
       p.vs_vessel_pct = vesselAvgRev > 0 ? (p.cm_per_teu / vesselAvgRev - 1) * 100 : 0;
     });
-    return Object.values(polMap).sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0)).slice(0,3);
+    return Object.values(polMap).sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0));
   }
 
   const mePolRev = buildRegionPolRevenue('me');
