@@ -198,6 +198,9 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <span style="margin:0 10px;color:#d97706;">|</span>
     <strong>术语：</strong>Contribution（CM） = 收入 − 成本，反映单箱收益贡献。FAK 基准以最后一次公布价格为准。数据首次出具，如有异常欢迎各口岸反馈。
   </div>
+  <div style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:6px;padding:8px 20px;margin-bottom:16px;font-size:11px;color:#6c757d;line-height:1.7;">
+    ⚠️ 说明：本报告不完全判定口岸完成的好与坏，仅供参考航线情况。数据首次出具，如有数据异常欢迎各口岸反馈。
+  </div>
 
   <!-- KPI Strip: 第一行核心指标 -->
   <div class="kpi-strip" id="kpi-strip"></div>
@@ -301,7 +304,6 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">CM 总额 (USD)</th>
         <th class="num">CM/TEU</th>
         <th class="num">AVG CM</th>
-        <th class="num">vs FAK</th>
       </tr></thead>
       <tbody id="cm-me-tbody"></tbody>
     </table>
@@ -316,7 +318,6 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">CM 总额 (USD)</th>
         <th class="num">CM/TEU</th>
         <th class="num">AVG CM</th>
-        <th class="num">vs FAK</th>
       </tr></thead>
       <tbody id="cm-rs-tbody"></tbody>
     </table>
@@ -331,7 +332,6 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">CM 总额 (USD)</th>
         <th class="num">CM/TEU</th>
         <th class="num">AVG CM</th>
-        <th class="num">vs FAK</th>
       </tr></thead>
       <tbody id="cm-other-tbody"></tbody>
     </table>
@@ -352,10 +352,6 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <table id="teu-me-table"><thead><tr><th style="width:32px;"></th><th>POD</th><th class="num">TEU</th><th class="num">20GP</th><th class="num">40HC</th><th class="num">占比</th></tr></thead><tbody id="teu-me-tbody"></tbody></table>
     <div class="section-head" style="background:#e6f4ed;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#0d6e3e;">◆ 红海 POD</div>
-      <label style="font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;">
-        <input type="checkbox" id="rs-pol-toggle" onchange="renderTEU()" style="cursor:pointer;" checked>
-        <span style="background:#0d6e3e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;font-size:10px;">含装货港分布</span>
-      </label>
     </div>
     <table id="teu-rs-table"><thead><tr><th style="width:32px;"></th><th>POD</th><th class="num">TEU</th><th class="num">20GP</th><th class="num">40HC</th><th class="num">占比</th></tr></thead><tbody id="teu-rs-tbody"></tbody></table>
     <div class="section-head" style="background:#f1f3f4;border-bottom:1px solid var(--border);">
@@ -444,30 +440,13 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="note">* 气泡大小 = CM 总额 (USD)。颜色：<span style="color:var(--positive);font-weight:600;">绿色</span> = 高于整船平均单收，<span style="color:var(--negative);font-weight:600;">红色</span> = 低于整船平均单收。悬停查看详情。</div>
   </div>
 
-  <!-- ============ SECTION 6: FAK vs OFT 运价对比 ============ -->
+  <!-- ============ SECTION 6: FAK 运价表 ============ -->
   <div class="section">
     <div class="section-head">
-      <div class="section-title">FAK vs OFT 运价对比 — 各口岸实际海运费率 vs 公开运价</div>
+      <div class="section-title">FAK 运价表 — 各口岸基准运价（单位：USD）</div>
     </div>
-    <div style="padding:0 20px 8px;font-size:11px;color:var(--text2);line-height:1.5;">
-      <strong>计算说明：</strong>「单收占 FAK %」= CM/TEU ÷ 该 POL 加权平均 FAK 运价 × 100%。FAK 按各航段 TEU 加权（40′ 优先，无则取 20′）。≥80% 为优，60–80% 正常，&lt;60% 偏低。
-    </div>
-    <div class="section-kpi" id="fak-kpi"></div>
-    <table id="fak-table">
-      <thead><tr>
-        <th>装货港 (POL)</th>
-        <th>卸货港 (POD)</th>
-        <th class="num">箱型</th>
-        <th class="num">FAK 公开价</th>
-        <th class="num">实际 OFT 均值</th>
-        <th class="num">差异</th>
-        <th class="num">差异率</th>
-        <th class="num">货量 (TEU)</th>
-        <th>状态</th>
-      </tr></thead>
-      <tbody id="fak-tbody"></tbody>
-    </table>
-    <div class="note">* 数据来源：OFT 实际运价取自运价.xlsx，按航线+箱型聚合均值。绿色 = 高于 FAK（溢价），红色 = 低于 FAK（折扣）。</div>
+    <div id="fak-matrix-container" style="padding:16px 20px;"></div>
+    <div class="note">* FAK 基准运价（蓝底），按 POL 分块。实际 OFT = 本船实际运价均值（绿字），来自各 POD 货代实际 Revenue/TEU × 箱型系数。绿 = ≥FAK 优 / 橙 = ≥80% / 红 = &lt;80%。</div>
   </div>
 
   <!-- ============ SECTION 7: 订舱进度追踪 ============ -->
@@ -809,14 +788,29 @@ function renderTEU() {
       const row='<tr class="clickable" onclick="toggleRow(\'teu\',\''+k+'\')"><td><span class="arrow" id="teu-arrow-'+k+'">▶</span></td><td class="code">'+(d['DEL Code']||'')+'</td><td class="num accent"><strong>'+fmt.teu(d.teu)+'</strong></td><td class="num">'+fmt.teu(d.teu_20gp||0)+'</td><td class="num">'+fmt.teu(d.teu_40hc||0)+'</td><td class="num">'+pct+'%</td></tr>';
       // Inline POL sub-rows for Red Sea pods (when toggle is on)
       if (polDetail) {
-        const podRows = DATA.level4.filter(r => (r['DEL Code']||'') === d['DEL Code']).sort((a,b)=>(b.Total_TEU||0)-(a.Total_TEU||0));
-        if (podRows.length) {
-          const subRows = podRows.map(r => {
-            const polTeu = r.Total_TEU||0;
+        // Aggregate by POL Code for inline display (multiple rows per POL from box types)
+        const podRows = DATA.level4.filter(r => (r['DEL Code']||'') === d['DEL Code']);
+        const polAgg = {};
+        podRows.forEach(r => {
+          const pol = r['POL Code']||'';
+          if (!pol) return;
+          if (!polAgg[pol]) polAgg[pol] = { teu:0, teu_20gp:0, teu_40hc:0 };
+          polAgg[pol].teu += r.TEU||0;
+          polAgg[pol].teu_20gp += r.TEU_20GP||0;
+          polAgg[pol].teu_40hc += r.TEU_40HC||0;
+        });
+        const polList = Object.entries(polAgg).map(([code, v]) => ({ code, ...v })).sort((a,b)=>b.teu-a.teu);
+        if (polList.length) {
+          const subRows = polList.map(p => {
+            const polTeu = p.teu;
             const polPct = d.teu>0?(polTeu/d.teu*100).toFixed(1):0;
-            const polBar = maxTeu>0?(polTeu/maxTeu*100):0;
             const polBg = polTeu > 0 ? (polTeu/d.teu>0.3?'#e6f4ed':'#f0fdf4') : 'transparent';
-            return '<tr style="background:'+polBg+';"><td></td><td class="code" style="color:var(--text2);padding-left:24px;font-size:11px;">　└─ '+(r['POL Code']||'')+'</td><td class="num" style="font-size:11px;">'+fmt.teu(polTeu)+'</td><td class="num" style="font-size:11px;">'+fmt.teu(r.TEU_20GP||0)+'</td><td class="num" style="font-size:11px;">'+fmt.teu(r.TEU_40HC||0)+'</td><td class="num" style="font-size:11px;">'+polPct+'%</td></tr>';
+            return '<tr style="background:'+polBg+';"><td></td><td class="code"' +
+              ' style="color:var(--text2);padding-left:24px;font-size:11px;">\u3000\u2514\u2500 '+p.code+'</td>' +
+              '<td class="num" style="font-size:11px;">'+fmt.teu(polTeu)+'</td>' +
+              '<td class="num" style="font-size:11px;">'+fmt.teu(p.teu_20gp)+'</td>' +
+              '<td class="num" style="font-size:11px;">'+fmt.teu(p.teu_40hc)+'</td>' +
+              '<td class="num" style="font-size:11px;">'+polPct+'%</td></tr>';
           }).join('');
           return row + subRows;
         }
@@ -824,25 +818,36 @@ function renderTEU() {
       return row+'<tr class="detail-row" id="teu-detail-'+k+'" style="display:none"><td colspan="6"><div class="detail-inner" id="teu-inner-'+k+'"></div></td></tr>';
     }).join('');
   }
-  const showRsPol = document.getElementById('rs-pol-toggle')?.checked !== false;
+  // Always show inline POL details for red sea section
   renderTeuTbody('teu-me-tbody',meP,false);
-  renderTeuTbody('teu-rs-tbody',rsP,showRsPol);
+  renderTeuTbody('teu-rs-tbody',rsP,false);
   renderTeuTbody('teu-other-tbody',othP,false);
 }
 
 function renderTEUDetail(podCode) {
   const rows = DATA.level4.filter(r => (r['DEL Code']||'') === podCode);
   if (!rows.length) return;
-  const max = Math.max(...rows.map(r => r.Total_TEU||0));
+  // Aggregate by POL Code
+  const polAgg = {};
+  rows.forEach(r => {
+    const pol = r['POL Code']||'';
+    if (!pol) return;
+    if (!polAgg[pol]) polAgg[pol] = { pol, teu:0, teu_20gp:0, teu_40hc:0 };
+    polAgg[pol].teu += r.TEU||0;
+    polAgg[pol].teu_20gp += r.TEU_20GP||0;
+    polAgg[pol].teu_40hc += r.TEU_40HC||0;
+  });
+  const polList = Object.values(polAgg).sort((a,b)=>b.teu-a.teu);
+  const max = Math.max(...polList.map(p => p.teu));
   const inner = document.getElementById('teu-inner-' + podCode);
   if (!inner) return;
   inner.innerHTML = '<table><thead><tr><th>POL</th><th class="num">TEU 合计</th><th class="num">20GP</th><th class="num">40HC</th><th>占 POD 比例</th></tr></thead><tbody>' +
-    rows.map(r => {
-      const w = max>0 ? (r.Total_TEU/max*100) : 0;
-      return '<tr><td class="code">' + (r['POL Code']||'') + '</td>' +
-        '<td class="num accent">' + fmt.teu(r.Total_TEU) + '</td>' +
-        '<td class="num">' + fmt.teu(r.TEU_20GP||0) + '</td>' +
-        '<td class="num">' + fmt.teu(r.TEU_40HC||0) + '</td>' +
+    polList.map(p => {
+      const w = max>0 ? (p.teu/max*100) : 0;
+      return '<tr><td class="code">' + p.pol + '</td>' +
+        '<td class="num accent">' + fmt.teu(p.teu) + '</td>' +
+        '<td class="num">' + fmt.teu(p.teu_20gp) + '</td>' +
+        '<td class="num">' + fmt.teu(p.teu_40hc) + '</td>' +
         '<td><div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:' + w + '%"></div></div></div></td></tr>';
     }).join('') + '</tbody></table>';
 }
@@ -870,7 +875,7 @@ function renderCM() {
       if (!pol || !pod) return;
       const isTarget = region === 'me' ? ME_PODS.has(pod) : region === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
       if (!isTarget) return;
-      if (!polMap[pol]) polMap[pol] = { pol, teu:0, contribution:0, cm_per_teu:0, vs_fak_pct:0 };
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0, contribution:0, cm_per_teu:0 };
       polMap[pol].teu += r.TEU||0;
       polMap[pol].contribution += r.TotalContribution||0;
     });
@@ -893,7 +898,6 @@ function renderCM() {
     return '<div class="top3-card"><div class="top3-card-head region-' + regionClass + '">' + regionLabel + '</div>' +
       arr.map((d,i) => {
         const bw = max > 0 ? ((d.cm_per_teu||0)/max*100) : 0;
-        const vsV = d.vs_vessel_pct||0;
         return '<div class="top3-row">' +
           '<div class="top3-rank">' + (i+1) + '</div>' +
           '<div class="top3-info">' +
@@ -902,7 +906,7 @@ function renderCM() {
           '</div>' +
           '<div class="top3-metric">' +
             '<div class="top3-teu">' + fmt.usd(d.cm_per_teu) + '/TEU</div>' +
-            '<div class="top3-sub">' + fmt.usd(d.contribution) + ' · ' + fmt.teu(d.teu) + ' TEU · ' + badge(vsV) + '</div>' +
+            '<div class="top3-sub">' + fmt.usd(d.contribution) + ' · ' + fmt.teu(d.teu) + ' TEU</div>' +
           '</div>' +
         '</div>';
       }).join('') + '</div>';
@@ -931,16 +935,11 @@ function renderCM() {
   function renderCmTbody(id, arr) {
     const tb = document.getElementById(id); if (!tb) return;
     tb.innerHTML = [...arr].sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0)).map(d => {
-      const podFak = getFak40ForPod(d['DEL Code']);
-      const vsFak = podFak > 0 ? (d.cm_per_teu / (podFak/2) * 100) : null;
-      const fColor = vsFak !== null ? (vsFak >= 80 ? 'var(--positive)' : vsFak >= 60 ? 'var(--warning)' : 'var(--negative)') : 'var(--text3)';
-      const fText = vsFak !== null ? vsFak.toFixed(1) + '%' : '—';
       return '<tr>' +
         '<td class="code">' + (d['DEL Code']||'') + '</td>' +
         '<td class="num">' + fmt.usd(d.contribution) + '</td>' +
         '<td class="num ' + (d.vs_vessel_pct>2?'positive':d.vs_vessel_pct<-2?'negative':'') + '"><strong>' + fmt.usd(d.cm_per_teu) + '</strong></td>' +
         '<td class="num neutral">' + fmt.usd(d.vessel_cm_per_teu) + '</td>' +
-        '<td class="num" style="color:' + fColor + ';font-weight:700;">' + fText + '</td>' +
         '</tr>';
     }).join('');
   }
@@ -973,9 +972,9 @@ function renderRevenueTop3() {
       if (f) { polMap[pol].fakSum += f * (r.TEU||0); polMap[pol].fakTeu += r.TEU||0; }
     });
     Object.values(polMap).forEach(p => {
+      p.avgFak40 = p.fakTeu > 0 ? p.fakSum / p.fakTeu : 0;
       p.cm_per_teu = p.teu > 0 ? p.revenue / p.teu : 0;
-      p.avgFak = p.fakTeu > 0 ? p.fakSum / p.fakTeu : 0;
-      p.vs_fak_pct = p.avgFak > 0 ? (p.cm_per_teu / (p.avgFak/2) * 100) : 0;
+      p.vs_fak_pct = p.avgFak40 > 0 ? (p.cm_per_teu / (p.avgFak40/2) * 100) : 0;
     });
     return Object.values(polMap).sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0));
   }
@@ -1028,7 +1027,7 @@ function renderRevenueRegionCompare() {
   });
 
   function getFak(pol, pod) {
-    let f = fakMap[pol+'|'+pod+"|40'"] || fakMap[pol+'|'+pod+"|20'"];
+    let f = fakMap[pol+'|'+pod+"|40'"];
     return f ? f.FAK : null;
   }
 
@@ -1060,14 +1059,14 @@ function renderRevenueRegionCompare() {
     if (!tb) return;
     tb.innerHTML = pols.map(p => {
       const avgRev = p.teu > 0 ? p.revenue / p.teu : 0;
-      const vsFak = p.avgFak > 0 ? (avgRev / p.avgFak * 100) : null;
-      const cls = vsFak !== null ? (vsFak >= 80 ? 'positive' : vsFak >= 60 ? 'negative' : 'negative') : '';
-      const fakHtml = p.avgFak !== null ? fmt.usd(p.avgFak) : '—';
-      const vsFakHtml = vsFak !== null
-        ? '<span style="background:' + (vsFak>=80?'#e6f4ed':vsFak>=60?'#fff8e1':'#fce8e6') + ';color:' + (vsFak>=80?'#0d6e3e':vsFak>=60?'#b45309':'#c0392b') + ';font-weight:700;padding:2px 8px;border-radius:8px;">' + vsFak.toFixed(1) + '%</span>'
+      const fakPerTeu = p.avgFak !== null ? p.avgFak / 2 : null;
+      const pct = fakPerTeu !== null && fakPerTeu > 0 ? (avgRev / fakPerTeu * 100) : null;
+      const fakHtml = fakPerTeu !== null ? fmt.usd(fakPerTeu) : '—';
+      const vsFakHtml = pct !== null
+        ? '<span style="background:' + (pct>=80?'#e6f4ed':pct>=60?'#fff8e1':'#fce8e6') + ';color:' + (pct>=80?'#0d6e3e':pct>=60?'#b45309':'#c0392b') + ';font-weight:700;padding:2px 8px;border-radius:8px;">' + pct.toFixed(1) + '%</span>'
         : '<span style="color:var(--text3);">—</span>';
       return '<tr><td class="code">' + p.pol + '</td>' +
-        '<td class="num ' + cls + '"><strong>' + fmt.usd(avgRev) + '</strong></td>' +
+        '<td class="num ' + (pct!==null?(pct>=80?'positive':pct>=60?'':'negative'):'') + '"><strong>' + fmt.usd(avgRev) + '</strong></td>' +
         '<td class="num">' + fmt.usd(p.revenue) + '</td>' +
         '<td class="num">' + fmt.teu(p.teu) + '</td>' +
         '<td class="num" style="color:#b45309;">' + fakHtml + '</td>' +
@@ -1101,7 +1100,7 @@ function renderCMDetail(podCode) {
       return '<tr><td class="code">' + (r['POL Code']||'') + '</td>' +
         '<td class="num ' + cls + '"><strong>' + fmt.usd(r.CM_Per_TEU) + '</strong></td>' +
         '<td class="num">' + fmt.usd(r.TotalContribution) + '</td>' +
-        '<td class="num">' + fmt.teu(r.Total_TEU) + '</td>' +
+        '<td class="num">' + fmt.teu(r.TEU) + '</td>' +
         '<td class="num ' + cls + '">' + arrowHtml + ' ' + vsText + '</td></tr>';
     }).join('') + '</tbody></table>';
 }
@@ -1525,55 +1524,32 @@ function renderShipperDetail(name) {
   });
   const routes = Object.values(routeMap);
   const totalTeu = routes.reduce((s, r) => s + r.teu, 0);
-  const maxRouteTeu = Math.max(...routes.map(r => r.teu), 1);
 
   inner.innerHTML = '<div style="margin-bottom:10px;font-size:11px;color:var(--text2);">' +
     '<strong>航段明细</strong> — 共 ' + routes.length + ' 个航段，总计 ' + fmt.teu(totalTeu) + ' TEU' +
     '</div>' +
-    '<table style="min-width:700px;"><thead><tr>' +
+    '<table style="min-width:500px;"><thead><tr>' +
     '<th>航段</th>' +
     '<th class="num">TEU</th>' +
     '<th class="num">占货代比例</th>' +
     '<th class="num">FAK 基准</th>' +
-    '<th class="num">实际 OFT</th>' +
-    '<th class="num" style="color:#b45309;background:#fff8e1;">占 FAK %</th>' +
-    '<th class="num">差异</th>' +
-    '<th>TEU 分布</th>' +
     '</tr></thead><tbody>' +
     routes.map(r => {
       const pct = totalTeu > 0 ? (r.teu / totalTeu * 100).toFixed(1) : 0;
-      const w = maxRouteTeu > 0 ? (r.teu / maxRouteTeu * 100) : 0;
       const routeStr = r.pol + ' → ' + r.pod;
       const key40 = r.pol + '|' + r.pod + '|40\'';
       const key20 = r.pol + '|' + r.pod + '|20\'';
       const fak = fakMap[key40] || fakMap[key20];
       let fakCell = '<span style="color:var(--text3);">—</span>';
-      let oftCell = '<span style="color:var(--text3);">—</span>';
-      let diffCell = '<span style="color:var(--text3);">—</span>';
-      let fakPctCell = '<span style="color:var(--text3);">—</span>';
       if (fak) {
-        const diff = fak.Diff||0;
-        const diffColor = diff > 0 ? 'var(--positive)' : diff < 0 ? 'var(--negative)' : 'var(--neutral)';
-        const diffStr = diff >= 0 ? '+' + Math.round(diff) : '' + Math.round(diff);
         fakCell = '$' + Math.round(fak.FAK).toLocaleString('en-US');
-        oftCell = '$' + Math.round(fak.OFT_Avg).toLocaleString('en-US');
-        diffCell = '<span style="color:' + diffColor + ';font-weight:700;">' + diffStr + '</span>';
-        const ofp = fak.FAK > 0 ? (fak.OFT_Avg / fak.FAK * 100) : null;
-        if (ofp !== null) {
-          const pc = ofp >= 80 ? '#0d6e3e' : ofp >= 60 ? '#b45309' : '#c0392b';
-          const pb = ofp >= 80 ? '#e6f4ed' : ofp >= 60 ? '#fff8e1' : '#fce8e6';
-          fakPctCell = '<span style="background:' + pb + ';color:' + pc + ';font-weight:700;padding:2px 7px;border-radius:8px;">' + ofp.toFixed(1) + '%</span>';
-        }
       }
       return '<tr>' +
         '<td class="code" style="font-size:13px;font-weight:700;color:var(--accent);">' + routeStr + '</td>' +
         '<td class="num accent"><strong>' + fmt.teu(r.teu) + '</strong></td>' +
         '<td class="num">' + pct + '%</td>' +
         '<td class="num">' + fakCell + '</td>' +
-        '<td class="num">' + oftCell + '</td>' +
-        '<td class="num" style="background:#fffbf0;">' + fakPctCell + '</td>' +
-        '<td class="num">' + diffCell + '</td>' +
-        '<td><div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:' + w + '%"></div></div><span class="bar-label">' + fmt.teu(r.teu) + '</span></div></td></tr>';
+        '</tr>';
     }).join('') + '</tbody></table>';
 }
 
@@ -1860,51 +1836,111 @@ function hideBubbleTip() {
 
 function renderFAK() {
   const rows = DATA.fak_data || [];
+  const level4 = DATA.level4 || [];
   if (!rows.length) return;
 
-  // Summary stats
-  const above = rows.filter(r => r.Status === 'Above');
-  const below = rows.filter(r => r.Status === 'Below');
-  const totalTeu = rows.reduce((s, r) => s + r.Count, 0);
-  const aboveTeu = above.reduce((s, r) => s + r.Count, 0);
-  const belowTeu = below.reduce((s, r) => s + r.Count, 0);
-  const weightedDiff = rows.reduce((s, r) => s + r.Count * r.Diff, 0) / totalTeu;
-
-  document.getElementById('fak-kpi').innerHTML = [
-    { label:'对比航线数', val: rows.length },
-    { label:'高于 FAK', val: above.length + ' 条 (' + Math.round(above.length/rows.length*100) + '%)' },
-    { label:'低于 FAK', val: below.length + ' 条 (' + Math.round(below.length/rows.length*100) + '%)' },
-    { label:'加权差异', val: (weightedDiff >= 0 ? '+' : '') + Math.round(weightedDiff) + ' USD/TEU' },
-  ].map(i => '<div class="item"><span>' + i.label + ':</span><span class="val">' + i.val + '</span></div>').join('');
-
-  // Render table
-  const sorted = [...rows].sort((a, b) => {
-    // Sort by POL, then by POD
-    if (a.POL !== b.POL) return a.POL.localeCompare(b.POL);
-    return a.POD.localeCompare(b.POD);
+  // Build per-POL matrix: POL -> { pod -> { '20\'': fak, '40\'': fak } }
+  const polMap = {};
+  rows.forEach(r => {
+    const pol = r.POL || '';
+    const pod = r.POD || '';
+    const size = r.Size || '';
+    const fak = r.FAK || 0;
+    if (!pol || !pod) return;
+    if (!polMap[pol]) polMap[pol] = { pol, pods: {} };
+    if (!polMap[pol].pods[pod]) polMap[pol].pods[pod] = {};
+    if (size) polMap[pol].pods[pod][size] = fak;
   });
 
-  document.getElementById('fak-tbody').innerHTML = sorted.map(r => {
-    const diff = r.Diff;
-    const diffPct = r.DiffPct;
-    const diffClass = diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral';
-    const statusBadge = diff > 0
-      ? '<span class="badge badge-up">溢价</span>'
-      : diff < 0
-      ? '<span class="badge badge-down">折扣</span>'
-      : '<span class="badge badge-neutral">持平</span>';
-    return '<tr>' +
-      '<td class="code">' + r.POL + '</td>' +
-      '<td class="code">' + r.POD + '</td>' +
-      '<td class="num">' + r.Size + '</td>' +
-      '<td class="num">$' + Math.round(r.FAK).toLocaleString('en-US') + '</td>' +
-      '<td class="num">$' + Math.round(r.OFT_Avg).toLocaleString('en-US') + '</td>' +
-      '<td class="num ' + diffClass + '">' + (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('en-US') + '</td>' +
-      '<td class="num ' + diffClass + '">' + (diffPct >= 0 ? '+' : '') + diffPct + '%</td>' +
-      '<td class="num">' + r.Count + '</td>' +
-      '<td>' + statusBadge + '</td>' +
-      '</tr>';
-  }).join('');
+  // Build actual OFT map from level4: key = POL+'|'+POD+'|'+BoxType -> avg OFT per box
+  // Box_Type in level4 is '20GP' or '40HC'
+  // Actual OFT per box = weighted avg Revenue_Per_TEU * box_TEU (1 for 20GP, 2 for 40HC)
+  const oftMap = {}; // key: pol|pod|20GP or pol|pod|40HC
+  level4.forEach(r => {
+    const pol = r['POL Code'] || '';
+    const pod = r['DEL Code'] || '';
+    const box = r.Box_Type || '';
+    const teu = r.TEU || 0;
+    const revPerTeu = r.Revenue_Per_TEU || 0;
+    if (!pol || !pod || !box || !teu) return;
+    const key = pol + '|' + pod + '|' + box;
+    if (!oftMap[key]) oftMap[key] = { totalRev: 0, totalTeu: 0 };
+    oftMap[key].totalRev += revPerTeu * teu;
+    oftMap[key].totalTeu += teu;
+  });
+
+  function getActualOFT(pol, pod, size) {
+    // size is "20'" or "40'" from fak_data
+    // Box_Type in level4 is '20GP' or '40HC'
+    const boxType = size === "20'" ? '20GP' : '40HC';
+    const key = pol + '|' + pod + '|' + boxType;
+    const entry = oftMap[key];
+    if (!entry || !entry.totalTeu) return null;
+    const avgPerTeu = entry.totalRev / entry.totalTeu;
+    // Convert to per-box: multiply by 1 for 20GP, 2 for 40HC
+    return avgPerTeu * (boxType === '20GP' ? 1 : 2);
+  }
+
+  // POL order from Excel: CNTAO, CNSHA, CNNGB, CNSHK...
+  const POL_ORDER = ['CNTAO', 'CNSHA', 'CNNGB', 'CNSHK', 'CNSWA', 'CNXGG', 'CNXMN'];
+  const sortedPols = Object.values(polMap).sort((a, b) => {
+    const ai = POL_ORDER.indexOf(a.pol);
+    const bi = POL_ORDER.indexOf(b.pol);
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+  });
+
+  // POD order (alphabetical)
+  const podOrder = ['AEJEA', 'AEKLF', 'AESCT', 'DJJIB', 'EGSOK', 'JOAQJ', 'SAJED', 'SADMM', 'SARUH', 'SDPZU', 'YEADE'];
+
+  let html = '';
+  sortedPols.forEach(polData => {
+    const pol = polData.pol;
+    const podData = polData.pods;
+    const podList = Object.keys(podData).sort((a, b) => {
+      const ai = podOrder.indexOf(a);
+      const bi = podOrder.indexOf(b);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
+
+    html += '<div style="margin-bottom:24px;">';
+    // POL header block
+    html += '<div style="background:#0f4c81;color:#fff;padding:6px 16px;font-size:13px;font-weight:700;letter-spacing:0.5px;display:inline-block;min-width:200px;">' + pol + '</div>';
+    html += '<div style="background:#1a6bb5;color:rgba(255,255,255,0.8);padding:3px 16px;font-size:11px;display:inline-block;margin-left:2px;">RACE 2616W</div>';
+
+    // Table: POD | FAK 20' | 实际OFT 20' | FAK 40' | 实际OFT 40'
+    html += '<table style="width:auto;min-width:500px;margin-top:6px;border-collapse:collapse;font-size:12px;">';
+    html += '<thead><tr>';
+    html += '<th style="background:#f8f9fa;padding:6px 14px;border:1px solid var(--border);text-align:left;font-size:11px;color:var(--text2);white-space:nowrap;">POD</th>';
+    html += '<th style="background:#f8f9fa;padding:6px 14px;border:1px solid var(--border);text-align:right;font-size:11px;color:var(--text2);white-space:nowrap;">FAK 20\'</th>';
+    html += '<th style="background:#f8f9fa;padding:6px 14px;border:1px solid var(--border);text-align:right;font-size:11px;color:#0d6e3e;white-space:nowrap;">实际 20\'</th>';
+    html += '<th style="background:#fff8e1;padding:6px 14px;border:1px solid var(--border);text-align:right;font-size:11px;color:#b45309;font-weight:700;white-space:nowrap;">FAK 40\'</th>';
+    html += '<th style="background:#fff8e1;padding:6px 14px;border:1px solid var(--border);text-align:right;font-size:11px;color:#0d6e3e;font-weight:700;white-space:nowrap;">实际 40\'</th>';
+    html += '</tr></thead><tbody>';
+    podList.forEach(pod => {
+      const fak20 = podData[pod]["20'"] || 0;
+      const fak40 = podData[pod]["40'"] || 0;
+      const actual20 = getActualOFT(pol, pod, "20'");
+      const actual40 = getActualOFT(pol, pod, "40'");
+      // Color for actual OFT: green if >= FAK, orange if >= 80% FAK, red otherwise
+      function actualColor(actual, fak) {
+        if (!actual || !fak) return 'color:var(--text2);';
+        const pct = actual / fak;
+        if (pct >= 1) return 'color:#0d6e3e;font-weight:700;';
+        if (pct >= 0.8) return 'color:#b45309;';
+        return 'color:#c0392b;';
+      }
+      html += '<tr>';
+      html += '<td style="padding:5px 14px;border:1px solid var(--border-light);font-family:Consolas,monospace;font-weight:700;color:var(--accent-mid);">' + pod + '</td>';
+      html += '<td style="padding:5px 14px;border:1px solid var(--border-light);text-align:right;">' + (fak20 ? '$' + fak20.toLocaleString('en-US') : '—') + '</td>';
+      html += '<td style="padding:5px 14px;border:1px solid var(--border-light);text-align:right;' + actualColor(actual20, fak20) + '">' + (actual20 ? '$' + Math.round(actual20).toLocaleString('en-US') : '—') + '</td>';
+      html += '<td style="padding:5px 14px;border:1px solid var(--border-light);text-align:right;font-weight:700;color:#b45309;">' + (fak40 ? '$' + fak40.toLocaleString('en-US') : '—') + '</td>';
+      html += '<td style="padding:5px 14px;border:1px solid var(--border-light);text-align:right;' + actualColor(actual40, fak40) + '">' + (actual40 ? '$' + Math.round(actual40).toLocaleString('en-US') : '—') + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+  });
+
+  document.getElementById('fak-matrix-container').innerHTML = html;
 }
 
 function renderHeatmap() {
@@ -2005,7 +2041,7 @@ function renderHeatmap() {
         const vsV = r.vs_Vessel_Pct||0;
         const bg = cmColor(cm, vsV);
         const textColor = cm > (globalMax*0.7) ? '#fff' : '#333';
-        html += '<div class="heatmap-cell" style="background:' + bg + ';color:' + textColor + ';" title="' + pol + ' → ' + del + '\nCM/TEU: ' + fmt.usd(cm) + '\nTEU: ' + fmt.teu(r.Total_TEU) + '\nTotal CM: ' + fmt.usd(r.TotalContribution) + '\nvs 整船平均单收: ' + fmt.pct(vsV) + '">' + fmt.teu(r.Total_TEU) + '</div>';
+        html += '<div class="heatmap-cell" style="background:' + bg + ';color:' + textColor + ';" title="' + pol + ' → ' + del + '\nCM/TEU: ' + fmt.usd(cm) + '\nTEU: ' + fmt.teu(r.TEU) + '\nTotal CM: ' + fmt.usd(r.TotalContribution) + '\nvs 整船平均单收: ' + fmt.pct(vsV) + '">' + fmt.teu(r.TEU) + '</div>';
       } else {
         html += '<div class="heatmap-cell" style="background:#e8eaed;color:#ccc;" title="No data">—</div>';
       }
