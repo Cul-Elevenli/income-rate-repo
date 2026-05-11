@@ -243,7 +243,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">总营收 (USD)</th>
         <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK</th>
-        <th class="num">vs 整船平均单收</th>
+        <th class="num">vs FAK</th>
       </tr></thead>
       <tbody id="revenue-me-tbody"></tbody>
     </table>
@@ -259,7 +259,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">总营收 (USD)</th>
         <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK</th>
-        <th class="num">vs 整船平均单收</th>
+        <th class="num">vs FAK</th>
       </tr></thead>
       <tbody id="revenue-rs-tbody"></tbody>
     </table>
@@ -275,12 +275,12 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">总营收 (USD)</th>
         <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK</th>
-        <th class="num">vs 整船平均单收</th>
+        <th class="num">vs FAK</th>
       </tr></thead>
       <tbody id="revenue-oth-tbody"></tbody>
     </table>
 
-    <div class="note">* 按区域划分，展示各 POL 单箱运费收入（Revenue/TEU）与 FAK 基准价对比。绿色 = 高于船舶平均，红色 = 低于船舶平均。</div>
+    <div class="note">* 按区域划分，展示各 POL 单箱运费收入（Revenue/TEU）与 FAK 基准价对比。绿色 = ≥80% FAK，橙色 60–80%，红色 &lt;60%。</div>
   </div>
 
 
@@ -1029,21 +1029,18 @@ function renderRevenueRegionCompare() {
     if (!tb) return;
     tb.innerHTML = pols.map(p => {
       const avgRev = p.teu > 0 ? p.revenue / p.teu : 0;
-      const vsV = vesselAvgRev > 0 ? (avgRev / vesselAvgRev - 1) * 100 : 0;
-      const cls = vsV > 2 ? 'positive' : vsV < -2 ? 'negative' : '';
-      const arrowHtml = vsV > 2
-        ? '<span style="color:var(--positive);font-weight:700;font-size:13px;">▲</span>'
-        : vsV < -2
-        ? '<span style="color:var(--negative);font-weight:700;font-size:13px;">▼</span>'
-        : '<span style="color:var(--neutral);font-size:13px;">—</span>';
-      const vsText = vsV > 0 ? '+' + vsV.toFixed(1) + '%' : vsV === 0 ? '0.0%' : vsV.toFixed(1) + '%';
+      const vsFak = p.avgFak > 0 ? (avgRev / p.avgFak * 100) : null;
+      const cls = vsFak !== null ? (vsFak >= 80 ? 'positive' : vsFak >= 60 ? 'negative' : 'negative') : '';
       const fakHtml = p.avgFak !== null ? fmt.usd(p.avgFak) : '—';
+      const vsFakHtml = vsFak !== null
+        ? '<span style="background:' + (vsFak>=80?'#e6f4ed':vsFak>=60?'#fff8e1':'#fce8e6') + ';color:' + (vsFak>=80?'#0d6e3e':vsFak>=60?'#b45309':'#c0392b') + ';font-weight:700;padding:2px 8px;border-radius:8px;">' + vsFak.toFixed(1) + '%</span>'
+        : '<span style="color:var(--text3);">—</span>';
       return '<tr><td class="code">' + p.pol + '</td>' +
         '<td class="num ' + cls + '"><strong>' + fmt.usd(avgRev) + '</strong></td>' +
         '<td class="num">' + fmt.usd(p.revenue) + '</td>' +
         '<td class="num">' + fmt.teu(p.teu) + '</td>' +
         '<td class="num" style="color:#b45309;">' + fakHtml + '</td>' +
-        '<td class="num ' + cls + '">' + arrowHtml + ' ' + vsText + '</td></tr>';
+        '<td class="num">' + vsFakHtml + '</td></tr>';
     }).join('');
   }
 
