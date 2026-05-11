@@ -301,7 +301,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">CM 总额 (USD)</th>
         <th class="num">CM/TEU</th>
         <th class="num">AVG CM</th>
-        <th class="num">vs 整船平均单收</th>
+        <th class="num">vs FAK</th>
       </tr></thead>
       <tbody id="cm-me-tbody"></tbody>
     </table>
@@ -316,7 +316,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">CM 总额 (USD)</th>
         <th class="num">CM/TEU</th>
         <th class="num">AVG CM</th>
-        <th class="num">vs 整船平均单收</th>
+        <th class="num">vs FAK</th>
       </tr></thead>
       <tbody id="cm-rs-tbody"></tbody>
     </table>
@@ -331,7 +331,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">CM 总额 (USD)</th>
         <th class="num">CM/TEU</th>
         <th class="num">AVG CM</th>
-        <th class="num">vs 整船平均单收</th>
+        <th class="num">vs FAK</th>
       </tr></thead>
       <tbody id="cm-other-tbody"></tbody>
     </table>
@@ -852,7 +852,16 @@ function renderCM() {
   const vesselAvg = DATA.level1.vessel_avg_cm_per_teu;
   const maxCm = Math.max(...pods.map(d => d.cm_per_teu||0));
 
-  // Top 3 POL by 单收 — 按区域拆分：一个 POL 可同时出现在中东和红海
+  // 计算加权 FAK 基准（用于 cm-table vs FAK 对比）
+  const fakData = DATA.fak_data || [];
+  function getFak40ForPod(podCode) {
+    const podRows = fakData.filter(f => f.POD === podCode);
+    if (!podRows.length) return null;
+    // 取该 POD 下所有航线的 FAK 平均值
+    return podRows.reduce((s, f) => s + f.FAK, 0) / podRows.length;
+  }
+
+  // Top 3 POL by CM/TEU — 按区域分组，显示所有 POL
   function buildRegionPolList(region) {
     const polMap = {};
     (DATA.level4||[]).forEach(r => {
@@ -861,13 +870,12 @@ function renderCM() {
       if (!pol || !pod) return;
       const isTarget = region === 'me' ? ME_PODS.has(pod) : region === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
       if (!isTarget) return;
-      if (!polMap[pol]) polMap[pol] = { pol, teu:0, contribution:0, cm_per_teu:0, vs_vessel_pct:0 };
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0, contribution:0, cm_per_teu:0, vs_fak_pct:0 };
       polMap[pol].teu += r.TEU||0;
       polMap[pol].contribution += r.TotalContribution||0;
     });
     Object.values(polMap).forEach(p => {
       p.cm_per_teu = p.teu > 0 ? p.contribution / p.teu : 0;
-      p.vs_vessel_pct = vesselAvg > 0 ? (p.cm_per_teu / vesselAvg - 1) * 100 : 0;
     });
     return Object.values(polMap).sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0));
   }
@@ -901,7 +909,7 @@ function renderCM() {
   }
 
   document.getElementById('top3-cm-cards').innerHTML =
-    '<div class="top3-section-label">💰 整船CM/TEU 区域排名前三 — 装货港（按CM/TEU 降序）</div>' +
+    '<div class="top3-section-label">💰 CM/TEU 区域排名 — 装货港（按CM/TEU 降序）</div>' +
     '<div class="top3-cards-row">' +
       buildTop3CmCol(mePolCm, '🌊 中东', 'me') +
       buildTop3CmCol(rsPolCm, '🔴 红海', 'rs') +
@@ -919,14 +927,36 @@ function renderCM() {
   const mePods = pods.filter(d => ME_PODS.has((d['DEL Code']||'').toUpperCase()));
   const rsPods = pods.filter(d => RS_PODS.has((d['DEL Code']||'').toUpperCase()));
   const othPods = pods.filter(d => { const u=(d['DEL Code']||'').toUpperCase(); return !ME_PODS.has(u)&&!RS_PODS.has(u); });
-  function renderCmTbody(id,arr){const tb=document.getElementById(id);if(!tb)return;tb.innerHTML=[...arr].sort((a,b)=>(b.cm_per_teu||0)-(a.cm_per_teu||0)).map(d=>{const v=d.vs_vessel_pct||0,c=v>2?'positive':v<-2?'negative':'';const ar=v>2?'<span style="color:var(--positive);font-weight:700;font-size:13px;">▲</span>':v<-2?'<span style="color:var(--negative);font-weight:700;font-size:13px;">▼</span>':'<span style="color:var(--neutral);font-size:13px;">—</span>';const tx=v>0?'+'+v.toFixed(1)+'%':v===0?'0.0%':v.toFixed(1)+'%';return'<tr><td class="code">'+(d['DEL Code']||'')+'</td><td class="num">'+fmt.usd(d.contribution)+'</td><td class="num '+c+'"><strong>'+fmt.usd(d.cm_per_teu)+'</strong></td><td class="num neutral">'+fmt.usd(d.vessel_cm_per_teu)+'</td><td class="num '+c+'"><strong>'+ar+' '+tx+'</strong></td></tr>';}).join('');}
-  renderCmTbody('cm-me-tbody',mePods);
-  renderCmTbody('cm-rs-tbody',rsPods);
-  renderCmTbody('cm-other-tbody',othPods);
+
+  function renderCmTbody(id, arr) {
+    const tb = document.getElementById(id); if (!tb) return;
+    tb.innerHTML = [...arr].sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0)).map(d => {
+      const podFak = getFak40ForPod(d['DEL Code']);
+      const vsFak = podFak > 0 ? (d.cm_per_teu / (podFak/2) * 100) : null;
+      const fColor = vsFak !== null ? (vsFak >= 80 ? 'var(--positive)' : vsFak >= 60 ? 'var(--warning)' : 'var(--negative)') : 'var(--text3)';
+      const fText = vsFak !== null ? vsFak.toFixed(1) + '%' : '—';
+      return '<tr>' +
+        '<td class="code">' + (d['DEL Code']||'') + '</td>' +
+        '<td class="num">' + fmt.usd(d.contribution) + '</td>' +
+        '<td class="num ' + (d.vs_vessel_pct>2?'positive':d.vs_vessel_pct<-2?'negative':'') + '"><strong>' + fmt.usd(d.cm_per_teu) + '</strong></td>' +
+        '<td class="num neutral">' + fmt.usd(d.vessel_cm_per_teu) + '</td>' +
+        '<td class="num" style="color:' + fColor + ';font-weight:700;">' + fText + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+  renderCmTbody('cm-me-tbody', mePods);
+  renderCmTbody('cm-rs-tbody', rsPods);
+  renderCmTbody('cm-other-tbody', othPods);
 }
 
 function renderRevenueTop3() {
-  const vesselAvgRev = DATA.level1.total_revenue / DATA.level1.total_teu;
+  const fakData = DATA.fak_data || [];
+  const fakMap = {};
+  fakData.forEach(r => { fakMap[r.POL+'|'+r.POD+'|'+r.Size] = r.FAK; });
+
+  function getFak40(pol, pod) {
+    return fakMap[pol+'|'+pod+"|40'"] || null;
+  }
 
   function buildRegionPolRevenue(region) {
     const polMap = {};
@@ -936,13 +966,16 @@ function renderRevenueTop3() {
       if (!pol || !pod) return;
       const isTarget = region === 'me' ? ME_PODS.has(pod) : region === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
       if (!isTarget) return;
-      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, cm_per_teu:0, vs_vessel_pct:0 };
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, fakSum:0, fakTeu:0 };
       polMap[pol].teu += r.TEU||0;
       polMap[pol].revenue += r.Revenue||0;
+      const f = getFak40(pol, pod);
+      if (f) { polMap[pol].fakSum += f * (r.TEU||0); polMap[pol].fakTeu += r.TEU||0; }
     });
     Object.values(polMap).forEach(p => {
       p.cm_per_teu = p.teu > 0 ? p.revenue / p.teu : 0;
-      p.vs_vessel_pct = vesselAvgRev > 0 ? (p.cm_per_teu / vesselAvgRev - 1) * 100 : 0;
+      p.avgFak = p.fakTeu > 0 ? p.fakSum / p.fakTeu : 0;
+      p.vs_fak_pct = p.avgFak > 0 ? (p.cm_per_teu / (p.avgFak/2) * 100) : 0;
     });
     return Object.values(polMap).sort((a,b) => (b.cm_per_teu||0)-(a.cm_per_teu||0));
   }
@@ -960,7 +993,8 @@ function renderRevenueTop3() {
     return '<div class="top3-card"><div class="top3-card-head region-' + regionClass + '">' + regionLabel + '</div>' +
       arr.map((d,i) => {
         const bw = max > 0 ? ((d.cm_per_teu||0)/max*100) : 0;
-        const vsV = d.vs_vessel_pct||0;
+        const pc = d.vs_fak_pct||0;
+        const pColor = pc >= 80 ? '#0d6e3e' : pc >= 60 ? '#b45309' : '#c0392b';
         return '<div class="top3-row">' +
           '<div class="top3-rank">' + (i+1) + '</div>' +
           '<div class="top3-info">' +
@@ -969,14 +1003,14 @@ function renderRevenueTop3() {
           '</div>' +
           '<div class="top3-metric">' +
             '<div class="top3-teu">' + fmt.usd(d.cm_per_teu) + '/TEU</div>' +
-            '<div class="top3-sub">' + fmt.usd(d.revenue) + ' · ' + fmt.teu(d.teu) + ' TEU · ' + badge(vsV) + '</div>' +
+            '<div class="top3-sub" style="color:' + pColor + ';font-weight:700;">vs FAK ' + pc.toFixed(1) + '%</div>' +
           '</div>' +
         '</div>';
       }).join('') + '</div>';
   }
 
   document.getElementById('top3-revenue-cards').innerHTML =
-    '<div class="top3-section-label">💵 单收/TEU 区域排名前三 — 装货港（按 Revenue/TEU 降序）</div>' +
+    '<div class="top3-section-label">💵 单收/TEU 区域排名 — 装货港（按 Revenue/TEU 降序，vs FAK）</div>' +
     '<div class="top3-cards-row">' +
       buildTop3RevCol(mePolRev, '🌊 中东', 'me') +
       buildTop3RevCol(rsPolRev, '🔴 红海', 'rs') +
