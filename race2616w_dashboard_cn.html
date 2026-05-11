@@ -1254,7 +1254,6 @@ function renderShippers() {
   ];
   if (hasFinancial) {
     thCols.push({ label:'单收 CM/TEU', style:'text-align:right;' });
-    thCols.push({ label:'vs 口岸均', style:'text-align:right;' });
     thCols.push({ label:'TOTAL 收益', style:'text-align:right;' });
   }
   thCols.push({ label:'TEU', style:'text-align:right;' });
@@ -1310,7 +1309,6 @@ function renderShippers() {
     ];
     if (hasFinancial) {
       cells.push('<td class="num accent"><strong>' + fmt.usd(m.C_Per_TEU) + '</strong></td>');
-      cells.push('<td class="num ' + (vsPodPct===null?'':vsPodPct>2?'positive':vsPodPct<-2?'negative':'') + '">' + (vsPodPct===null?'—':badge(vsPodPct)) + '</td>');
       cells.push('<td class="num" style="font-size:12px;">' + fmt.usd(m.Revenue) + '</td>');
     }
     cells.push('<td class="num"><strong>' + fmt.teu(m.teu) + '</strong></td>');
