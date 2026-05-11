@@ -584,7 +584,7 @@ function renderAll() {
     // 取该 POL 下所有 POD 的 FAK（40' 优先，20' 次之），按 TEU 加权
     (DATA.level4||[]).filter(r => (r['POL Code']||'') === polCode).forEach(r => {
       const pod = r['DEL Code']||'';
-      const teu = r.Total_TEU||0;
+      const teu = r.TEU||0;
       if (!teu) return;
       let fak = fakData.find(f => f.POL===polCode && f.POD===pod && f.Size==="40'");
       if (!fak) fak = fakData.find(f => f.POL===polCode && f.POD===pod && f.Size==="20'");
@@ -663,12 +663,12 @@ function renderAll() {
       '<div class="kpi-sub" style="color:#b45309;">' + fakPctSub + '</div>' +
     '</div>' +
     '<div class="kpi-cell" style="background:#e8f5e9;border-left:4px solid #2e7d32;">' +
-      '<div class="kpi-label" style="color:#2e7d32;font-size:10px;">OFT 20GP</div>' +
+      '<div class="kpi-label" style="color:#2e7d32;font-size:10px;">单收 20GP</div>' +
       '<div style="font-size:22px;font-weight:700;color:' + revColor20 + ';">' + (kpiOft20 > 0 ? fmt.usd(kpiOft20) : '—') + '</div>' +
       '<div class="kpi-sub" style="color:' + revColor20 + ';">vs FAK 40\'/2 ' + (kpiFak20Pct ? kpiFak20Pct.toFixed(1) + '%' : '—') + '</div>' +
     '</div>' +
     '<div class="kpi-cell" style="border-left:4px solid #e65100;">' +
-      '<div class="kpi-label" style="color:#e65100;font-size:10px;">OFT 40HC</div>' +
+      '<div class="kpi-label" style="color:#e65100;font-size:10px;">单收 40HC</div>' +
       '<div style="font-size:22px;font-weight:700;color:' + revColor40 + ';">' + (kpiOft40 > 0 ? fmt.usd(kpiOft40) : '—') + '</div>' +
       '<div class="kpi-sub" style="color:' + revColor40 + ';">vs FAK ' + (kpiFak40Pct ? kpiFak40Pct.toFixed(1) + '%' : '—') + '</div>' +
     '</div>' +
@@ -1553,8 +1553,8 @@ function getPolRegion(pol) {
   let meTeu = 0, rsTeu = 0;
   rows.forEach(r => {
     const pod = (r['DEL Code']||'').toUpperCase();
-    if (ME_PODS.has(pod)) meTeu += r.Total_TEU||0;
-    if (RS_PODS.has(pod)) rsTeu += r.Total_TEU||0;
+    if (ME_PODS.has(pod)) meTeu += r.TEU||0;
+    if (RS_PODS.has(pod)) rsTeu += r.TEU||0;
   });
   if (meTeu >= rsTeu) return 'me';
   return 'rs';
@@ -1581,7 +1581,7 @@ function renderPOLRank() {
     if (region === 'oth') return;
     if (!polRegTeu[pol]) polRegTeu[pol] = { me:{teu:0,contribution:0,pods:[]}, rs:{teu:0,contribution:0,pods:[]} };
     const regData = polRegTeu[pol][region];
-    regData.teu += r.CM_TEU||0;
+    regData.teu += r.TEU||0;
     regData.contribution += r.TotalContribution||0;
     if (!regData.pods.includes(pod)) regData.pods.push(pod);
   });
@@ -1642,7 +1642,7 @@ function renderPOLRank() {
     let wSum = 0, wTeu = 0;
     (DATA.level4||[]).filter(r => (r['POL Code']||'') === pol).forEach(r => {
       const pod = r['DEL Code']||'';
-      const teu = r.Total_TEU||0;
+      const teu = r.TEU||0;
       if (!teu) return;
       let f = fakD.find(x => x.POL===pol && x.POD===pod && x.Size==="40'");
       if (!f) f = fakD.find(x => x.POL===pol && x.POD===pod && x.Size==="20'");
