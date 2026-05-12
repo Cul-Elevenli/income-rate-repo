@@ -959,13 +959,8 @@ function renderRevenueRegionCompare() {
   const fakMap = {};
   fakData.forEach(r => {
     const key = r.POL + '|' + r.POD + '|' + r.Size;
-    fakMap[key] = r;
+    fakMap[key] = r.FAK;
   });
-
-  function getFak(pol, pod) {
-    let f = fakMap[pol+'|'+pod+"|40'"];
-    return f ? f.FAK : null;
-  }
 
   function buildPolRows(regionKey) {
     const polMap = {};
