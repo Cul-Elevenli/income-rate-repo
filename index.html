@@ -254,13 +254,15 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="section-head" style="background:#e8f1fb;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#1a6bb5;">◆ 中东</div>
     </div>
-    <table id="revenue-me-table">
+    <table id="revenue-me-table" style="width:100%;table-layout:fixed;">
       <thead><tr>
         <th>POL</th>
-        <th class="num">单收/TEU</th>
+        <th class="num">实际 20'</th>
+        <th class="num">实际 40'</th>
         <th class="num">总营收 (USD)</th>
         <th class="num">TEU</th>
-        <th class="num" style="color:#b45309;">FAK</th>
+        <th class="num" style="color:#b45309;">FAK 20'</th>
+        <th class="num" style="color:#b45309;">FAK 40'</th>
       </tr></thead>
       <tbody id="revenue-me-tbody"></tbody>
     </table>
@@ -269,13 +271,15 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="section-head" style="background:#e6f4ed;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#0d6e3e;">◆ 红海</div>
     </div>
-    <table id="revenue-rs-table">
+    <table id="revenue-rs-table" style="width:100%;table-layout:fixed;">
       <thead><tr>
         <th>POL</th>
-        <th class="num">单收/TEU</th>
+        <th class="num">实际 20'</th>
+        <th class="num">实际 40'</th>
         <th class="num">总营收 (USD)</th>
         <th class="num">TEU</th>
-        <th class="num" style="color:#b45309;">FAK</th>
+        <th class="num" style="color:#b45309;">FAK 20'</th>
+        <th class="num" style="color:#b45309;">FAK 40'</th>
       </tr></thead>
       <tbody id="revenue-rs-tbody"></tbody>
     </table>
@@ -285,13 +289,15 @@ tbody tr.region-header-row + tr td { border-top:none; }
       <div class="section-title" style="color:#5f6368;">◆ 其他</div>
     </div>
     <div style="padding:4px 20px;font-size:11px;color:#888;font-style:italic;">* 印巴等地区，货量较少参考性低，缺失数据不做展示。</div>
-    <table id="revenue-oth-table">
+    <table id="revenue-oth-table" style="width:100%;table-layout:fixed;">
       <thead><tr>
         <th>POL</th>
-        <th class="num">单收/TEU</th>
+        <th class="num">实际 20'</th>
+        <th class="num">实际 40'</th>
         <th class="num">总营收 (USD)</th>
         <th class="num">TEU</th>
-        <th class="num" style="color:#b45309;">FAK</th>
+        <th class="num" style="color:#b45309;">FAK 20'</th>
+        <th class="num" style="color:#b45309;">FAK 40'</th>
       </tr></thead>
       <tbody id="revenue-oth-tbody"></tbody>
     </table>
@@ -969,17 +975,28 @@ function renderRevenueRegionCompare() {
       if (!pol || !pod) return;
       const isTarget = regionKey === 'me' ? ME_PODS.has(pod) : regionKey === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
       if (!isTarget) return;
-      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, fakSum:0, fakTeu:0 };
-      polMap[pol].teu += r.TEU||0;
-      polMap[pol].revenue += r.Revenue||0;
-      const fak = getFak(pol, pod);
-      if (fak !== null) {
-        polMap[pol].fakSum += fak * (r.TEU||0);
-        polMap[pol].fakTeu += r.TEU||0;
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, teu20:0, rev20:0, teu40:0, rev40:0, fak20Sum:0, fak20Teu:0, fak40Sum:0, fak40Teu:0 };
+      const teu = r.TEU||0;
+      const rev = r.Revenue||0;
+      polMap[pol].teu += teu;
+      polMap[pol].revenue += rev;
+      if (r.Box_Type === '20GP') {
+        polMap[pol].teu20 += teu;
+        polMap[pol].rev20 += rev;
+        const fak = fakMap[pol+'|'+pod+"|20'"];
+        if (fak !== undefined) { polMap[pol].fak20Sum += fak * teu; polMap[pol].fak20Teu += teu; }
+      } else {
+        polMap[pol].teu40 += teu;
+        polMap[pol].rev40 += rev;
+        const fak = fakMap[pol+'|'+pod+"|40'"];
+        if (fak !== undefined) { polMap[pol].fak40Sum += fak * teu; polMap[pol].fak40Teu += teu; }
       }
     });
     Object.values(polMap).forEach(p => {
-      p.avgFak = p.fakTeu > 0 ? p.fakSum / p.fakTeu : null;
+      p.avgRev20 = p.teu20 > 0 ? p.rev20 / p.teu20 : null;
+      p.avgRev40 = p.teu40 > 0 ? p.rev40 / p.teu40 : null;
+      p.avgFak20 = p.fak20Teu > 0 ? p.fak20Sum / p.fak20Teu : null;
+      p.avgFak40 = p.fak40Teu > 0 ? p.fak40Sum / p.fak40Teu : null;
     });
     return Object.values(polMap).sort((a,b) => (b.revenue/b.teu||0)-(a.revenue/a.teu||0));
   }
@@ -988,15 +1005,17 @@ function renderRevenueRegionCompare() {
     const tb = document.getElementById(tbodyId);
     if (!tb) return;
     tb.innerHTML = pols.map(p => {
-      const avgRev = p.teu > 0 ? p.revenue / p.teu : 0;
-      const fakPerTeu = p.avgFak !== null ? p.avgFak / 2 : null;
-      const pct = fakPerTeu !== null && fakPerTeu > 0 ? (avgRev / fakPerTeu * 100) : null;
-      const fakHtml = fakPerTeu !== null ? fmt.usd(fakPerTeu) : '—';
+      const rev20Html = p.avgRev20 !== null ? fmt.usd(p.avgRev20) : '—';
+      const rev40Html = p.avgRev40 !== null ? fmt.usd(p.avgRev40) : '—';
+      const fak20Html = p.avgFak20 !== null ? fmt.usd(p.avgFak20) : '—';
+      const fak40Html = p.avgFak40 !== null ? fmt.usd(p.avgFak40) : '—';
       return '<tr><td class="code">' + p.pol + '</td>' +
-        '<td class="num ' + (pct!==null?(pct>=80?'positive':pct>=60?'':'negative'):'') + '"><strong>' + fmt.usd(avgRev) + '</strong></td>' +
+        '<td class="num">' + rev20Html + '</td>' +
+        '<td class="num">' + rev40Html + '</td>' +
         '<td class="num">' + fmt.usd(p.revenue) + '</td>' +
         '<td class="num">' + fmt.teu(p.teu) + '</td>' +
-        '<td class="num" style="color:#b45309;">' + fakHtml + '</td></tr>';
+        '<td class="num" style="color:#b45309;">' + fak20Html + '</td>' +
+        '<td class="num" style="color:#b45309;">' + fak40Html + '</td></tr>';
     }).join('');
   }
 
