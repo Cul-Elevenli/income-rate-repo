@@ -316,6 +316,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th>POL</th>
         <th class="num">总量 CM (USD)</th>
         <th class="num">CM/TEU</th>
+        <th class="num">TEU</th>
         <th class="num">总量CM占比</th>
       </tr></thead>
       <tbody id="cm-me-tbody"></tbody>
@@ -330,6 +331,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th>POL</th>
         <th class="num">总量 CM (USD)</th>
         <th class="num">CM/TEU</th>
+        <th class="num">TEU</th>
         <th class="num">总量CM占比</th>
       </tr></thead>
       <tbody id="cm-rs-tbody"></tbody>
@@ -344,6 +346,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th>POL</th>
         <th class="num">总量 CM (USD)</th>
         <th class="num">CM/TEU</th>
+        <th class="num">TEU</th>
         <th class="num">总量CM占比</th>
       </tr></thead>
       <tbody id="cm-other-tbody"></tbody>
@@ -864,6 +867,7 @@ function renderCM() {
         '<td class="code">' + d.pol + '</td>' +
         '<td class="num">' + fmt.usd(d.contribution||0) + '</td>' +
         '<td class="num ' + (vsV>2?'positive':vsV<-2?'negative':'') + '"><strong>' + fmt.usd(d.cm_per_teu||0) + '</strong></td>' +
+        '<td class="num"><strong>' + fmt.teu(d.teu||0) + '</strong></td>' +
         '<td class="num neutral">' + cmPct + '%</td>' +
         '</tr>';
     }).join('');
