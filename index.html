@@ -284,6 +284,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="section-head" style="background:#f1f3f4;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#5f6368;">◆ 其他</div>
     </div>
+    <div style="padding:4px 20px;font-size:11px;color:#888;font-style:italic;">* 印巴等地区，货量较少参考性低，缺失数据不做展示。</div>
     <table id="revenue-oth-table">
       <thead><tr>
         <th>POL</th>
@@ -294,7 +295,6 @@ tbody tr.region-header-row + tr td { border-top:none; }
       </tr></thead>
       <tbody id="revenue-oth-tbody"></tbody>
     </table>
-    <div style="padding:8px 20px;font-size:11px;color:var(--text2);font-style:italic;">* 印巴等地区，货量较少参考性低，缺失数据不做展示。</div>
 
     <div class="note">* 按区域划分，展示各 POL 单箱运费收入（Revenue/TEU）与 FAK 基准运价。绿色 = ≥80% FAK，橙色 60–80%，红色 &lt;60%。</div>
   </div>
@@ -341,6 +341,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="section-head" style="background:#f1f3f4;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#5f6368;">◆ 其他 POL</div>
     </div>
+    <div style="padding:4px 20px;font-size:11px;color:#888;font-style:italic;">* 印巴等地区，货量较少参考性低，缺失数据不做展示。</div>
     <table id="cm-other-table">
       <thead><tr>
         <th>POL</th>
@@ -599,7 +600,7 @@ function renderAll() {
       '<div style="font-size:22px;font-weight:700;color:' + revColor40 + ';">' + (kpiOft40 > 0 ? fmt.usd(kpiOft40) : '—') + '</div>' +
     '</div>' +
     [
-      { label:'单收/TEU', value:'$2,186', sub:'Avg Revenue/TEU' },
+      { label:'单收/TEU', value:'$2,186', sub:'' },
       { label:'Total Teu', value:fmt.teu(d.total_teu), sub:'TEU' },
       { label:'总营收', value:fmt.usd(d.total_revenue), sub:'USD' },
       { label:'CM/TEU', value:fmt.usd(d.cm_per_teu), sub:'Avg CM per TEU' },
@@ -1715,7 +1716,7 @@ function renderFAK() {
     html += '<th style="background:#f8f9fa;padding:6px 14px;border:1px solid var(--border);text-align:left;font-size:11px;color:var(--text2);white-space:nowrap;">POD</th>';
     html += '<th style="background:#f8f9fa;padding:6px 14px;border:1px solid var(--border);text-align:right;font-size:11px;color:var(--text2);white-space:nowrap;">FAK 20\'</th>';
     html += '<th style="background:#f8f9fa;padding:6px 14px;border:1px solid var(--border);text-align:right;font-size:11px;color:#0d6e3e;white-space:nowrap;">实际 20\'</th>';
-    html += '<th style="background:#fff8e1;padding:6px 14px;border:1px solid var(--border);text-align:right;font-size:11px;color:#b45309;font-weight:700;white-space:nowrap;">FAK 40\'</th>';
+    html += '<th style="background:#f8f9fa;padding:6px 14px;border:1px solid var(--border);text-align:right;font-size:11px;color:var(--text2);white-space:nowrap;">FAK 40\'</th>';
     html += '<th style="background:#fff8e1;padding:6px 14px;border:1px solid var(--border);text-align:right;font-size:11px;color:#0d6e3e;font-weight:700;white-space:nowrap;">实际 40\'</th>';
     html += '</tr></thead><tbody>';
     podList.forEach(pod => {
