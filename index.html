@@ -1594,7 +1594,9 @@ function renderBubbleChart(region, containerId) {
 
   svg += circles;
   svg += '</svg></div>';
-  document.getElementById(containerId).innerHTML = svg;
+  const noteHtml = '<div style="margin-top:4px;padding:5px 8px;background:#f8f9fa;border-radius:4px;font-size:10px;color:#6c757d;line-height:1.7;">' +
+    '📌 X轴=TEU 箱量 · Y轴=CM/TEU 单收 · 气泡大小=CM 总额 · 虚线=整船平均单收 · 🟢高于均值 🔴低于均值</div>';
+  document.getElementById(containerId).innerHTML = svg + noteHtml;
 }
 
 function showBubbleTip(e, el) {
