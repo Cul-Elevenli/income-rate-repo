@@ -1445,27 +1445,38 @@ function renderShipperDetail(name) {
   inner.innerHTML = '<div style="margin-bottom:10px;font-size:11px;color:var(--text2);">' +
     '<strong>航段明细</strong> — 共 ' + routes.length + ' 个航段，总计 ' + fmt.teu(totalTeu) + ' TEU' +
     '</div>' +
-    '<table style="min-width:500px;"><thead><tr>' +
+    '<table style="min-width:650px;"><thead><tr>' +
     '<th>航段</th>' +
     '<th class="num">TEU</th>' +
     '<th class="num">占货代比例</th>' +
-    '<th class="num">FAK 基准</th>' +
+    '<th class="num">FAK 20\'</th>' +
+    '<th class="num">FAK 40\'</th>' +
+    '<th class="num" style="color:#0d6e3e;">实际 20\'</th>' +
+    '<th class="num" style="color:#b45309;">实际 40\'</th>' +
     '</tr></thead><tbody>' +
     routes.map(r => {
       const pct = totalTeu > 0 ? (r.teu / totalTeu * 100).toFixed(1) : 0;
       const routeStr = r.pol + ' → ' + r.pod;
+      // FAK lookup
       const key40 = r.pol + '|' + r.pod + '|40\'';
       const key20 = r.pol + '|' + r.pod + '|20\'';
-      const fak = fakMap[key40] || fakMap[key20];
-      let fakCell = '<span style="color:var(--text3);">—</span>';
-      if (fak) {
-        fakCell = '$' + Math.round(fak.FAK).toLocaleString('en-US');
-      }
+      const fak20 = fakMap[key20];
+      const fak40 = fakMap[key40];
+      const fak20Cell = fak20 ? '$' + Math.round(fak20.FAK).toLocaleString('en-US') : '—';
+      const fak40Cell = fak40 ? '$' + Math.round(fak40.FAK).toLocaleString('en-US') : '—';
+      // 实际 OFT lookup from excelActualMap
+      const exKey = r.pol + '_' + r.pod;
+      const exData = typeof excelActualMap !== 'undefined' && excelActualMap[exKey] ? excelActualMap[exKey] : null;
+      const act20Cell = exData && exData.actual_20 != null ? '$' + Math.round(exData.actual_20).toLocaleString('en-US') : '—';
+      const act40Cell = exData && exData.actual_40 != null ? '$' + Math.round(exData.actual_40).toLocaleString('en-US') : '—';
       return '<tr>' +
         '<td class="code" style="font-size:13px;font-weight:700;color:var(--accent);">' + routeStr + '</td>' +
         '<td class="num accent"><strong>' + fmt.teu(r.teu) + '</strong></td>' +
         '<td class="num">' + pct + '%</td>' +
-        '<td class="num">' + fakCell + '</td>' +
+        '<td class="num">' + fak20Cell + '</td>' +
+        '<td class="num">' + fak40Cell + '</td>' +
+        '<td class="num" style="color:#0d6e3e;">' + act20Cell + '</td>' +
+        '<td class="num" style="color:#b45309;">' + act40Cell + '</td>' +
         '</tr>';
     }).join('') + '</tbody></table>';
 }
@@ -1655,7 +1666,7 @@ function renderFAK() {
   });
 
   // 实际运价（来自运价.xlsx 原始 Booking 数据，按 Unit Price × Booking TEU/FEU 加权平均）
-  const excelActualMap = {"CNNGB_AEJEA":{"actual_20":4750,"actual_40":5455},"CNNGB_AEKLF":{"actual_20":3750,"actual_40":4406},"CNNGB_SAJED":{"actual_20":2450},"CNNGB_DJJIB":{"actual_40":3400},"CNNGB_SDPZU":{"actual_40":4400},"CNNGB_YEADE":{"actual_40":4900},"CNSHA_AEJEA":{"actual_20":4542,"actual_40":5466},"CNSHA_AEKLF":{"actual_20":3593,"actual_40":4460},"CNSHA_DJJIB":{"actual_20":2271,"actual_40":3500},"CNSHA_EGSOK":{"actual_40":3400},"CNSHA_INDER":{"actual_20":1475,"actual_40":2020},"CNSHA_PKKHI":{"actual_40":1323},"CNSHA_SADMM":{"actual_20":4950},"CNSHA_SAJED":{"actual_20":2471,"actual_40":3257},"CNSHA_SARUH":{"actual_20":4950},"CNSHA_SDPZU":{"actual_20":3050,"actual_40":4415},"CNSHA_YEADE":{"actual_40":4868},"CNSHK_AEJEA":{"actual_20":4828,"actual_40":5493},"CNSHK_AEKLF":{"actual_20":3574,"actual_40":4507},"CNSHK_AESCT":{"actual_40":5500},"CNSHK_INMUN":{"actual_40":2500},"CNSHK_MYPKG":{"actual_40":1500},"CNSHK_SAJED":{"actual_20":2600,"actual_40":3372},"CNSHK_SDPZU":{"actual_40":4400},"CNSHK_YEADE":{"actual_40":4733},"CNSWA_AEJEA":{"actual_40":5125},"CNTAO_AEJEA":{"actual_20":4082,"actual_40":5092},"CNTAO_AEKLF":{"actual_20":3572,"actual_40":4530},"CNTAO_DJJIB":{"actual_40":3500},"CNTAO_EGSOK":{"actual_40":3342},"CNTAO_INMUN":{"actual_40":1100},"CNTAO_INNSA":{"actual_20":950,"actual_40":900},"CNTAO_MYPKG":{"actual_40":1000},"CNTAO_PKKHI":{"actual_20":1250,"actual_40":1230},"CNTAO_SAJED":{"actual_20":2550,"actual_40":3008},"CNTAO_SDPZU":{"actual_20":3550,"actual_40":4500},"CNTAO_YEADE":{"actual_20":3550,"actual_40":4750},"CNXGG_AEJEA":{"actual_20":4049,"actual_40":5000},"CNXGG_AEKLF":{"actual_20":3550,"actual_40":4500},"CNXGG_DJJIB":{"actual_20":2550},"CNXGG_EGSOK":{"actual_20":2550,"actual_40":3200},"CNXGG_JOAQJ":{"actual_20":2850},"CNXGG_SAJED":{"actual_20":2565,"actual_40":3200},"CNXGG_SDPZU":{"actual_20":3550,"actual_40":4700},"CNXGG_YEADE":{"actual_20":3550,"actual_40":4900},"CNXMN_AEJEA":{"actual_20":4750,"actual_40":5500},"CNXMN_AEKLF":{"actual_20":3750,"actual_40":4500},"CNXMN_SAJED":{"actual_20":2611,"actual_40":3666},"CNXMN_SDPZU":{"actual_20":3600},"CNXMN_YEADE":{"actual_20":3650,"actual_40":5200},"IDBLW_AEKLF":{"actual_40":4300},"IDJKT_AEKLF":{"actual_20":3250,"actual_40":4600},"JPNGO_AEJEA":{"actual_20":4005,"actual_40":4910},"JPOSA_AEJEA":{"actual_40":4910},"JPUKB_AEJEA":{"actual_40":4448},"JPYOK_AEJEA":{"actual_20":4705,"actual_40":3854},"JPYOK_AEKLF":{"actual_40":1910},"KRINC_INMUN":{"actual_40":1300},"KRINC_SDPZU":{"actual_20":3150,"actual_40":5700},"KRINC_YEADE":{"actual_20":3950},"MYPKG_AEJEA":{"actual_20":4450,"actual_40":6200},"MYPKG_AEKLF":{"actual_20":3488,"actual_40":4662},"MYPKG_INSSA":{"actual_40":800},"MYPKG_JOAQJ":{"actual_40":4900},"MYPKG_PKKHI":{"actual_40":900},"THLCH_AEJEA":{"actual_20":5150},"THLCH_AEKLF":{"actual_20":3750},"VNSGN_AEJEA":{"actual_40":4500}};
+  window.excelActualMap = {"CNNGB_AEJEA":{"actual_20":4750,"actual_40":5455},"CNNGB_AEKLF":{"actual_20":3750,"actual_40":4406},"CNNGB_SAJED":{"actual_20":2450},"CNNGB_DJJIB":{"actual_40":3400},"CNNGB_SDPZU":{"actual_40":4400},"CNNGB_YEADE":{"actual_40":4900},"CNSHA_AEJEA":{"actual_20":4542,"actual_40":5466},"CNSHA_AEKLF":{"actual_20":3593,"actual_40":4460},"CNSHA_DJJIB":{"actual_20":2271,"actual_40":3500},"CNSHA_EGSOK":{"actual_40":3400},"CNSHA_INDER":{"actual_20":1475,"actual_40":2020},"CNSHA_PKKHI":{"actual_40":1323},"CNSHA_SADMM":{"actual_20":4950},"CNSHA_SAJED":{"actual_20":2471,"actual_40":3257},"CNSHA_SARUH":{"actual_20":4950},"CNSHA_SDPZU":{"actual_20":3050,"actual_40":4415},"CNSHA_YEADE":{"actual_40":4868},"CNSHK_AEJEA":{"actual_20":4828,"actual_40":5493},"CNSHK_AEKLF":{"actual_20":3574,"actual_40":4507},"CNSHK_AESCT":{"actual_40":5500},"CNSHK_INMUN":{"actual_40":2500},"CNSHK_MYPKG":{"actual_40":1500},"CNSHK_SAJED":{"actual_20":2600,"actual_40":3372},"CNSHK_SDPZU":{"actual_40":4400},"CNSHK_YEADE":{"actual_40":4733},"CNSWA_AEJEA":{"actual_40":5125},"CNTAO_AEJEA":{"actual_20":4082,"actual_40":5092},"CNTAO_AEKLF":{"actual_20":3572,"actual_40":4530},"CNTAO_DJJIB":{"actual_40":3500},"CNTAO_EGSOK":{"actual_40":3342},"CNTAO_INMUN":{"actual_40":1100},"CNTAO_INNSA":{"actual_20":950,"actual_40":900},"CNTAO_MYPKG":{"actual_40":1000},"CNTAO_PKKHI":{"actual_20":1250,"actual_40":1230},"CNTAO_SAJED":{"actual_20":2550,"actual_40":3008},"CNTAO_SDPZU":{"actual_20":3550,"actual_40":4500},"CNTAO_YEADE":{"actual_20":3550,"actual_40":4750},"CNXGG_AEJEA":{"actual_20":4049,"actual_40":5000},"CNXGG_AEKLF":{"actual_20":3550,"actual_40":4500},"CNXGG_DJJIB":{"actual_20":2550},"CNXGG_EGSOK":{"actual_20":2550,"actual_40":3200},"CNXGG_JOAQJ":{"actual_20":2850},"CNXGG_SAJED":{"actual_20":2565,"actual_40":3200},"CNXGG_SDPZU":{"actual_20":3550,"actual_40":4700},"CNXGG_YEADE":{"actual_20":3550,"actual_40":4900},"CNXMN_AEJEA":{"actual_20":4750,"actual_40":5500},"CNXMN_AEKLF":{"actual_20":3750,"actual_40":4500},"CNXMN_SAJED":{"actual_20":2611,"actual_40":3666},"CNXMN_SDPZU":{"actual_20":3600},"CNXMN_YEADE":{"actual_20":3650,"actual_40":5200},"IDBLW_AEKLF":{"actual_40":4300},"IDJKT_AEKLF":{"actual_20":3250,"actual_40":4600},"JPNGO_AEJEA":{"actual_20":4005,"actual_40":4910},"JPOSA_AEJEA":{"actual_40":4910},"JPUKB_AEJEA":{"actual_40":4448},"JPYOK_AEJEA":{"actual_20":4705,"actual_40":3854},"JPYOK_AEKLF":{"actual_40":1910},"KRINC_INMUN":{"actual_40":1300},"KRINC_SDPZU":{"actual_20":3150,"actual_40":5700},"KRINC_YEADE":{"actual_20":3950},"MYPKG_AEJEA":{"actual_20":4450,"actual_40":6200},"MYPKG_AEKLF":{"actual_20":3488,"actual_40":4662},"MYPKG_INSSA":{"actual_40":800},"MYPKG_JOAQJ":{"actual_40":4900},"MYPKG_PKKHI":{"actual_40":900},"THLCH_AEJEA":{"actual_20":5150},"THLCH_AEKLF":{"actual_20":3750},"VNSGN_AEJEA":{"actual_40":4500}};
 
   function getActualOFT(pol, pod, size) {
     // 优先使用运价.xlsx 的原始数据
