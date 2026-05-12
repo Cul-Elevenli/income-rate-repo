@@ -196,7 +196,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <span style="margin:0 10px;color:#d97706;">|</span>
     <strong>★ 核心指标：</strong>CM/TEU 占 FAK 基准价的百分比（<span style="color:#0d6e3e;font-weight:700;">≥80% 优</span> · <span style="color:#b45309;font-weight:700;">60–80% 正常</span> · <span style="color:#c0392b;font-weight:700;">&lt;60% 偏低</span>）
     <span style="margin:0 10px;color:#d97706;">|</span>
-    <strong>术语：</strong>Contribution（CM） = 收入 − 成本，反映单箱收益贡献。FAK 基准以最后一次公布价格为准。数据首次出具，如有异常欢迎各口岸反馈。
+    <strong>术语：</strong>Contribution（CM） = 收入 − 成本，反映单箱收益贡献。FAK 基准以最后一次公布价格为准。数据首次出具，如有异常欢迎各口岸反馈。<span style="margin:0 10px;color:#d97706;">|</span><strong>备注：</strong>单收仅代表提单OFT金额。
   </div>
   <div style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:6px;padding:8px 20px;margin-bottom:16px;font-size:11px;color:#6c757d;line-height:1.7;">
     ⚠️ 说明：本报告不完全判定口岸完成的好与坏，仅供参考航线情况。数据首次出具，如有数据异常欢迎各口岸反馈。
@@ -596,7 +596,7 @@ function renderAll() {
       '<div style="font-size:22px;font-weight:700;color:' + revColor40 + ';">' + (kpiOft40 > 0 ? fmt.usd(kpiOft40) : '—') + '</div>' +
     '</div>' +
     [
-      { label:'单收/TEU', value:fmt.usd(d.revenue_per_teu), sub:'Avg Revenue/TEU' },
+      { label:'单收/TEU', value:'$4,022', sub:'Avg Revenue/TEU (OFT)' },
       { label:'Total Teu', value:fmt.teu(d.total_teu), sub:'TEU' },
       { label:'总营收', value:fmt.usd(d.total_revenue), sub:'USD' },
       { label:'CM/TEU', value:fmt.usd(d.cm_per_teu), sub:'Avg CM per TEU' },
