@@ -1580,10 +1580,10 @@ function renderBubbleChart(region, containerId) {
     const x = toX(d.teu||0);
     const y = toY(d.cm_per_teu||0);
     const r = toR(d.contribution||0);
-    const above = (d.vs_vessel_pct||0) > 2;
-    const below = (d.vs_vessel_pct||0) < -2;
+    const above = (d.cm_per_teu||0) > vesselAvg;
+    const below = (d.cm_per_teu||0) < vesselAvg;
     const color = above ? '#0d6e3e' : below ? '#c0392b' : '#1a6bb5';
-    const vsV = d.vs_vessel_pct||0;
+    const vsV = d.vs_vessel_pct !== null && d.vs_vessel_pct !== undefined ? d.vs_vessel_pct : ((d.cm_per_teu||0) - vesselAvg) / vesselAvg * 100;
     const tooltip = '<strong>' + (d['POL Code']||'') + '</strong><br>TEU: ' + fmt.teu(d.teu) + '（占总量 ' + ((d.teu/(DATA.level1.total_teu||1))*100).toFixed(1) + '%）<br>CM/TEU: ' + fmt.usd(d.cm_per_teu) + '<br>CM 总额: ' + fmt.usd(d.contribution) + '<br>vs 整船平均单收: ' + fmt.pct(vsV);
     circles += '<circle class="bubble-hover" cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + color + '" fill-opacity="0.65" stroke="' + color + '" stroke-width="1.5" data-tip="' + tooltip.replace(/"/g,'&quot;') + '" onmousemove="showBubbleTip(event,this)" onmouseleave="hideBubbleTip()"/>';
     circles += '<text x="' + x + '" y="' + y + '" text-anchor="middle" dominant-baseline="middle" font-size="10" font-weight="700" fill="' + (above||below?'#fff':'#1a6bb5') + '" pointer-events="none">' + (d['POL Code']||'').substring(2) + '</text>';
