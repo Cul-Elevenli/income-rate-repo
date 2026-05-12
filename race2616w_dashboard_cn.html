@@ -715,6 +715,9 @@ function renderTEU() {
             return '<tr style="background:'+polBg+';"><td></td><td class="code" style="color:var(--text2);padding-left:24px;font-size:11px;">　└─ '+(r['POL Code']||'')+'</td><td class="num" style="font-size:11px;">'+fmt.teu(polTeu)+'</td><td class="num" style="font-size:11px;">'+fmt.teu(r.TEU_20GP||0)+'</td><td class="num" style="font-size:11px;">'+fmt.teu(r.TEU_40HC||0)+'</td><td class="num" style="font-size:11px;">'+polPct+'%</td></tr>';
           }).join('');
           return row + subRows;
+        }
+        return row+'<tr class="detail-row" id="teu-detail-'+k+'" style="display:none"><td colspan="6"><div class="detail-inner" id="teu-inner-'+k+'"></div></td></tr>';
+      }
       return row+'<tr class="detail-row" id="teu-detail-'+k+'" style="display:none"><td colspan="6"><div class="detail-inner" id="teu-inner-'+k+'"></div></td></tr>';
     }).join('');
   }
