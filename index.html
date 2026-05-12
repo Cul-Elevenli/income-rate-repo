@@ -1648,15 +1648,22 @@ function renderFAK() {
     oftMap[key].totalTeu += teu;
   });
 
+  // 实际运价（来自运价.xlsx 原始 Booking 数据，按 Unit Price × Booking TEU/FEU 加权平均）
+  const excelActualMap = {"CNNGB_AEJEA":{"actual_20":4750,"actual_40":5455},"CNNGB_AEKLF":{"actual_20":3750,"actual_40":4406},"CNNGB_SAJED":{"actual_20":2450},"CNNGB_DJJIB":{"actual_40":3400},"CNNGB_SDPZU":{"actual_40":4400},"CNNGB_YEADE":{"actual_40":4900},"CNSHA_AEJEA":{"actual_20":4542,"actual_40":5466},"CNSHA_AEKLF":{"actual_20":3593,"actual_40":4460},"CNSHA_DJJIB":{"actual_20":2271,"actual_40":3500},"CNSHA_EGSOK":{"actual_40":3400},"CNSHA_INDER":{"actual_20":1475,"actual_40":2020},"CNSHA_PKKHI":{"actual_40":1323},"CNSHA_SADMM":{"actual_20":4950},"CNSHA_SAJED":{"actual_20":2471,"actual_40":3257},"CNSHA_SARUH":{"actual_20":4950},"CNSHA_SDPZU":{"actual_20":3050,"actual_40":4415},"CNSHA_YEADE":{"actual_40":4868},"CNSHK_AEJEA":{"actual_20":4828,"actual_40":5493},"CNSHK_AEKLF":{"actual_20":3574,"actual_40":4507},"CNSHK_AESCT":{"actual_40":5500},"CNSHK_INMUN":{"actual_40":2500},"CNSHK_MYPKG":{"actual_40":1500},"CNSHK_SAJED":{"actual_20":2600,"actual_40":3372},"CNSHK_SDPZU":{"actual_40":4400},"CNSHK_YEADE":{"actual_40":4733},"CNSWA_AEJEA":{"actual_40":5125},"CNTAO_AEJEA":{"actual_20":4082,"actual_40":5092},"CNTAO_AEKLF":{"actual_20":3572,"actual_40":4530},"CNTAO_DJJIB":{"actual_40":3500},"CNTAO_EGSOK":{"actual_40":3342},"CNTAO_INMUN":{"actual_40":1100},"CNTAO_INNSA":{"actual_20":950,"actual_40":900},"CNTAO_MYPKG":{"actual_40":1000},"CNTAO_PKKHI":{"actual_20":1250,"actual_40":1230},"CNTAO_SAJED":{"actual_20":2550,"actual_40":3008},"CNTAO_SDPZU":{"actual_20":3550,"actual_40":4500},"CNTAO_YEADE":{"actual_20":3550,"actual_40":4750},"CNXGG_AEJEA":{"actual_20":4049,"actual_40":5000},"CNXGG_AEKLF":{"actual_20":3550,"actual_40":4500},"CNXGG_DJJIB":{"actual_20":2550},"CNXGG_EGSOK":{"actual_20":2550,"actual_40":3200},"CNXGG_JOAQJ":{"actual_20":2850},"CNXGG_SAJED":{"actual_20":2565,"actual_40":3200},"CNXGG_SDPZU":{"actual_20":3550,"actual_40":4700},"CNXGG_YEADE":{"actual_20":3550,"actual_40":4900},"CNXMN_AEJEA":{"actual_20":4750,"actual_40":5500},"CNXMN_AEKLF":{"actual_20":3750,"actual_40":4500},"CNXMN_SAJED":{"actual_20":2611,"actual_40":3666},"CNXMN_SDPZU":{"actual_20":3600},"CNXMN_YEADE":{"actual_20":3650,"actual_40":5200},"IDBLW_AEKLF":{"actual_40":4300},"IDJKT_AEKLF":{"actual_20":3250,"actual_40":4600},"JPNGO_AEJEA":{"actual_20":4005,"actual_40":4910},"JPOSA_AEJEA":{"actual_40":4910},"JPUKB_AEJEA":{"actual_40":4448},"JPYOK_AEJEA":{"actual_20":4705,"actual_40":3854},"JPYOK_AEKLF":{"actual_40":1910},"KRINC_INMUN":{"actual_40":1300},"KRINC_SDPZU":{"actual_20":3150,"actual_40":5700},"KRINC_YEADE":{"actual_20":3950},"MYPKG_AEJEA":{"actual_20":4450,"actual_40":6200},"MYPKG_AEKLF":{"actual_20":3488,"actual_40":4662},"MYPKG_INSSA":{"actual_40":800},"MYPKG_JOAQJ":{"actual_40":4900},"MYPKG_PKKHI":{"actual_40":900},"THLCH_AEJEA":{"actual_20":5150},"THLCH_AEKLF":{"actual_20":3750},"VNSGN_AEJEA":{"actual_40":4500}};
+
   function getActualOFT(pol, pod, size) {
-    // size is "20'" or "40'" from fak_data
-    // Box_Type in level4 is '20GP' or '40HC'
-    const boxType = size === "20'" ? '20GP' : '40HC';
-    const key = pol + '|' + pod + '|' + boxType;
-    const entry = oftMap[key];
+    // 优先使用运价.xlsx 的原始数据
+    var exKey = pol + '_' + pod;
+    if (excelActualMap[exKey]) {
+      if (size === "20'" && excelActualMap[exKey].actual_20 != null) return excelActualMap[exKey].actual_20;
+      if (size === "40'" && excelActualMap[exKey].actual_40 != null) return excelActualMap[exKey].actual_40;
+    }
+    // Fallback: 用 level4 数据推算
+    var boxType = size === "20'" ? '20GP' : '40HC';
+    var key = pol + '|' + pod + '|' + boxType;
+    var entry = oftMap[key];
     if (!entry || !entry.totalTeu) return null;
-    const avgPerTeu = entry.totalRev / entry.totalTeu;
-    // Convert to per-box: multiply by 1 for 20GP, 2 for 40HC
+    var avgPerTeu = entry.totalRev / entry.totalTeu;
     return avgPerTeu * (boxType === '20GP' ? 1 : 2);
   }
 
