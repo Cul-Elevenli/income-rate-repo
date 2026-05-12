@@ -1289,7 +1289,7 @@ function renderShipperTop3(allRows, hasFinancial) {
           ? fmt.usd(m.C_Per_TEU) + '/TEU · ' + fmt.teu(m.teu) + ' TEU'
           : fmt.teu(m.teu) + ' TEU';
         const subText = hasFinancial && m.TotalC > 0
-          ? fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段 · ' + badge(vsV)
+          ? fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段'
           : m.routes + ' 段';
         return '<div class="top3-card">' +
           '<div class="top3-card-head" style="background:' + color + ';color:#fff;">#' + (i+1) + ' ' + label + '</div>' +
@@ -1361,7 +1361,7 @@ function renderShipperSummary() {
           ? fmt.usd(m.C_Per_TEU) + '/TEU · ' + fmt.teu(m.teu) + ' TEU'
           : fmt.teu(m.teu) + ' TEU';
         const subText = hasFinancial && m.TotalC > 0
-          ? fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段 · ' + badge(vsV)
+          ? fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段'
           : m.routes + ' 段';
         return '<div class="top3-card">' +
           '<div class="top3-card-head" style="background:' + color + ';color:#fff;font-size:9px;">#' + (i+1) + ' ' + label + '</div>' +
@@ -1386,7 +1386,7 @@ function renderShipperSummary() {
   const otherHtml = renderTop3GroupCompact(otherShippers, '其他', '#5f6368');
 
   document.getElementById('top3-shipper-summary').innerHTML =
-    '<div class="top3-section-label" style="font-size:12px;">🏢 TOP 货代 — 按 TEU 降序（按区域分组）</div>' +
+    '<div class="top3-section-label" style="font-size:12px;">🏢 按出口货量客户排名</div>' +
     meHtml + rsHtml + otherHtml;
 }
 
