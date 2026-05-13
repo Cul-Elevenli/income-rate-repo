@@ -988,8 +988,8 @@ function renderRevenueRegionCompare() {
       }
     });
     Object.values(polMap).forEach(p => {
-      p.avgRev20 = p.teu20 > 0 ? p.rev20 / p.teu20 : null;
-      p.avgRev40 = p.teu40 > 0 ? p.rev40 / p.teu40 : null;
+      p.avgRev20 = p.teu20 > 0 ? p.rev20 / p.teu20 : null;   // 20GP: 1箱=1TEU, per-TEU = per-container ✓
+      p.avgRev40 = p.teu40 > 0 ? p.rev40 / p.teu40 * 2 : null; // 40HC: 1箱=2TEU, per-TEU×2 = per-container
       p.avgFak20 = p.fak20Teu > 0 ? p.fak20Sum / p.fak20Teu : null;
       p.avgFak40 = p.fak40Teu > 0 ? p.fak40Sum / p.fak40Teu : null;
     });
