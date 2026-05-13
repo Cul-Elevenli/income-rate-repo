@@ -1221,7 +1221,8 @@ function renderShippers() {
   ];
   if (hasFinancial) {
     thCols.push({ label:'单收/TEU', style:'text-align:right;' });
-    thCols.push({ label:'TOTAL 收益', style:'text-align:right;' });
+    thCols.push({ label:'CM/TEU', style:'text-align:right;' });
+    thCols.push({ label:'TOTAL CM', style:'text-align:right;' });
   }
   thCols.push({ label:'TEU', style:'text-align:right;' });
   thCols.push({ label:'占比', style:'text-align:right;' });
@@ -1275,7 +1276,8 @@ function renderShippers() {
     ];
     if (hasFinancial) {
       cells.push('<td class="num accent"><strong>' + fmt.usd(m.Revenue_Per_TEU) + '</strong></td>');
-      cells.push('<td class="num" style="font-size:12px;">' + fmt.usd(m.Revenue) + '</td>');
+      cells.push('<td class="num" style="color:' + (m.C_Per_TEU >= 0 ? '#0d6e3e' : '#c0392b') + ';"><strong>' + fmt.usd(m.C_Per_TEU) + '</strong></td>');
+      cells.push('<td class="num" style="font-size:12px;">' + fmt.usd(m.TotalC) + '</td>');
     }
     cells.push('<td class="num"><strong>' + fmt.teu(m.teu) + '</strong></td>');
     cells.push('<td class="num">' + pct + '%</td>');
@@ -1330,7 +1332,7 @@ function renderShipperTop3(allRows, hasFinancial) {
           ? fmt.usd(m.C_Per_TEU) + '/TEU · ' + fmt.teu(m.teu) + ' TEU'
           : fmt.teu(m.teu) + ' TEU';
         const subText = hasFinancial && m.TotalC > 0
-          ? fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段'
+          ? 'CM ' + fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段'
           : m.routes + ' 段';
         return '<div class="top3-card">' +
           '<div class="top3-card-head" style="background:' + color + ';color:#fff;">#' + (i+1) + ' ' + label + '</div>' +
@@ -1402,7 +1404,7 @@ function renderShipperSummary() {
           ? fmt.usd(m.C_Per_TEU) + '/TEU · ' + fmt.teu(m.teu) + ' TEU'
           : fmt.teu(m.teu) + ' TEU';
         const subText = hasFinancial && m.TotalC > 0
-          ? fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段'
+          ? 'CM ' + fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段'
           : m.routes + ' 段';
         return '<div class="top3-card">' +
           '<div class="top3-card-head" style="background:' + color + ';color:#fff;font-size:9px;">#' + (i+1) + ' ' + label + '</div>' +
