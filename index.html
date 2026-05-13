@@ -963,35 +963,42 @@ function renderRevenueRegionCompare() {
   });
 
   function buildPolRows(regionKey) {
+    const regionPods = regionKey === 'me' ? ME_PODS : regionKey === 'rs' ? RS_PODS : null;
     const polMap = {};
+    // 总营收和 TEU 仍从 level4 取
     (DATA.level4||[]).forEach(r => {
       const pol = r['POL Code']||'';
       const pod = (r['DEL Code']||'').toUpperCase();
       if (!pol || !pod) return;
-      const isTarget = regionKey === 'me' ? ME_PODS.has(pod) : regionKey === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
+      var isTarget = false;
+      if (regionKey === 'me') isTarget = ME_PODS.has(pod);
+      else if (regionKey === 'rs') isTarget = RS_PODS.has(pod);
+      else isTarget = !ME_PODS.has(pod) && !RS_PODS.has(pod);
       if (!isTarget) return;
-      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, teu20:0, rev20:0, teu40:0, rev40:0, fak20Sum:0, fak20Teu:0, fak40Sum:0, fak40Teu:0 };
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, fak20Sum:0, fak20Teu:0, fak40Sum:0, fak40Teu:0, act20List:[], act40List:[] };
       const teu = r.TEU||0;
       const rev = r.Revenue||0;
       polMap[pol].teu += teu;
       polMap[pol].revenue += rev;
-      if (r.Box_Type === '20GP') {
-        polMap[pol].teu20 += teu;
-        polMap[pol].rev20 += rev;
-        const fak = fakMap[pol+'|'+pod+"|20'"];
-        if (fak !== undefined) { polMap[pol].fak20Sum += fak * teu; polMap[pol].fak20Teu += teu; }
-      } else {
-        polMap[pol].teu40 += teu;
-        polMap[pol].rev40 += rev;
-        const fak = fakMap[pol+'|'+pod+"|40'"];
-        if (fak !== undefined) { polMap[pol].fak40Sum += fak * teu; polMap[pol].fak40Teu += teu; }
+      // FAK 加权（按 TEU）
+      var fk20 = fakMap[pol+'|'+pod+"|20'"];
+      if (fk20 !== undefined) { polMap[pol].fak20Sum += fk20 * teu; polMap[pol].fak20Teu += teu; }
+      var fk40 = fakMap[pol+'|'+pod+"|40'"];
+      if (fk40 !== undefined) { polMap[pol].fak40Sum += fk40 * teu; polMap[pol].fak40Teu += teu; }
+      // 实际运价：优先用 excelActualMap（每箱价格，来自运价.xlsx）
+      var exKey = pol + '_' + pod;
+      if (window.excelActualMap && window.excelActualMap[exKey]) {
+        var ex = window.excelActualMap[exKey];
+        if (ex.actual_20 != null) polMap[pol].act20List.push(ex.actual_20);
+        if (ex.actual_40 != null) polMap[pol].act40List.push(ex.actual_40);
       }
     });
     Object.values(polMap).forEach(p => {
-      p.avgRev20 = p.teu20 > 0 ? p.rev20 / p.teu20 : null;   // 20GP: 1箱=1TEU, per-TEU = per-container ✓
-      p.avgRev40 = p.teu40 > 0 ? p.rev40 / p.teu40 * 2 : null; // 40HC: 1箱=2TEU, per-TEU×2 = per-container
       p.avgFak20 = p.fak20Teu > 0 ? p.fak20Sum / p.fak20Teu : null;
       p.avgFak40 = p.fak40Teu > 0 ? p.fak40Sum / p.fak40Teu : null;
+      // 实际：取该 POL 在本区域内所有 POD 的 excelActualMap 均值
+      p.avgRev20 = p.act20List.length > 0 ? p.act20List.reduce((a,b)=>a+b,0) / p.act20List.length : null;
+      p.avgRev40 = p.act40List.length > 0 ? p.act40List.reduce((a,b)=>a+b,0) / p.act40List.length : null;
     });
     return Object.values(polMap).sort((a,b) => (b.revenue/b.teu||0)-(a.revenue/a.teu||0));
   }
