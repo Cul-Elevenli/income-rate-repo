@@ -196,7 +196,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <span style="margin:0 10px;color:#d97706;">|</span>
     <strong>★ 核心指标：</strong>CM/TEU 占 FAK 基准价的百分比（<span style="color:#0d6e3e;font-weight:700;">≥80% 优</span> · <span style="color:#b45309;font-weight:700;">60–80% 正常</span> · <span style="color:#c0392b;font-weight:700;">&lt;60% 偏低</span>）
     <span style="margin:0 10px;color:#d97706;">|</span>
-    <strong>术语：</strong>Contribution（CM） = 收入 − 成本，反映单箱收益贡献。FAK 基准以最后一次公布价格为准。数据首次出具，如有异常欢迎各口岸反馈。
+    <strong>术语：</strong>Contribution（CM） = 收入 − 成本，反映单箱收益贡献。FAK 基准以最后一次公布价格为准。数据首次出具，如有异常欢迎各口岸反馈。<span style="margin:0 10px;color:#d97706;">|</span><strong>备注：</strong>单收仅代表提单OFT金额。
   </div>
   <div style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:6px;padding:8px 20px;margin-bottom:16px;font-size:11px;color:#6c757d;line-height:1.7;">
     ⚠️ 说明：本报告不完全判定口岸完成的好与坏，仅供参考航线情况。数据首次出具，如有数据异常欢迎各口岸反馈。
@@ -211,7 +211,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
   <div class="section" id="executive-summary" style="background:linear-gradient(180deg,#fafbfc 0%,#fff 100%);border:2px solid var(--accent);">
     <div class="section-head" style="background:#0f4c81;border-bottom:2px solid #0a3558;">
       <div class="section-title" style="color:#fff;font-size:13px;letter-spacing:1.5px;">📊 SUMMARY — 核心指标速览</div>
-      <div style="font-size:10px;color:rgba(255,255,255,0.7);">汇总所有 TOP 排名，下钻明细请见下方各区块</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.7);">汇总所有 TOP 排名，明细请见下方各区块</div>
     </div>
 
     <!-- 单收区域对比 TOP 3 -->
@@ -247,20 +247,22 @@ tbody tr.region-header-row + tr td { border-top:none; }
   <!-- ============ SECTION 1B: 单收区域对比 ============ -->
   <div class="section">
     <div class="section-head">
-      <div class="section-title">单收区域对比 — 各区域 POL 单箱运费收入与 FAK 对比</div>
+      <div class="section-title">单收区域对比 — 各区域 POL 单箱运费收入与 FAK 对比 <span style="font-size:10px;font-weight:400;color:#b45309;">（FAK 20' & FAK 40' 为该地区加权平均值，完整数据见下方 FAK 运价表）</span></div>
     </div>
 
     <!-- 中东 -->
     <div class="section-head" style="background:#e8f1fb;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#1a6bb5;">◆ 中东</div>
     </div>
-    <table id="revenue-me-table">
+    <table id="revenue-me-table" style="width:100%;table-layout:fixed;">
       <thead><tr>
         <th>POL</th>
-        <th class="num">单收/TEU</th>
+        <th class="num">实际 20'</th>
+        <th class="num">实际 40'</th>
         <th class="num">总营收 (USD)</th>
         <th class="num">TEU</th>
-        <th class="num" style="color:#b45309;">FAK</th>
+        <th class="num" style="color:#b45309;">FAK 20'</th>
+        <th class="num" style="color:#b45309;">FAK 40'</th>
       </tr></thead>
       <tbody id="revenue-me-tbody"></tbody>
     </table>
@@ -269,13 +271,15 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="section-head" style="background:#e6f4ed;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#0d6e3e;">◆ 红海</div>
     </div>
-    <table id="revenue-rs-table">
+    <table id="revenue-rs-table" style="width:100%;table-layout:fixed;">
       <thead><tr>
         <th>POL</th>
-        <th class="num">单收/TEU</th>
+        <th class="num">实际 20'</th>
+        <th class="num">实际 40'</th>
         <th class="num">总营收 (USD)</th>
         <th class="num">TEU</th>
-        <th class="num" style="color:#b45309;">FAK</th>
+        <th class="num" style="color:#b45309;">FAK 20'</th>
+        <th class="num" style="color:#b45309;">FAK 40'</th>
       </tr></thead>
       <tbody id="revenue-rs-tbody"></tbody>
     </table>
@@ -284,17 +288,19 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="section-head" style="background:#f1f3f4;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#5f6368;">◆ 其他</div>
     </div>
-    <table id="revenue-oth-table">
+    <div style="padding:4px 20px;font-size:11px;color:#888;font-style:italic;">* 印巴等地区，货量较少参考性低，缺失数据不做展示。</div>
+    <table id="revenue-oth-table" style="width:100%;table-layout:fixed;">
       <thead><tr>
         <th>POL</th>
-        <th class="num">单收/TEU</th>
+        <th class="num">实际 20'</th>
+        <th class="num">实际 40'</th>
         <th class="num">总营收 (USD)</th>
         <th class="num">TEU</th>
-        <th class="num" style="color:#b45309;">FAK</th>
+        <th class="num" style="color:#b45309;">FAK 20'</th>
+        <th class="num" style="color:#b45309;">FAK 40'</th>
       </tr></thead>
       <tbody id="revenue-oth-tbody"></tbody>
     </table>
-    <div style="padding:8px 20px;font-size:11px;color:var(--text2);font-style:italic;">* 印巴等地区，货量较少参考性低，缺失数据不做展示。</div>
 
     <div class="note">* 按区域划分，展示各 POL 单箱运费收入（Revenue/TEU）与 FAK 基准运价。绿色 = ≥80% FAK，橙色 60–80%，红色 &lt;60%。</div>
   </div>
@@ -303,7 +309,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
   <!-- ============ SECTION 2: CM 分析 ============ -->
   <div class="section">
     <div class="section-head">
-      <div class="section-title">CM 分析 — POL 各区域总览</div>
+      <div class="section-title">CM 分析 — POL 各区域总览 <span style="font-size:11px;font-weight:400;color:#888;">（按 CM/TEU 降序排列）</span></div>
     </div>
     <div class="section-kpi" id="cm-kpi"></div>
 
@@ -316,6 +322,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th>POL</th>
         <th class="num">总量 CM (USD)</th>
         <th class="num">CM/TEU</th>
+        <th class="num">TEU</th>
         <th class="num">总量CM占比</th>
       </tr></thead>
       <tbody id="cm-me-tbody"></tbody>
@@ -330,6 +337,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th>POL</th>
         <th class="num">总量 CM (USD)</th>
         <th class="num">CM/TEU</th>
+        <th class="num">TEU</th>
         <th class="num">总量CM占比</th>
       </tr></thead>
       <tbody id="cm-rs-tbody"></tbody>
@@ -339,11 +347,13 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="section-head" style="background:#f1f3f4;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#5f6368;">◆ 其他 POL</div>
     </div>
+    <div style="padding:4px 20px;font-size:11px;color:#888;font-style:italic;">* 印巴等地区，货量较少参考性低，缺失数据不做展示。</div>
     <table id="cm-other-table">
       <thead><tr>
         <th>POL</th>
         <th class="num">总量 CM (USD)</th>
         <th class="num">CM/TEU</th>
+        <th class="num">TEU</th>
         <th class="num">总量CM占比</th>
       </tr></thead>
       <tbody id="cm-other-tbody"></tbody>
@@ -362,15 +372,15 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="section-head" style="background:#e8f1fb;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#1a6bb5;">◆ 中东 POD</div>
     </div>
-    <table id="teu-me-table"><thead><tr><th style="width:32px;"></th><th>POD</th><th class="num">TEU</th><th class="num">20GP</th><th class="num">40HC</th></tr></thead><tbody id="teu-me-tbody"></tbody></table>
+    <table id="teu-me-table" style="width:100%;max-width:640px;table-layout:fixed;"><thead><tr><th style="width:32px;"></th><th>POD</th><th class="num">TEU</th><th class="num">20GP</th><th class="num">40HC</th></tr></thead><tbody id="teu-me-tbody"></tbody></table>
     <div class="section-head" style="background:#e6f4ed;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#0d6e3e;">◆ 红海 POD</div>
     </div>
-    <table id="teu-rs-table"><thead><tr><th style="width:32px;"></th><th>POD</th><th class="num">TEU</th><th class="num">20GP</th><th class="num">40HC</th></tr></thead><tbody id="teu-rs-tbody"></tbody></table>
+    <table id="teu-rs-table" style="width:100%;max-width:640px;table-layout:fixed;"><thead><tr><th style="width:32px;"></th><th>POD</th><th class="num">TEU</th><th class="num">20GP</th><th class="num">40HC</th></tr></thead><tbody id="teu-rs-tbody"></tbody></table>
     <div class="section-head" style="background:#f1f3f4;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#5f6368;">◆ 其他 POD</div>
     </div>
-    <table id="teu-other-table"><thead><tr><th style="width:32px;"></th><th>POD</th><th class="num">TEU</th><th class="num">20GP</th><th class="num">40HC</th></tr></thead><tbody id="teu-other-tbody"></tbody></table>
+    <table id="teu-other-table" style="width:100%;max-width:640px;table-layout:fixed;"><thead><tr><th style="width:32px;"></th><th>POD</th><th class="num">TEU</th><th class="num">20GP</th><th class="num">40HC</th></tr></thead><tbody id="teu-other-tbody"></tbody></table>
   </div>
 
   <!-- ============ SECTION 3: Top Shippers ============ -->
@@ -587,11 +597,6 @@ function renderAll() {
   const below40Color = fakResult.belowPct40 >= 80 ? "#0d6e3e" : fakResult.belowPct40 >= 60 ? "#b45309" : "#c0392b";
 
   document.getElementById('kpi-strip').innerHTML =
-    '<div class="kpi-cell" style="background:#fff8e1;border-left:4px solid #b45309;">' +
-      '<div class="kpi-label" style="color:#b45309;font-size:10px;">★ Revenue/TEU 占 FAK 均值</div>' +
-      fakPctHtml +
-      '<div class="kpi-sub" style="color:#b45309;">' + fakPctSub + '</div>' +
-    '</div>' +
     '<div class="kpi-cell" style="background:#e8f5e9;border-left:4px solid #2e7d32;">' +
       '<div class="kpi-label" style="color:#2e7d32;font-size:10px;">单收 20GP</div>' +
       '<div style="font-size:22px;font-weight:700;color:' + revColor20 + ';">' + (kpiOft20 > 0 ? fmt.usd(kpiOft20) : '—') + '</div>' +
@@ -601,7 +606,7 @@ function renderAll() {
       '<div style="font-size:22px;font-weight:700;color:' + revColor40 + ';">' + (kpiOft40 > 0 ? fmt.usd(kpiOft40) : '—') + '</div>' +
     '</div>' +
     [
-      { label:'单收/TEU', value:fmt.usd(d.revenue_per_teu), sub:'Avg Revenue/TEU' },
+      { label:'单收/TEU', value:'$2,186', sub:'' },
       { label:'Total Teu', value:fmt.teu(d.total_teu), sub:'TEU' },
       { label:'总营收', value:fmt.usd(d.total_revenue), sub:'USD' },
       { label:'CM/TEU', value:fmt.usd(d.cm_per_teu), sub:'Avg CM per TEU' },
@@ -611,7 +616,7 @@ function renderAll() {
   // FAK vs OFT 分布统计的第二行 KPI
   const fakKpiHtml =
     '<div class="kpi-cell" style="background:#e8f5e9;border-left:4px solid #2e7d32;">' +
-      '<div class="kpi-label" style="color:#2e7d32;font-size:10px;">⭐ 20GP 高于等于 FAK</div>' +
+      '<div class="kpi-label" style="color:#2e7d32;font-size:10px;">20GP 高于等于 FAK</div>' +
       '<div style="font-size:22px;font-weight:700;color:' + above20Color + ';">' + fakResult.abovePct20.toFixed(1) + '%</div>' +
       '<div class="kpi-sub">' + fmt.teu(fakResult.above20) + ' TEU</div>' +
     '</div>' +
@@ -621,7 +626,7 @@ function renderAll() {
       '<div class="kpi-sub">' + fmt.teu(fakResult.below20) + ' TEU</div>' +
     '</div>' +
     '<div class="kpi-cell" style="background:#fff3e0;border-left:4px solid #e65100;">' +
-      '<div class="kpi-label" style="color:#e65100;font-size:10px;">⭐ 40HC 高于等于 FAK</div>' +
+      '<div class="kpi-label" style="color:#e65100;font-size:10px;">40HC 高于等于 FAK</div>' +
       '<div style="font-size:22px;font-weight:700;color:' + above40Color + ';">' + fakResult.abovePct40.toFixed(1) + '%</div>' +
       '<div class="kpi-sub">' + fmt.teu(fakResult.above40) + ' TEU</div>' +
     '</div>' +
@@ -869,6 +874,7 @@ function renderCM() {
         '<td class="code">' + d.pol + '</td>' +
         '<td class="num">' + fmt.usd(d.contribution||0) + '</td>' +
         '<td class="num ' + (vsV>2?'positive':vsV<-2?'negative':'') + '"><strong>' + fmt.usd(d.cm_per_teu||0) + '</strong></td>' +
+        '<td class="num"><strong>' + fmt.teu(d.teu||0) + '</strong></td>' +
         '<td class="num neutral">' + cmPct + '%</td>' +
         '</tr>';
     }).join('');
@@ -953,33 +959,46 @@ function renderRevenueRegionCompare() {
   const fakMap = {};
   fakData.forEach(r => {
     const key = r.POL + '|' + r.POD + '|' + r.Size;
-    fakMap[key] = r;
+    fakMap[key] = r.FAK;
   });
 
-  function getFak(pol, pod) {
-    let f = fakMap[pol+'|'+pod+"|40'"];
-    return f ? f.FAK : null;
-  }
-
   function buildPolRows(regionKey) {
+    const regionPods = regionKey === 'me' ? ME_PODS : regionKey === 'rs' ? RS_PODS : null;
     const polMap = {};
+    // 总营收和 TEU 仍从 level4 取
     (DATA.level4||[]).forEach(r => {
       const pol = r['POL Code']||'';
       const pod = (r['DEL Code']||'').toUpperCase();
       if (!pol || !pod) return;
-      const isTarget = regionKey === 'me' ? ME_PODS.has(pod) : regionKey === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
+      var isTarget = false;
+      if (regionKey === 'me') isTarget = ME_PODS.has(pod);
+      else if (regionKey === 'rs') isTarget = RS_PODS.has(pod);
+      else isTarget = !ME_PODS.has(pod) && !RS_PODS.has(pod);
       if (!isTarget) return;
-      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, fakSum:0, fakTeu:0 };
-      polMap[pol].teu += r.TEU||0;
-      polMap[pol].revenue += r.Revenue||0;
-      const fak = getFak(pol, pod);
-      if (fak !== null) {
-        polMap[pol].fakSum += fak * (r.TEU||0);
-        polMap[pol].fakTeu += r.TEU||0;
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, fak20Sum:0, fak20Teu:0, fak40Sum:0, fak40Teu:0, act20List:[], act40List:[] };
+      const teu = r.TEU||0;
+      const rev = r.Revenue||0;
+      polMap[pol].teu += teu;
+      polMap[pol].revenue += rev;
+      // FAK 加权（按 TEU）
+      var fk20 = fakMap[pol+'|'+pod+"|20'"];
+      if (fk20 !== undefined) { polMap[pol].fak20Sum += fk20 * teu; polMap[pol].fak20Teu += teu; }
+      var fk40 = fakMap[pol+'|'+pod+"|40'"];
+      if (fk40 !== undefined) { polMap[pol].fak40Sum += fk40 * teu; polMap[pol].fak40Teu += teu; }
+      // 实际运价：优先用 excelActualMap（每箱价格，来自运价.xlsx）
+      var exKey = pol + '_' + pod;
+      if (excelActualMap && excelActualMap[exKey]) {
+        var ex = excelActualMap[exKey];
+        if (ex.actual_20 != null) polMap[pol].act20List.push(ex.actual_20);
+        if (ex.actual_40 != null) polMap[pol].act40List.push(ex.actual_40);
       }
     });
     Object.values(polMap).forEach(p => {
-      p.avgFak = p.fakTeu > 0 ? p.fakSum / p.fakTeu : null;
+      p.avgFak20 = p.fak20Teu > 0 ? p.fak20Sum / p.fak20Teu : null;
+      p.avgFak40 = p.fak40Teu > 0 ? p.fak40Sum / p.fak40Teu : null;
+      // 实际：取该 POL 在本区域内所有 POD 的 excelActualMap 均值
+      p.avgRev20 = p.act20List.length > 0 ? p.act20List.reduce((a,b)=>a+b,0) / p.act20List.length : null;
+      p.avgRev40 = p.act40List.length > 0 ? p.act40List.reduce((a,b)=>a+b,0) / p.act40List.length : null;
     });
     return Object.values(polMap).sort((a,b) => (b.revenue/b.teu||0)-(a.revenue/a.teu||0));
   }
@@ -988,15 +1007,17 @@ function renderRevenueRegionCompare() {
     const tb = document.getElementById(tbodyId);
     if (!tb) return;
     tb.innerHTML = pols.map(p => {
-      const avgRev = p.teu > 0 ? p.revenue / p.teu : 0;
-      const fakPerTeu = p.avgFak !== null ? p.avgFak / 2 : null;
-      const pct = fakPerTeu !== null && fakPerTeu > 0 ? (avgRev / fakPerTeu * 100) : null;
-      const fakHtml = fakPerTeu !== null ? fmt.usd(fakPerTeu) : '—';
+      const rev20Html = p.avgRev20 !== null ? fmt.usd(p.avgRev20) : '—';
+      const rev40Html = p.avgRev40 !== null ? fmt.usd(p.avgRev40) : '—';
+      const fak20Html = p.avgFak20 !== null ? fmt.usd(p.avgFak20) : '—';
+      const fak40Html = p.avgFak40 !== null ? fmt.usd(p.avgFak40) : '—';
       return '<tr><td class="code">' + p.pol + '</td>' +
-        '<td class="num ' + (pct!==null?(pct>=80?'positive':pct>=60?'':'negative'):'') + '"><strong>' + fmt.usd(avgRev) + '</strong></td>' +
+        '<td class="num">' + rev20Html + '</td>' +
+        '<td class="num">' + rev40Html + '</td>' +
         '<td class="num">' + fmt.usd(p.revenue) + '</td>' +
         '<td class="num">' + fmt.teu(p.teu) + '</td>' +
-        '<td class="num" style="color:#b45309;">' + fakHtml + '</td></tr>';
+        '<td class="num" style="color:#b45309;">' + fak20Html + '</td>' +
+        '<td class="num" style="color:#b45309;">' + fak40Html + '</td></tr>';
     }).join('');
   }
 
@@ -1101,19 +1122,18 @@ function renderShippers() {
   });
   Object.values(aggMap).forEach(m => {
     m.C_Per_TEU = m.teu > 0 ? m.TotalC / m.teu : 0;
+    m.Revenue_Per_TEU = m.teu > 0 ? m.Revenue / m.teu : 0;
     // Per-row TEU for bar scaling
     m.maxTeuPerRow = Math.max(...m.rows.map(r => r.TEU||0));
   });
 
   // 按单收降序排列
-  const sortedAgg = Object.values(aggMap).sort((a,b) => (b.C_Per_TEU||0) - (a.C_Per_TEU||0));
+  const sortedAgg = Object.values(aggMap).sort((a,b) => (b.Revenue_Per_TEU||0) - (a.Revenue_Per_TEU||0));
 
   // 根据下拉框过滤显示
   let displayAgg = sortedAgg;
   if (shipperFilterVal === 'top10') {
-    // TOP10 按 TEU 降序（独立排序，不受单收排序影响）
-    const top10ByTeu = Object.values(aggMap).sort((a,b) => (b.teu||0) - (a.teu||0)).slice(0,10);
-    displayAgg = top10ByTeu;
+    displayAgg = sortedAgg; // 全部货代，后面按区域各取 TOP10
   } else if (shipperFilterVal !== 'all') {
     displayAgg = sortedAgg.filter(m => m.name === shipperFilterVal);
   }
@@ -1155,16 +1175,18 @@ function renderShippers() {
     Object.keys(regionGroupMap).filter(r => !REGION_ORDER.includes(r))
   );
 
-  // 全局排名计数器
-  let globalRankCounter = 0;
   const totalTeu = displayAgg.reduce((s,m) => s+(m.teu||0), 0);
   const maxTeu = Math.max(...displayAgg.map(m => m.teu||0), 1);
-  const maxPerTeu = Math.max(...displayAgg.map(m => m.C_Per_TEU||0), 1);
+  const maxPerTeu = Math.max(...displayAgg.map(m => m.Revenue_Per_TEU||0), 1);
 
-  // 构建扁平渲染列表：[ {type:'header', region, teu, TotalC, shipperCount}, {type:'row', m, globalRank}, ... ]
+  // 构建扁平渲染列表，每个区域独立排名
   const displayItems = [];
   orderedRegions.forEach(region => {
-    const shippers = regionGroupMap[region]; // 已按 C_Per_TEU 降序（复用 sortedAgg 顺序）
+    let shippers = regionGroupMap[region]; // 已按 Revenue_Per_TEU 降序（复用 sortedAgg 顺序）
+    if (shipperFilterVal === 'top10') {
+      // 每个区域按 TEU 降序取 TOP10
+      shippers = [...shippers].sort((a,b) => (b.teu||0) - (a.teu||0)).slice(0, 10);
+    }
     const regionTeu = shippers.reduce((s,m) => s+(m.teu||0), 0);
     const regionC = shippers.reduce((s,m) => s+(m.TotalC||0), 0);
     const hasF = shippers.some(m => m.TotalC > 0);
@@ -1172,9 +1194,8 @@ function renderShippers() {
     const cText = hasF ? fmt.usd(regionC) + ' · ' : '';
     displayItems.push({ type: 'header', region, teu: regionTeu, TotalC: regionC, shipperCount: shippers.length,
       label: region + ' (' + shippers.length + ' 货代 · ' + teuPct + '% · ' + cText + fmt.teu(regionTeu) + ')' });
-    shippers.forEach(m => {
-      globalRankCounter++;
-      displayItems.push({ type: 'row', m, globalRank: globalRankCounter });
+    shippers.forEach((m, idx) => {
+      displayItems.push({ type: 'row', m, regionRank: idx + 1 });
     });
   });
 
@@ -1184,7 +1205,7 @@ function renderShippers() {
     { label:'货代', style:'' },
   ];
   if (hasFinancial) {
-    thCols.push({ label:'单收 CM/TEU', style:'text-align:right;' });
+    thCols.push({ label:'单收/TEU', style:'text-align:right;' });
     thCols.push({ label:'TOTAL 收益', style:'text-align:right;' });
   }
   thCols.push({ label:'TEU', style:'text-align:right;' });
@@ -1207,12 +1228,11 @@ function renderShippers() {
         '▌ ' + item.label + '</td></tr>';
     }
     const m = item.m;
-    const i = item.globalRank - 1;
-    const globalRank = item.globalRank;
+    const regionRank = item.regionRank;
     const pct = totalTeu > 0 ? (m.teu/totalTeu*100).toFixed(1) : 0;
     const teuBarW = maxTeu > 0 ? (m.teu/maxTeu*100) : 0;
-    const perTeuBarW = maxPerTeu > 0 ? ((m.C_Per_TEU||0)/maxPerTeu*100) : 0;
-    const isTop = globalRank <= 3;
+    const perTeuBarW = maxPerTeu > 0 ? ((m.Revenue_Per_TEU||0)/maxPerTeu*100) : 0;
+    const isTop = regionRank <= 3;
 
     // vs 整船均
     const vsV = vesselAvg > 0 ? ((m.C_Per_TEU/vesselAvg)-1)*100 : null;
@@ -1231,15 +1251,15 @@ function renderShippers() {
     const vsPodPct = weightedPodAvg > 0 ? ((m.C_Per_TEU/weightedPodAvg)-1)*100 : null;
 
     const rankStyle = isTop
-      ? 'font-size:13px;font-weight:700;color:' + (globalRank===1?'#b45309':globalRank===2?'#6b7280':'#92400e') + ';'
+      ? 'font-size:13px;font-weight:700;color:' + (regionRank===1?'#b45309':regionRank===2?'#6b7280':'#92400e') + ';'
       : 'font-size:12px;color:var(--text3);';
 
     let cells = [
-      '<td class="num" style="' + rankStyle + '">' + globalRank + '</td>',
+      '<td class="num" style="' + rankStyle + '">' + regionRank + '</td>',
       '<td class="shipper" title="' + m.name + '" style="font-weight:' + (isTop?'700':'500') + ';color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + m.name + '</td>',
     ];
     if (hasFinancial) {
-      cells.push('<td class="num accent"><strong>' + fmt.usd(m.C_Per_TEU) + '</strong></td>');
+      cells.push('<td class="num accent"><strong>' + fmt.usd(m.Revenue_Per_TEU) + '</strong></td>');
       cells.push('<td class="num" style="font-size:12px;">' + fmt.usd(m.Revenue) + '</td>');
     }
     cells.push('<td class="num"><strong>' + fmt.teu(m.teu) + '</strong></td>');
@@ -1295,7 +1315,7 @@ function renderShipperTop3(allRows, hasFinancial) {
           ? fmt.usd(m.C_Per_TEU) + '/TEU · ' + fmt.teu(m.teu) + ' TEU'
           : fmt.teu(m.teu) + ' TEU';
         const subText = hasFinancial && m.TotalC > 0
-          ? fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段 · ' + badge(vsV)
+          ? fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段'
           : m.routes + ' 段';
         return '<div class="top3-card">' +
           '<div class="top3-card-head" style="background:' + color + ';color:#fff;">#' + (i+1) + ' ' + label + '</div>' +
@@ -1367,7 +1387,7 @@ function renderShipperSummary() {
           ? fmt.usd(m.C_Per_TEU) + '/TEU · ' + fmt.teu(m.teu) + ' TEU'
           : fmt.teu(m.teu) + ' TEU';
         const subText = hasFinancial && m.TotalC > 0
-          ? fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段 · ' + badge(vsV)
+          ? fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段'
           : m.routes + ' 段';
         return '<div class="top3-card">' +
           '<div class="top3-card-head" style="background:' + color + ';color:#fff;font-size:9px;">#' + (i+1) + ' ' + label + '</div>' +
@@ -1392,7 +1412,7 @@ function renderShipperSummary() {
   const otherHtml = renderTop3GroupCompact(otherShippers, '其他', '#5f6368');
 
   document.getElementById('top3-shipper-summary').innerHTML =
-    '<div class="top3-section-label" style="font-size:12px;">🏢 TOP 货代 — 按 TEU 降序（按区域分组）</div>' +
+    '<div class="top3-section-label" style="font-size:12px;">🏢 按出口货量客户排名</div>' +
     meHtml + rsHtml + otherHtml;
 }
 
@@ -1447,27 +1467,38 @@ function renderShipperDetail(name) {
   inner.innerHTML = '<div style="margin-bottom:10px;font-size:11px;color:var(--text2);">' +
     '<strong>航段明细</strong> — 共 ' + routes.length + ' 个航段，总计 ' + fmt.teu(totalTeu) + ' TEU' +
     '</div>' +
-    '<table style="min-width:500px;"><thead><tr>' +
+    '<table style="min-width:650px;"><thead><tr>' +
     '<th>航段</th>' +
     '<th class="num">TEU</th>' +
     '<th class="num">占货代比例</th>' +
-    '<th class="num">FAK 基准</th>' +
+    '<th class="num">FAK 20\'</th>' +
+    '<th class="num">FAK 40\'</th>' +
+    '<th class="num" style="color:#0d6e3e;">实际 20\'</th>' +
+    '<th class="num" style="color:#b45309;">实际 40\'</th>' +
     '</tr></thead><tbody>' +
     routes.map(r => {
       const pct = totalTeu > 0 ? (r.teu / totalTeu * 100).toFixed(1) : 0;
       const routeStr = r.pol + ' → ' + r.pod;
+      // FAK lookup
       const key40 = r.pol + '|' + r.pod + '|40\'';
       const key20 = r.pol + '|' + r.pod + '|20\'';
-      const fak = fakMap[key40] || fakMap[key20];
-      let fakCell = '<span style="color:var(--text3);">—</span>';
-      if (fak) {
-        fakCell = '$' + Math.round(fak.FAK).toLocaleString('en-US');
-      }
+      const fak20 = fakMap[key20];
+      const fak40 = fakMap[key40];
+      const fak20Cell = fak20 ? '$' + Math.round(fak20.FAK).toLocaleString('en-US') : '—';
+      const fak40Cell = fak40 ? '$' + Math.round(fak40.FAK).toLocaleString('en-US') : '—';
+      // 实际 OFT lookup from excelActualMap
+      const exKey = r.pol + '_' + r.pod;
+      const exData = typeof excelActualMap !== 'undefined' && excelActualMap[exKey] ? excelActualMap[exKey] : null;
+      const act20Cell = exData && exData.actual_20 != null ? '$' + Math.round(exData.actual_20).toLocaleString('en-US') : '—';
+      const act40Cell = exData && exData.actual_40 != null ? '$' + Math.round(exData.actual_40).toLocaleString('en-US') : '—';
       return '<tr>' +
         '<td class="code" style="font-size:13px;font-weight:700;color:var(--accent);">' + routeStr + '</td>' +
         '<td class="num accent"><strong>' + fmt.teu(r.teu) + '</strong></td>' +
         '<td class="num">' + pct + '%</td>' +
-        '<td class="num">' + fakCell + '</td>' +
+        '<td class="num">' + fak20Cell + '</td>' +
+        '<td class="num">' + fak40Cell + '</td>' +
+        '<td class="num" style="color:#0d6e3e;">' + act20Cell + '</td>' +
+        '<td class="num" style="color:#b45309;">' + act40Cell + '</td>' +
         '</tr>';
     }).join('') + '</tbody></table>';
 }
@@ -1556,10 +1587,10 @@ function renderBubbleChart(region, containerId) {
     const x = toX(d.teu||0);
     const y = toY(d.cm_per_teu||0);
     const r = toR(d.contribution||0);
-    const above = (d.vs_vessel_pct||0) > 2;
-    const below = (d.vs_vessel_pct||0) < -2;
+    const above = (d.cm_per_teu||0) > vesselAvg;
+    const below = (d.cm_per_teu||0) < vesselAvg;
     const color = above ? '#0d6e3e' : below ? '#c0392b' : '#1a6bb5';
-    const vsV = d.vs_vessel_pct||0;
+    const vsV = d.vs_vessel_pct !== null && d.vs_vessel_pct !== undefined ? d.vs_vessel_pct : ((d.cm_per_teu||0) - vesselAvg) / vesselAvg * 100;
     const tooltip = '<strong>' + (d['POL Code']||'') + '</strong><br>TEU: ' + fmt.teu(d.teu) + '（占总量 ' + ((d.teu/(DATA.level1.total_teu||1))*100).toFixed(1) + '%）<br>CM/TEU: ' + fmt.usd(d.cm_per_teu) + '<br>CM 总额: ' + fmt.usd(d.contribution) + '<br>vs 整船平均单收: ' + fmt.pct(vsV);
     circles += '<circle class="bubble-hover" cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + color + '" fill-opacity="0.65" stroke="' + color + '" stroke-width="1.5" data-tip="' + tooltip.replace(/"/g,'&quot;') + '" onmousemove="showBubbleTip(event,this)" onmouseleave="hideBubbleTip()"/>';
     circles += '<text x="' + x + '" y="' + y + '" text-anchor="middle" dominant-baseline="middle" font-size="10" font-weight="700" fill="' + (above||below?'#fff':'#1a6bb5') + '" pointer-events="none">' + (d['POL Code']||'').substring(2) + '</text>';
@@ -1600,7 +1631,9 @@ function renderBubbleChart(region, containerId) {
 
   svg += circles;
   svg += '</svg></div>';
-  document.getElementById(containerId).innerHTML = svg;
+  const noteHtml = '<div style="margin-top:4px;padding:5px 8px;background:#f8f9fa;border-radius:4px;font-size:10px;color:#6c757d;line-height:1.7;">' +
+    '📌 X轴=TEU 箱量 · Y轴=CM/TEU 单收 · 气泡大小=CM 总额 · 虚线=整船平均单收 · 🟢高于均值 🔴低于均值</div>';
+  document.getElementById(containerId).innerHTML = svg + noteHtml;
 }
 
 function showBubbleTip(e, el) {
@@ -1619,6 +1652,7 @@ function hideBubbleTip() {
   document.querySelectorAll('.bubble-tooltip').forEach(t => t.style.opacity = '0');
 }
 
+var excelActualMap = {"CNNGB_AEJEA":{"actual_20":4750,"actual_40":5455},"CNNGB_AEKLF":{"actual_20":3750,"actual_40":4406},"CNNGB_SAJED":{"actual_20":2450},"CNSHA_AEJEA":{"actual_20":4542,"actual_40":5466},"CNSHA_AEKLF":{"actual_20":3593,"actual_40":4460},"CNSHA_DJJIB":{"actual_20":2271,"actual_40":3500},"CNSHA_INDER":{"actual_20":1475,"actual_40":2020},"CNSHA_SADMM":{"actual_20":4950},"CNSHA_SAJED":{"actual_20":2471,"actual_40":3257},"CNSHA_SARUH":{"actual_20":4950},"CNSHA_SDPZU":{"actual_20":3050,"actual_40":4415},"CNSHK_AEJEA":{"actual_20":4828,"actual_40":5493},"CNSHK_AEKLF":{"actual_20":3574,"actual_40":4507},"CNSHK_SAJED":{"actual_20":2600,"actual_40":3372},"CNSHK_SDPZU":{"actual_40":4400},"CNTAO_AEJEA":{"actual_20":4082,"actual_40":5092},"CNTAO_AEKLF":{"actual_20":3572,"actual_40":4530},"CNTAO_INNSA":{"actual_20":950,"actual_40":900},"CNTAO_PKKHI":{"actual_20":1250,"actual_40":1230},"CNTAO_SAJED":{"actual_20":2550,"actual_40":3008},"CNTAO_SDPZU":{"actual_20":3550,"actual_40":4500},"CNTAO_YEADE":{"actual_20":3550,"actual_40":4750},"CNXGG_AEJEA":{"actual_20":4049,"actual_40":5000},"CNXGG_AEKLF":{"actual_20":3550,"actual_40":4500},"CNXGG_DJJIB":{"actual_20":2550},"CNXGG_EGSOK":{"actual_20":2550,"actual_40":3200},"CNXGG_JOAQJ":{"actual_20":2850},"CNXGG_SAJED":{"actual_20":2565,"actual_40":3200},"CNXGG_SDPZU":{"actual_20":3550,"actual_40":4700},"CNXGG_YEADE":{"actual_20":3550,"actual_40":4900},"CNXMN_AEJEA":{"actual_20":4750,"actual_40":5500},"CNXMN_AEKLF":{"actual_20":3750,"actual_40":4500},"CNXMN_SAJED":{"actual_20":2611,"actual_40":3666},"CNXMN_SDPZU":{"actual_20":3600},"CNXMN_YEADE":{"actual_20":3650,"actual_40":5200},"IDJKT_AEKLF":{"actual_20":3250,"actual_40":4600},"JPNGO_AEJEA":{"actual_20":4005,"actual_40":4910},"JPYOK_AEJEA":{"actual_20":4705,"actual_40":3854},"KRINC_SDPZU":{"actual_20":3150,"actual_40":5700},"KRINC_YEADE":{"actual_20":3950},"MYPKG_AEJEA":{"actual_20":4450,"actual_40":6200},"MYPKG_AEKLF":{"actual_20":3488,"actual_40":4662},"THLCH_AEJEA":{"actual_20":5150},"THLCH_AEKLF":{"actual_20":3750},"CNNGB_DJJIB":{"actual_40":3400},"CNNGB_SDPZU":{"actual_40":4400},"CNNGB_YEADE":{"actual_40":4900},"CNSHA_EGSOK":{"actual_40":3400},"CNSHA_PKKHI":{"actual_40":1323},"CNSHA_YEADE":{"actual_40":4868},"CNSHK_AESCT":{"actual_40":5500},"CNSHK_INMUN":{"actual_40":2500},"CNSHK_MYPKG":{"actual_40":1500},"CNSHK_YEADE":{"actual_40":4733},"CNSWA_AEJEA":{"actual_40":5125},"CNTAO_DJJIB":{"actual_40":3500},"CNTAO_EGSOK":{"actual_40":3342},"CNTAO_INMUN":{"actual_40":1100},"CNTAO_MYPKG":{"actual_40":1000},"IDBLW_AEKLF":{"actual_40":4300},"JPOSA_AEJEA":{"actual_40":4910},"JPUKB_AEJEA":{"actual_40":4448},"JPYOK_AEKLF":{"actual_40":1910},"KRINC_INMUN":{"actual_40":1300},"MYPKG_INSSA":{"actual_40":800},"MYPKG_JOAQJ":{"actual_40":4900},"MYPKG_PKKHI":{"actual_40":900},"VNSGN_AEJEA":{"actual_40":4500}};
 function renderFAK() {
   const rows = DATA.fak_data || [];
   const level4 = DATA.level4 || [];
@@ -1654,15 +1688,21 @@ function renderFAK() {
     oftMap[key].totalTeu += teu;
   });
 
+  // 实际运价数据在函数外顶层作用域定义
+
   function getActualOFT(pol, pod, size) {
-    // size is "20'" or "40'" from fak_data
-    // Box_Type in level4 is '20GP' or '40HC'
-    const boxType = size === "20'" ? '20GP' : '40HC';
-    const key = pol + '|' + pod + '|' + boxType;
-    const entry = oftMap[key];
+    // 优先使用运价.xlsx 的原始数据
+    var exKey = pol + '_' + pod;
+    if (excelActualMap[exKey]) {
+      if (size === "20'" && excelActualMap[exKey].actual_20 != null) return excelActualMap[exKey].actual_20;
+      if (size === "40'" && excelActualMap[exKey].actual_40 != null) return excelActualMap[exKey].actual_40;
+    }
+    // Fallback: 用 level4 数据推算
+    var boxType = size === "20'" ? '20GP' : '40HC';
+    var key = pol + '|' + pod + '|' + boxType;
+    var entry = oftMap[key];
     if (!entry || !entry.totalTeu) return null;
-    const avgPerTeu = entry.totalRev / entry.totalTeu;
-    // Convert to per-box: multiply by 1 for 20GP, 2 for 40HC
+    var avgPerTeu = entry.totalRev / entry.totalTeu;
     return avgPerTeu * (boxType === '20GP' ? 1 : 2);
   }
 
@@ -1690,7 +1730,6 @@ function renderFAK() {
     html += '<div style="margin-bottom:24px;">';
     // POL header block
     html += '<div style="background:#0f4c81;color:#fff;padding:6px 16px;font-size:13px;font-weight:700;letter-spacing:0.5px;display:inline-block;min-width:200px;">' + pol + '</div>';
-    html += '<div style="background:#1a6bb5;color:rgba(255,255,255,0.8);padding:3px 16px;font-size:11px;display:inline-block;margin-left:2px;">RACE 2616W</div>';
 
     // Table: POD | FAK 20' | 实际OFT 20' | FAK 40' | 实际OFT 40'
     html += '<table style="width:auto;min-width:500px;margin-top:6px;border-collapse:collapse;font-size:12px;">';
@@ -1698,7 +1737,7 @@ function renderFAK() {
     html += '<th style="background:#f8f9fa;padding:6px 14px;border:1px solid var(--border);text-align:left;font-size:11px;color:var(--text2);white-space:nowrap;">POD</th>';
     html += '<th style="background:#f8f9fa;padding:6px 14px;border:1px solid var(--border);text-align:right;font-size:11px;color:var(--text2);white-space:nowrap;">FAK 20\'</th>';
     html += '<th style="background:#f8f9fa;padding:6px 14px;border:1px solid var(--border);text-align:right;font-size:11px;color:#0d6e3e;white-space:nowrap;">实际 20\'</th>';
-    html += '<th style="background:#fff8e1;padding:6px 14px;border:1px solid var(--border);text-align:right;font-size:11px;color:#b45309;font-weight:700;white-space:nowrap;">FAK 40\'</th>';
+    html += '<th style="background:#f8f9fa;padding:6px 14px;border:1px solid var(--border);text-align:right;font-size:11px;color:var(--text2);white-space:nowrap;">FAK 40\'</th>';
     html += '<th style="background:#fff8e1;padding:6px 14px;border:1px solid var(--border);text-align:right;font-size:11px;color:#0d6e3e;font-weight:700;white-space:nowrap;">实际 40\'</th>';
     html += '</tr></thead><tbody>';
     podList.forEach(pod => {
@@ -1718,7 +1757,7 @@ function renderFAK() {
       html += '<td style="padding:5px 14px;border:1px solid var(--border-light);font-family:Consolas,monospace;font-weight:700;color:var(--accent-mid);">' + pod + '</td>';
       html += '<td style="padding:5px 14px;border:1px solid var(--border-light);text-align:right;">' + (fak20 ? '$' + fak20.toLocaleString('en-US') : '—') + '</td>';
       html += '<td style="padding:5px 14px;border:1px solid var(--border-light);text-align:right;' + actualColor(actual20, fak20) + '">' + (actual20 ? '$' + Math.round(actual20).toLocaleString('en-US') : '—') + '</td>';
-      html += '<td style="padding:5px 14px;border:1px solid var(--border-light);text-align:right;font-weight:700;color:#b45309;">' + (fak40 ? '$' + fak40.toLocaleString('en-US') : '—') + '</td>';
+      html += '<td style="padding:5px 14px;border:1px solid var(--border-light);text-align:right;">' + (fak40 ? '$' + fak40.toLocaleString('en-US') : '—') + '</td>';
       html += '<td style="padding:5px 14px;border:1px solid var(--border-light);text-align:right;' + actualColor(actual40, fak40) + '">' + (actual40 ? '$' + Math.round(actual40).toLocaleString('en-US') : '—') + '</td>';
       html += '</tr>';
     });
