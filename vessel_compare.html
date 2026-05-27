@@ -238,19 +238,20 @@ function buildPolData() {
     const bTeu = b.teu || 0;
     const rRev = r.revenue || 0;
     const bRev = b.revenue || 0;
-    // RACE: CM/TEU is core; BERLIN: 单收/TEU is core
-    const rCmPerTeu = r.cm_per_teu || 0;
+    // Both vessels: 单收/TEU (combined_oft_avg for RACE, avg_per_unit_oft for BERLIN)
+    const rOftPerTeu = r.combined_oft_avg || 0;
     const bOftPerTeu = b.avg_per_unit_oft || 0;
     // Both have Revenue/TEU
     const rRevPerTeu = r.revenue_per_teu || (rTeu > 0 ? rRev/rTeu : 0);
     const bRevPerTeu = b.revenue_per_teu || (bTeu > 0 ? bRev/bTeu : 0);
+    // RACE also has CM/TEU for reference
+    const rCmPerTeu = r.cm_per_teu || 0;
 
     // FAK values per POL
     const rFak = raceFakByPol[pol] || 0;
     const bFak = berlinFakByPol[pol] || 0;
-    // FAK % — use Revenue/TEU vs FAK for consistency (same as 单收 vs FAK)
-    const rRevPerTeuFull = r.revenue_per_teu || (rTeu > 0 ? rRev/rTeu : 0);
-    const rFakPct = rFak > 0 && rRevPerTeuFull > 0 ? (rRevPerTeuFull / rFak * 100) : null;
+    // FAK % — use 单收/TEU vs FAK (same metric for both)
+    const rFakPct = rFak > 0 && rOftPerTeu > 0 ? (rOftPerTeu / rFak * 100) : null;
     const bFakPct = bFak > 0 && bOftPerTeu > 0 ? (bOftPerTeu / bFak * 100) : null;
 
     rows.push({
@@ -258,7 +259,8 @@ function buildPolData() {
       rTeu, bTeu,
       rRev, bRev,
       rRevPerTeu, bRevPerTeu,
-      rCmPerTeu, bOftPerTeu,
+      rOftPerTeu, bOftPerTeu,
+      rCmPerTeu,
       rFakPct, bFakPct,
     });
   });
@@ -427,18 +429,22 @@ function renderKPI() {
   const bTeu = b.total_teu;
   const rRev = r.total_revenue;
   const bRev = b.total_revenue;
-  const rCmPerTeu = r.cm_per_teu || 0;
-  const bRevPerTeu = b.revenue_per_teu || 0;
-  // BERLIN 单收/TEU
+
+  // 单收/TEU — weighted average from level3
+  const raceL3 = DATA.race.level3 || [];
   const berlinL3 = DATA.berlin.level3 || [];
-  let bOftSum = 0, bOftTeu = 0;
-  berlinL3.forEach(p => {
-    if (p.avg_per_unit_oft && p.teu) {
-      bOftSum += p.avg_per_unit_oft * p.teu;
-      bOftTeu += p.teu;
-    }
+  let rOftSum = 0, rOftTeu = 0, bOftSum = 0, bOftTeu = 0;
+  raceL3.forEach(p => {
+    if (p.combined_oft_avg && p.teu) { rOftSum += p.combined_oft_avg * p.teu; rOftTeu += p.teu; }
   });
+  berlinL3.forEach(p => {
+    if (p.avg_per_unit_oft && p.teu) { bOftSum += p.avg_per_unit_oft * p.teu; bOftTeu += p.teu; }
+  });
+  const rOftPerTeu = rOftTeu > 0 ? rOftSum / rOftTeu : 0;
   const bOftPerTeu = bOftTeu > 0 ? bOftSum / bOftTeu : 0;
+
+  const rRevPerTeu = rTeu > 0 ? rRev / rTeu : 0;
+  const bRevPerTeu = b.revenue_per_teu || (bTeu > 0 ? bRev / bTeu : 0);
 
   function diffPct(a, bVal) {
     if (!bVal) return null;
@@ -474,23 +480,29 @@ function renderKPI() {
       <div class="kpi-sub">RACE / BERLIN</div>
     </div>
     <div class="kpi-cell">
-      <div class="kpi-label">RACE: CM/TEU</div>
-      <div class="kpi-value" style="color:var(--race)">${fmt.dec(rCmPerTeu)}</div>
-      <div class="kpi-sub">效益/TEU（含成本）</div>
-    </div>
-    <div class="kpi-cell">
-      <div class="kpi-label">BERLIN: 单收/TEU</div>
-      <div class="kpi-value" style="color:var(--berlin)">${fmt.dec(bOftPerTeu)}</div>
+      <div class="kpi-label">单收/TEU</div>
+      <div class="kpi-pair">
+        <span class="kpi-race">${fmt.dec(rOftPerTeu)}</span>
+        <span style="color:var(--text3);font-size:12px">vs</span>
+        <span class="kpi-berlin">${fmt.dec(bOftPerTeu)}</span>
+        ${diffTag(diffPct(rOftPerTeu, bOftPerTeu))}
+      </div>
       <div class="kpi-sub">PER_UNIT_OFT 加权均值</div>
     </div>
     <div class="kpi-cell">
       <div class="kpi-label">Revenue/TEU</div>
       <div class="kpi-pair">
-        <span class="kpi-race">${fmt.dec(rCmPerTeu > 0 ? (r.total_revenue / rTeu) : 0)}</span>
+        <span class="kpi-race">${fmt.dec(rRevPerTeu)}</span>
         <span style="color:var(--text3);font-size:12px">vs</span>
         <span class="kpi-berlin">${fmt.dec(bRevPerTeu)}</span>
+        ${diffTag(diffPct(rRevPerTeu, bRevPerTeu))}
       </div>
       <div class="kpi-sub">RACE / BERLIN</div>
+    </div>
+    <div class="kpi-cell">
+      <div class="kpi-label">RACE: CM/TEU</div>
+      <div class="kpi-value" style="color:var(--race)">${fmt.dec(r.cm_per_teu || 0)}</div>
+      <div class="kpi-sub">效益/TEU（仅 RACE）</div>
     </div>
   `;
 }
@@ -516,10 +528,12 @@ function renderPOL() {
     <th>RACE TEU</th>
     <th>BERLIN TEU</th>
     <th>TEU 对比</th>
+    <th>RACE 单收/TEU</th>
+    <th>BERLIN 单收/TEU</th>
+    <th>差异</th>
     <th>RACE Rev/TEU</th>
     <th>BERLIN Rev/TEU</th>
     <th>RACE CM/TEU</th>
-    <th>BERLIN 单收/TEU</th>
     <th>FAK 占比 RACE</th>
     <th>FAK 占比 BERLIN</th>
   </tr>`;
@@ -527,7 +541,9 @@ function renderPOL() {
   document.querySelector('#pol-table tbody').innerHTML = rows.map(r => {
     const rW = Math.round(r.rTeu / maxTeu * 100);
     const bW = Math.round(r.bTeu / maxTeu * 100);
-    const revDiff = r.bRevPerTeu > 0 ? ((r.rRevPerTeu - r.bRevPerTeu) / r.bRevPerTeu * 100) : null;
+    const oftDiff = r.rOftPerTeu > 0 && r.bOftPerTeu > 0 ? ((r.rOftPerTeu - r.bOftPerTeu) / r.bOftPerTeu * 100) : null;
+    const oftDiffCls = oftDiff != null ? (oftDiff >= 0 ? 'up' : 'down') : '';
+    const oftDiffSign = oftDiff != null ? (oftDiff >= 0 ? '+' : '') : '';
 
     return `<tr>
       <td style="font-weight:600;font-size:11px">${r.pol}</td>
@@ -538,10 +554,12 @@ function renderPOL() {
         <div class="bar-race" style="width:${rW}px"></div>
         <div class="bar-berlin" style="width:${bW}px"></div>
       </div></td>
-      <td class="col-race">${fmt.dec(r.rRevPerTeu)}</td>
-      <td class="col-berlin">${fmt.dec(r.bRevPerTeu)}</td>
-      <td class="col-race">${r.rCmPerTeu > 0 ? fmt.dec(r.rCmPerTeu) : '—'}</td>
+      <td class="col-race">${r.rOftPerTeu > 0 ? fmt.dec(r.rOftPerTeu) : '—'}</td>
       <td class="col-berlin">${r.bOftPerTeu > 0 ? fmt.dec(r.bOftPerTeu) : '—'}</td>
+      <td class="col-diff ${oftDiffCls}">${oftDiff != null ? oftDiffSign + oftDiff.toFixed(1) + '%' : '—'}</td>
+      <td>${fmt.dec(r.rRevPerTeu)}</td>
+      <td>${fmt.dec(r.bRevPerTeu)}</td>
+      <td style="color:var(--race);opacity:0.7">${r.rCmPerTeu > 0 ? fmt.dec(r.rCmPerTeu) : '—'}</td>
       <td>${r.rFakPct != null ? `<span class="fak-pct ${fakColor(r.rFakPct)}">${fmt.pct(r.rFakPct)}</span>` : '—'}</td>
       <td>${r.bFakPct != null ? `<span class="fak-pct ${fakColor(r.bFakPct)}">${fmt.pct(r.bFakPct)}</span>` : '—'}</td>
     </tr>`;
@@ -682,6 +700,8 @@ function renderAll() {
   renderFAK();
   renderTEU();
 }
+
+;
 
 ;
 
