@@ -698,7 +698,7 @@ function renderFAK() {
     const badge = r.isCommon
       ? '<span style="background:#e8f1fb;color:var(--accent);font-size:9px;padding:1px 4px;border-radius:2px;font-weight:600">共同</span>'
       : '<span style="background:var(--neutral-bg);color:var(--neutral);font-size:9px;padding:1px 4px;border-radius:2px">独有</span>';
-    return `<tr${r.isCommon ? '' : ' style="opacity:0.6"'}>
+    return `<tr>
       <td>${badge}</td>
       <td>${polName(r.pol)}</td>
       <td>${podName(r.pod)}</td>
@@ -748,6 +748,8 @@ function renderAll() {
   renderFAK();
   renderTEU();
 }
+
+;
 
 ;
 
