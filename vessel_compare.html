@@ -116,24 +116,6 @@ tbody tr:last-child td { border-bottom:none; }
   <div class="legend-item"><div class="legend-dot" style="background:var(--berlin)"></div>BERLIN 2618W</div>
 </div>
 
-<div id="filter-bar" style="display:flex;gap:16px;align-items:center;margin-bottom:20px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);font-size:12px;">
-  <span style="font-weight:600;color:var(--text2)">筛选：</span>
-  <div style="display:flex;align-items:center;gap:6px;">
-    <label style="color:var(--text3);font-size:11px">POL</label>
-    <select id="filter-pol" style="padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:12px;min-width:100px;" onchange="applyFilters()">
-      <option value="">全部口岸</option>
-    </select>
-  </div>
-  <div style="display:flex;align-items:center;gap:6px;">
-    <label style="color:var(--text3);font-size:11px">POD</label>
-    <select id="filter-pod" style="padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:12px;min-width:120px;" onchange="applyFilters()">
-      <option value="">全部目的港</option>
-    </select>
-  </div>
-  <span id="filter-info" style="color:var(--text3);font-size:11px;margin-left:auto;"></span>
-  <button onclick="resetFilters()" style="padding:4px 12px;border:1px solid var(--border);border-radius:3px;background:var(--surface);cursor:pointer;font-size:11px;color:var(--text2);">重置</button>
-</div>
-
 <!-- Section 1: Core KPI -->
 <div id="kpi-strip" class="kpi-strip"></div>
 
@@ -158,6 +140,16 @@ tbody tr:last-child td { border-bottom:none; }
 <!-- Section 4: FAK vs OFT Comparison -->
 <div class="section">
   <div class="section-head"><span class="section-title">FAK 占比对比 — 各口岸单收占 FAK 均值</span></div>
+  <div style="display:flex;gap:12px;align-items:center;padding:8px 20px;background:#fafbfc;border-bottom:1px solid var(--border-light);font-size:12px;">
+    <select id="fak-filter-pol" style="padding:3px 8px;border:1px solid var(--border);border-radius:3px;font-size:12px;" onchange="applyFakFilter()">
+      <option value="">全部口岸</option>
+    </select>
+    <select id="fak-filter-pod" style="padding:3px 8px;border:1px solid var(--border);border-radius:3px;font-size:12px;" onchange="applyFakFilter()">
+      <option value="">全部目的港</option>
+    </select>
+    <span id="fak-filter-info" style="color:var(--text3);font-size:11px;"></span>
+    <button onclick="resetFakFilter()" style="margin-left:auto;padding:3px 10px;border:1px solid var(--border);border-radius:3px;background:var(--surface);cursor:pointer;font-size:11px;color:var(--text2);">重置</button>
+  </div>
   <div id="fak-kpi" class="section-kpi"></div>
   <div style="overflow-x:auto;">
     <table id="fak-table"><thead></thead><tbody></tbody></table>
@@ -204,10 +196,10 @@ const POD_NAMES = {
 function polName(c) { return POL_NAMES[c] || c; }
 function podName(c) { return POD_NAMES[c] || c; }
 
-// ── Filter state ──
-let currentFilter = { pol: '', pod: '' };
+// ── FAK 模块筛选器 ──
+let fakFilter = { pol: '', pod: '' };
 
-function initFilters() {
+function initFakFilters() {
   const pols = new Set();
   const pods = new Set();
   (DATA.race.level3||[]).forEach(r => pols.add(r['POL Code']));
@@ -215,7 +207,7 @@ function initFilters() {
   (DATA.race.level2||[]).forEach(r => pods.add(r['DEL Code']));
   (DATA.berlin.level2||[]).forEach(r => pods.add(r['DEL Code']));
   
-  const polSelect = document.getElementById('filter-pol');
+  const polSelect = document.getElementById('fak-filter-pol');
   [...pols].sort().forEach(p => {
     const opt = document.createElement('option');
     opt.value = p;
@@ -223,7 +215,7 @@ function initFilters() {
     polSelect.appendChild(opt);
   });
   
-  const podSelect = document.getElementById('filter-pod');
+  const podSelect = document.getElementById('fak-filter-pod');
   [...pods].sort().forEach(p => {
     const opt = document.createElement('option');
     opt.value = p;
@@ -232,24 +224,26 @@ function initFilters() {
   });
 }
 
-function applyFilters() {
-  currentFilter.pol = document.getElementById('filter-pol').value;
-  currentFilter.pod = document.getElementById('filter-pod').value;
-  if (currentFilter.pol || currentFilter.pod) {
+function applyFakFilter() {
+  fakFilter.pol = document.getElementById('fak-filter-pol').value;
+  fakFilter.pod = document.getElementById('fak-filter-pod').value;
+  if (fakFilter.pol || fakFilter.pod) {
     const parts = [];
-    if (currentFilter.pol) parts.push('POL: ' + polName(currentFilter.pol));
-    if (currentFilter.pod) parts.push('POD: ' + podName(currentFilter.pod));
-    document.getElementById('filter-info').textContent = '已筛选: ' + parts.join(' + ');
+    if (fakFilter.pol) parts.push('POL: ' + polName(fakFilter.pol));
+    if (fakFilter.pod) parts.push('POD: ' + podName(fakFilter.pod));
+    document.getElementById('fak-filter-info').textContent = '已筛选: ' + parts.join(' + ');
   } else {
-    document.getElementById('filter-info').textContent = '';
+    document.getElementById('fak-filter-info').textContent = '';
   }
+  renderFAK();
 }
 
-function resetFilters() {
-  document.getElementById('filter-pol').value = '';
-  document.getElementById('filter-pod').value = '';
-  currentFilter = { pol: '', pod: '' };
-  document.getElementById('filter-info').textContent = '';
+function resetFakFilter() {
+  document.getElementById('fak-filter-pol').value = '';
+  document.getElementById('fak-filter-pod').value = '';
+  fakFilter = { pol: '', pod: '' };
+  document.getElementById('fak-filter-info').textContent = '';
+  renderFAK();
 }
 
 // Color for FAK %
@@ -298,7 +292,6 @@ function buildPolData() {
   });
 
   sorted.forEach(pol => {
-    if (currentFilter.pol && pol !== currentFilter.pol) return;
     const r = raceMap[pol] || {};
     const b = berlinMap[pol] || {};
     const rTeu = r.teu || 0;
@@ -382,7 +375,6 @@ function buildPodData() {
 
   const rows = [];
   [...pods].sort().forEach(pod => {
-    if (currentFilter.pod && pod !== currentFilter.pod) return;
     const r = raceMap[pod] || {};
     const b = berlinMap[pod] || {};
     const rTeu = r.teu || 0;
@@ -457,8 +449,8 @@ function buildFakCompareData() {
     const d = map[key];
     const parts = key.split('-');
     const pol = parts[0], pod = parts[1], size = parts[2];
-    if (currentFilter.pol && pol !== currentFilter.pol) return;
-    if (currentFilter.pod && pod !== currentFilter.pod) return;
+    if (fakFilter.pol && pol !== fakFilter.pol) return;
+    if (fakFilter.pod && pod !== fakFilter.pod) return;
     const isCommon = d.race && d.berlin;
 
     // Get OFT from level4-computed map or fak_data
@@ -748,7 +740,7 @@ function renderTEU() {
 
 // ── Render All ──
 function renderAll() {
-  if (!window._filtersInit) { initFilters(); window._filtersInit = true; }
+  if (!window._filtersInit) { initFakFilters(); window._filtersInit = true; }
   document.getElementById('generated-time').textContent = '生成时间：' + DATA.generated;
   renderKPI();
   renderPOL();
@@ -756,6 +748,8 @@ function renderAll() {
   renderFAK();
   renderTEU();
 }
+
+;
 
 ;
 
