@@ -1145,7 +1145,6 @@ function renderShippers() {
   thCols.push({ label:'TEU', style:'text-align:right;' });
   thCols.push({ label:'占比', style:'text-align:right;' });
   thCols.push({ label:'航段', style:'text-align:center;' });
-  thCols.push({ label:'占 FAK % (单海运费价格)', style:'text-align:center;color:#b45309;' });
 
   const theadRow = document.getElementById('shipper-thead-row');
   theadRow.innerHTML = thCols.map(c =>
@@ -1204,8 +1203,6 @@ function renderShippers() {
     cells.push('<td class="num">' + pct + '%</td>');
     cells.push('<td class="num neutral" style="text-align:center;cursor:pointer;color:var(--accent);font-weight:700;" onclick="toggleShipperRow(\'' + encodeURIComponent(m.name) + '\')" title="点击展开航段明细"><span id="shipper-arrow-' + encodeURIComponent(m.name) + '" class="arrow">▶</span>' + m.routes + ' 个航段</td>');
     // FAK vs OFT comparison: look up each route in DATA.fak_data
-    const fakInfo = buildFakInfo(m.rows);
-    cells.push('<td style="text-align:center;">' + fakInfo + '</td>');
     return '<tr class="clickable" onclick="toggleShipperRow(\'' + encodeURIComponent(m.name) + '\')">' + cells.join('') + '</tr>' +
            '<tr class="detail-row" id="shipper-detail-' + encodeURIComponent(m.name) + '" style="display:none"><td colspan="' + thCols.length + '"><div class="detail-inner" id="shipper-inner-' + encodeURIComponent(m.name) + '"></div></td></tr>';
   }).join('');
@@ -1798,7 +1795,7 @@ function renderFAK() {
       const d = podMap[pod];
       const fmtPrice = (v) => v !== null && v !== undefined ? '$' + Math.round(v).toLocaleString('en-US') : '—';
       const fmtOft = (v, fak) => {
-        if (v === null || v === undefined) return '—';
+        if (v === null || v === undefined || v === 0) return '—';
         const cls = fak !== null && v > fak ? 'positive' : fak !== null && v < fak ? 'negative' : '';
         return '<span class="' + cls + '">$' + Math.round(v).toLocaleString('en-US') + '</span>';
       };
