@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BERLIN 2618W — 口岸TEU运价及收入分析</title>
+<title>BERLIN 2618W — 口岸TEU OFT&Revenue分析</title>
 <style>
 * { margin:0; padding:0; box-sizing: border-box; }
 :root {
@@ -183,7 +183,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
   <!-- Header -->
   <div class="header">
     <div class="header-left">
-      <h1 id="vessel-title">BERLIN 2618W — 口岸TEU单收及收益分析</h1>
+      <h1 id="vessel-title">BERLIN 2618W — 口岸TEU OFT&Revenue分析</h1>
     </div>
     <div class="header-right" id="generated-time"></div>
   </div>
@@ -196,7 +196,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <span style="margin:0 10px;color:#d97706;">|</span>
     <strong>★ 核心指标：</strong>Revenue/TEU 占 FAK 基准价的百分比（<span style="color:#0d6e3e;font-weight:700;">≥80% 优</span> · <span style="color:#b45309;font-weight:700;">60–80% 正常</span> · <span style="color:#c0392b;font-weight:700;">&lt;60% 偏低</span>）
     <span style="margin:0 10px;color:#d97706;">|</span>
-    <strong>术语：</strong>Revenue = 各项费用总收入（TTL_REVENUE）；OFT = 实际运费-单收（OFT_20/OFT_40）；PER_UNIT_OFT = 单箱OFT（单收），即 PER_UNIT_OFT_20 / PER_UNIT_OFT_40。FAK 基准以最后一次公布价格为准。数据首次出具，如有异常欢迎各口岸反馈。
+    <strong>术语：</strong>Revenue = 各项费用总收入（TTL_REVENUE）；OFT = 实际运费-单海运费价格（OFT_20/OFT_40）；PER_UNIT_OFT = 单箱OFT（单海运费价格），即 PER_UNIT_OFT_20 / PER_UNIT_OFT_40。FAK 基准以最后一次公布价格为准。数据首次出具，如有异常欢迎各口岸反馈。
   </div>
 
   <!-- KPI Strip -->
@@ -209,10 +209,10 @@ tbody tr.region-header-row + tr td { border-top:none; }
       <div style="font-size:10px;color:rgba(255,255,255,0.7);">汇总所有 TOP 排名，下钻明细请见下方各区块</div>
     </div>
 
-    <!-- 单收区域排名 TOP 3 -->
+    <!-- 单海运费价格区域排名 TOP 3 -->
     <div class="top3-cards" id="top3-revenue-cards" style="padding:16px 20px 8px;"></div>
 
-    <!-- 单收 TOP 3 -->
+    <!-- 单海运费价格 TOP 3 -->
     <div class="top3-cards" id="top3-cm-cards" style="padding:8px 20px;"></div>
 
     <!-- TEU TOP 3 -->
@@ -224,10 +224,10 @@ tbody tr.region-header-row + tr td { border-top:none; }
     </div>
   </div>
 
-  <!-- ============ SECTION 1B: 单收区域对比 ============ -->
+  <!-- ============ SECTION 1B: 单海运费价格区域对比 ============ -->
   <div class="section">
     <div class="section-head">
-      <div class="section-title">单收区域对比 — 各区域 POL 单收/TEU（PER_UNIT_OFT）与 FAK 对比</div>
+      <div class="section-title">单海运费价格区域对比 — 各区域 POL 单海运费价格/TEU（PER_UNIT_OFT）与 FAK 对比</div>
     </div>
 
     <!-- 中东 -->
@@ -237,11 +237,11 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <table id="revenue-me-table">
       <thead><tr>
         <th>POL</th>
-        <th class="num">单收/TEU</th>
+        <th class="num">单海运费价格/TEU</th>
         <th class="num">REVENUE USD</th>
         <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK</th>
-        <th class="num">vs 整船平均单收</th>
+        <th class="num">vs 整船平均单海运费价格</th>
       </tr></thead>
       <tbody id="revenue-me-tbody"></tbody>
     </table>
@@ -253,11 +253,11 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <table id="revenue-rs-table">
       <thead><tr>
         <th>POL</th>
-        <th class="num">单收/TEU</th>
+        <th class="num">单海运费价格/TEU</th>
         <th class="num">REVENUE USD</th>
         <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK</th>
-        <th class="num">vs 整船平均单收</th>
+        <th class="num">vs 整船平均单海运费价格</th>
       </tr></thead>
       <tbody id="revenue-rs-tbody"></tbody>
     </table>
@@ -269,16 +269,16 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <table id="revenue-oth-table">
       <thead><tr>
         <th>POL</th>
-        <th class="num">单收/TEU</th>
+        <th class="num">单海运费价格/TEU</th>
         <th class="num">REVENUE USD</th>
         <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK</th>
-        <th class="num">vs 整船平均单收</th>
+        <th class="num">vs 整船平均单海运费价格</th>
       </tr></thead>
       <tbody id="revenue-oth-tbody"></tbody>
     </table>
 
-    <div class="note">* 按区域划分，展示各 POL 单收/TEU（PER_UNIT_OFT 按 TEU 加权均值）与 FAK 基准价对比。绿色 = 高于船舶平均单收，红色 = 低于船舶平均单收。</div>
+    <div class="note">* 按区域划分，展示各 POL 单海运费价格/TEU（PER_UNIT_OFT 按 TEU 加权均值）与 FAK 基准价对比。绿色 = 高于船舶平均单海运费价格，红色 = 低于船舶平均单海运费价格。</div>
   </div>
 
 
@@ -300,7 +300,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">REVENUE USD</th>
         <th class="num">Revenue/TEU</th>
         <th class="num">整船均值</th>
-        <th class="num">vs 整船平均单收</th>
+        <th class="num">vs 整船平均单海运费价格</th>
       </tr></thead>
       <tbody id="cm-me-tbody"></tbody>
     </table>
@@ -316,7 +316,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">REVENUE USD</th>
         <th class="num">Revenue/TEU</th>
         <th class="num">整船均值</th>
-        <th class="num">vs 整船平均单收</th>
+        <th class="num">vs 整船平均单海运费价格</th>
       </tr></thead>
       <tbody id="cm-rs-tbody"></tbody>
     </table>
@@ -332,7 +332,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">REVENUE USD</th>
         <th class="num">Revenue/TEU</th>
         <th class="num">整船均值</th>
-        <th class="num">vs 整船平均单收</th>
+        <th class="num">vs 整船平均单海运费价格</th>
       </tr></thead>
       <tbody id="cm-other-tbody"></tbody>
     </table>
@@ -399,14 +399,14 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">TEU</th>
         <th class="num">占比</th>
         <th class="num">REVENUE USD</th>
-        <th class="num">单收/TEU</th>
+        <th class="num">单海运费价格/TEU</th>
         <th class="num" style="color:#b45309;">FAK 均值</th>
-        <th class="num" style="color:#b45309;background:#fff8e1;">占 FAK %</th>
-        <th class="num">vs 整船平均单收</th>
+        <th class="num" style="color:#b45309;background:#fff8e1;">占 FAK % (单海运费价格)</th>
+        <th class="num">vs 整船平均单海运费价格</th>
       </tr></thead>
       <tbody id="pol-me-tbody"></tbody>
     </table>
-    <div class="note">* 按 单收/TEU 从高到低排序。<strong style="color:#b45309;">占 FAK %</strong> = 单收/TEU（PER_UNIT_OFT 加权均值）÷ 该 POL 加权平均 FAK 运价，越高越好。绿色 ≥ 80%，橙色 60–80%，红色 &lt; 60%。</div>
+    <div class="note">* 按 单海运费价格/TEU 从高到低排序。<strong style="color:#b45309;">占 FAK % (单海运费价格)</strong> = 单海运费价格/TEU（PER_UNIT_OFT 加权均值）÷ 该 POL 加权平均 FAK 运价，越高越好。绿色 ≥ 80%，橙色 60–80%，红色 &lt; 60%。</div>
   </div>
 
   <!-- ============ SECTION 4B: 红海 — 口岸综合考核 ============ -->
@@ -422,14 +422,14 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">TEU</th>
         <th class="num">占比</th>
         <th class="num">REVENUE USD</th>
-        <th class="num">单收/TEU</th>
+        <th class="num">单海运费价格/TEU</th>
         <th class="num" style="color:#b45309;">FAK 均值</th>
-        <th class="num" style="color:#b45309;background:#fff8e1;">占 FAK %</th>
-        <th class="num">vs 整船平均单收</th>
+        <th class="num" style="color:#b45309;background:#fff8e1;">占 FAK % (单海运费价格)</th>
+        <th class="num">vs 整船平均单海运费价格</th>
       </tr></thead>
       <tbody id="pol-rs-tbody"></tbody>
     </table>
-    <div class="note">* 按 单收/TEU 从高到低排序。<strong style="color:#b45309;">占 FAK %</strong> = 单收/TEU（PER_UNIT_OFT 加权均值）÷ 该 POL 加权平均 FAK 运价，越高越好。绿色 ≥ 80%，橙色 60–80%，红色 &lt; 60%。</div>
+    <div class="note">* 按 单海运费价格/TEU 从高到低排序。<strong style="color:#b45309;">占 FAK % (单海运费价格)</strong> = 单海运费价格/TEU（PER_UNIT_OFT 加权均值）÷ 该 POL 加权平均 FAK 运价，越高越好。绿色 ≥ 80%，橙色 60–80%，红色 &lt; 60%。</div>
   </div>
 
   <!-- ============ SECTION 5: POL 气泡图 ============ -->
@@ -440,7 +440,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div style="padding:16px 20px;">
       <div id="pol-bubble-chart"></div>
     </div>
-    <div class="note">* 气泡大小 = REVENUE USD。颜色：<span style="color:var(--positive);font-weight:600;">绿色</span> = 高于整船平均单收，<span style="color:var(--negative);font-weight:600;">红色</span> = 低于整船平均单收。悬停查看详情。</div>
+    <div class="note">* 气泡大小 = REVENUE USD。颜色：<span style="color:var(--positive);font-weight:600;">绿色</span> = 高于整船平均单海运费价格，<span style="color:var(--negative);font-weight:600;">红色</span> = 低于整船平均单海运费价格。悬停查看详情。</div>
   </div>
 
   <!-- ============ SECTION 6: FAK vs OFT 运价对比 ============ -->
@@ -449,7 +449,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
       <div class="section-title">FAK vs OFT 运价对比 — 各口岸实际海运费率 vs 公开运价</div>
     </div>
     <div style="padding:0 20px 8px;font-size:11px;color:var(--text2);line-height:1.5;">
-      <strong>计算说明：</strong>「单收占 FAK %」= 单收/TEU（PER_UNIT_OFT 加权均值）÷ 该 POL 加权平均 FAK 运价 × 100%。FAK 按各航段 TEU 加权（40′ 优先，无则取 20′）。≥80% 为优，60–80% 正常，&lt;60% 偏低。
+      <strong>计算说明：</strong>「单海运费价格占 FAK % (单海运费价格)」= 单海运费价格/TEU（PER_UNIT_OFT 加权均值）÷ 该 POL 加权平均 FAK 运价 × 100%。FAK 按各航段 TEU 加权（40′ 优先，无则取 20′）。≥80% 为优，60–80% 正常，&lt;60% 偏低。
     </div>
     <div class="section-kpi" id="fak-kpi"></div>
     <div id="fak-tables"></div>
@@ -457,7 +457,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
   </div>
 
   <div class="footer">
-    BERLIN 2618W 口岸TEU运价及收入分析 · 中联航运 市场部 · LH Team
+    BERLIN 2618W 口岸TEU OFT&Revenue分析 · 中联航运 市场部 · LH Team
   </div>
 </div>
 
@@ -471,7 +471,7 @@ const fmt = {
   teu: v => v == null || isNaN(v) ? '—' : Math.round(v).toLocaleString('en-US'),
 };
 
-// Helper: build "单收占 FAK %" summary HTML for a shipper's rows
+// Helper: build "单海运费价格占 FAK % (单海运费价格)" summary HTML for a shipper's rows
 function buildFakInfo(rows) {
   if (!rows || !rows.length) return '<span style="color:var(--text3);font-size:11px;">—</span>';
   const fakMap = {};
@@ -531,10 +531,10 @@ function getRegion(pod) {
 
 function renderAll() {
   const d = DATA.level1;
-  document.getElementById('vessel-title').textContent = DATA.vessel + ' — 口岸TEU运价及收入分析';
+  document.getElementById('vessel-title').textContent = DATA.vessel + ' — 口岸TEU OFT&Revenue分析';
   document.getElementById('generated-time').textContent = 'Generated: ' + DATA.generated;
 
-  // 计算整船加权 FAK 均值 & 单收占 FAK 比
+  // 计算整船加权 FAK 均值 & 单海运费价格占 FAK 比
   const fakData = DATA.fak_data || [];
   let fakWeightedSum = 0, fakWeightedTeu = 0;
   (DATA.level3||[]).forEach(pol => {
@@ -554,7 +554,7 @@ function renderAll() {
   });
   const vesselFakAvg = fakWeightedTeu > 0 ? fakWeightedSum / fakWeightedTeu : 0;
   const cmPerTeu = d.revenue_per_teu || 0;
-  // Calculate vessel avg PER_UNIT_OFT (单收/TEU) from level3
+  // Calculate vessel avg PER_UNIT_OFT (单海运费价格/TEU) from level3
   let vesselOftSum = 0, vesselOftTeu = 0;
   (DATA.level3||[]).forEach(pol => {
     if (pol.avg_per_unit_oft > 0 && pol.teu > 0) {
@@ -572,14 +572,14 @@ function renderAll() {
   // KPI strip
   document.getElementById('kpi-strip').innerHTML =
     '<div class="kpi-cell" style="background:#fff8e1;border-left:4px solid #b45309;">' +
-      '<div class="kpi-label" style="color:#b45309;font-size:10px;">★ 单收占 FAK 均值</div>' +
+      '<div class="kpi-label" style="color:#b45309;font-size:10px;">★ 单海运费价格占 FAK 均值</div>' +
       fakPctHtml +
       '<div class="kpi-sub" style="color:#b45309;">' + fakPctSub + '</div>' +
     '</div>' +
     [
       { label:'Total Teu', value:fmt.teu(8816), sub:'TEU' },
       { label:'总营收<br>TOTAL REVENUE', value:fmt.usd(d.total_revenue), sub:'USD' },
-      { label:'单箱收入', value:fmt.usd(vesselAvgOft), sub:'单收/TEU', highlight: true },
+      { label:'单箱收入', value:fmt.usd(vesselAvgOft), sub:'单海运费价格/TEU', highlight: true },
       { label:'整船均值', value:fmt.usd(d.revenue_per_teu), sub:'Revenue/TEU' },
     ].map(c => '<div class="kpi-cell"><div class="kpi-label">' + c.label + '</div><div class="kpi-value' + (c.highlight ? '' : ' secondary') + '">' + c.value + '</div><div class="kpi-sub">' + c.sub + '</div></div>').join('');
 
@@ -714,7 +714,7 @@ function renderCM() {
   const vesselAvg = DATA.level1.vessel_avg_revenue_per_teu;
   const maxCm = Math.max(...pods.map(d => d.revenue_per_teu||0));
 
-  // Top 3 POL by 单收 — 按区域拆分：一个 POL 可同时出现在中东和红海
+  // Top 3 POL by 单海运费价格 — 按区域拆分：一个 POL 可同时出现在中东和红海
   function buildRegionPolList(region) {
     const polMap = {};
     (DATA.level4||[]).forEach(r => {
@@ -789,7 +789,7 @@ function renderCM() {
 
 function renderRevenueTop3() {
   const vesselAvgRev = DATA.level1.total_revenue / DATA.level1.total_teu;
-  // Vessel avg PER_UNIT_OFT (单收/TEU): weighted from level3
+  // Vessel avg PER_UNIT_OFT (单海运费价格/TEU): weighted from level3
   let vesselOftSum = 0, vesselOftTeu = 0;
   (DATA.level3||[]).forEach(r => {
     if (r.avg_per_unit_oft > 0 && r.teu > 0) {
@@ -853,7 +853,7 @@ function renderRevenueTop3() {
   }
 
   document.getElementById('top3-revenue-cards').innerHTML =
-    '<div class="top3-section-label">💵 单收/TEU 区域排名前三 — 装货港（按 PER_TEU_OFT 降序）</div>' +
+    '<div class="top3-section-label">💵 单海运费价格/TEU 区域排名前三 — 装货港（按 PER_TEU_OFT 降序）</div>' +
     '<div class="top3-cards-row">' +
       buildTop3RevCol(mePolRev, '🌊 中东', 'me') +
       buildTop3RevCol(rsPolRev, '🔴 红海', 'rs') +
@@ -863,7 +863,7 @@ function renderRevenueTop3() {
 
 function renderRevenueRegionCompare() {
   const vesselAvgRev = DATA.level1.total_revenue / DATA.level1.total_teu;
-  // Vessel avg PER_UNIT_OFT (单收/TEU): weighted from level3
+  // Vessel avg PER_UNIT_OFT (单海运费价格/TEU): weighted from level3
   let vesselOftSum = 0, vesselOftTeu = 0;
   (DATA.level3||[]).forEach(r => {
     if (r.avg_per_unit_oft > 0 && r.teu > 0) {
@@ -912,7 +912,7 @@ function renderRevenueRegionCompare() {
       p.avgPerUnitOft = p.oftTeu > 0 ? p.oftSum / p.oftTeu : 0;
       p.avgFak = p.fakTeu > 0 ? p.fakSum / p.fakTeu : null;
     });
-    // Sort by avgPerUnitOft (单收/TEU) descending
+    // Sort by avgPerUnitOft (单海运费价格/TEU) descending
     return Object.values(polMap).sort((a,b) => (b.avgPerUnitOft||0)-(a.avgPerUnitOft||0));
   }
 
@@ -952,7 +952,7 @@ function renderCMDetail(podCode) {
   const max = Math.max(...rows.map(r => r.Revenue_Per_TEU||0), 1);
   const inner = document.getElementById('cm-inner-' + podCode);
   if (!inner) return;
-  inner.innerHTML = '<table><thead><tr><th>POL</th><th class="num">Revenue/TEU</th><th class="num">REVENUE</th><th class="num">TEU</th><th>vs 整船平均单收</th></tr></thead><tbody>' +
+  inner.innerHTML = '<table><thead><tr><th>POL</th><th class="num">Revenue/TEU</th><th class="num">REVENUE</th><th class="num">TEU</th><th>vs 整船平均单海运费价格</th></tr></thead><tbody>' +
     rows.map(r => {
       const vsV = r.vs_Vessel_Pct||0;
       const cls = vsV > 2 ? 'positive' : vsV < -2 ? 'negative' : '';
@@ -1043,13 +1043,13 @@ function renderShippers() {
     m.maxTeuPerRow = Math.max(...m.rows.map(r => r.TEU||0));
   });
 
-  // 按单收降序排列
+  // 按单海运费价格降序排列
   const sortedAgg = Object.values(aggMap).sort((a,b) => (b.Revenue_Per_TEU||0) - (a.Revenue_Per_TEU||0));
 
   // 根据下拉框过滤显示
   let displayAgg = sortedAgg;
   if (shipperFilterVal === 'top10') {
-    // TOP10 按 TEU 降序（独立排序，不受单收排序影响）
+    // TOP10 按 TEU 降序（独立排序，不受单海运费价格排序影响）
     const top10ByTeu = Object.values(aggMap).sort((a,b) => (b.teu||0) - (a.teu||0)).slice(0,10);
     displayAgg = top10ByTeu;
   } else if (shipperFilterVal !== 'all') {
@@ -1079,7 +1079,7 @@ function renderShippers() {
   });
   const vesselAvg = DATA.level1.vessel_avg_revenue_per_teu || 1;
 
-  // --- 区域分组：按 POD 区域聚合货代 → 每个区域一个区块（TOP 货代按单收排序）
+  // --- 区域分组：按 POD 区域聚合货代 → 每个区域一个区块（TOP 货代按单海运费价格排序）
   const regionGroupMap = {};
   displayAgg.forEach(m => {
     // 找出该货代最常出现的 POD，用其区域
@@ -1145,7 +1145,7 @@ function renderShippers() {
   thCols.push({ label:'TEU', style:'text-align:right;' });
   thCols.push({ label:'占比', style:'text-align:right;' });
   thCols.push({ label:'航段', style:'text-align:center;' });
-  thCols.push({ label:'占 FAK %', style:'text-align:center;color:#b45309;' });
+  thCols.push({ label:'占 FAK % (单海运费价格)', style:'text-align:center;color:#b45309;' });
 
   const theadRow = document.getElementById('shipper-thead-row');
   theadRow.innerHTML = thCols.map(c =>
@@ -1415,7 +1415,7 @@ function renderShipperDetail(name) {
     '<th class="num">占货代比例</th>' +
     '<th class="num">FAK 基准</th>' +
     '<th class="num">实际 OFT</th>' +
-    '<th class="num" style="color:#b45309;background:#fff8e1;">占 FAK %</th>' +
+    '<th class="num" style="color:#b45309;background:#fff8e1;">占 FAK % (单海运费价格)</th>' +
     '<th class="num">差异</th>' +
     '<th>TEU 分布</th>' +
     '</tr></thead><tbody>' +
@@ -1434,10 +1434,11 @@ function renderShipperDetail(name) {
         const diff = fak.Diff||0;
         const diffColor = diff > 0 ? 'var(--positive)' : diff < 0 ? 'var(--negative)' : 'var(--neutral)';
         const diffStr = diff >= 0 ? '+' + Math.round(diff) : '' + Math.round(diff);
+        const hasData = fak.OFT_Avg > 0 && fak.Count > 0;
         fakCell = '$' + Math.round(fak.FAK).toLocaleString('en-US');
-        oftCell = '$' + Math.round(fak.OFT_Avg).toLocaleString('en-US');
-        diffCell = '<span style="color:' + diffColor + ';font-weight:700;">' + diffStr + '</span>';
-        const ofp = fak.FAK > 0 ? (fak.OFT_Avg / fak.FAK * 100) : null;
+        oftCell = hasData ? '$' + Math.round(fak.OFT_Avg).toLocaleString('en-US') : '—';
+        diffCell = hasData ? '<span style="color:' + diffColor + ';font-weight:700;">' + diffStr + '</span>' : '—';
+        const ofp = hasData && fak.FAK > 0 ? (fak.OFT_Avg / fak.FAK * 100) : null;
         if (ofp !== null) {
           const pc = ofp >= 80 ? '#0d6e3e' : ofp >= 60 ? '#b45309' : '#c0392b';
           const pb = ofp >= 80 ? '#e6f4ed' : ofp >= 60 ? '#fff8e1' : '#fce8e6';
@@ -1491,7 +1492,7 @@ function renderPOLRank() {
   const vesselAvgRev = DATA.level1.vessel_avg_revenue_per_teu;
   const totalTeu = DATA.level1.total_teu || 1;
 
-  // Vessel avg PER_UNIT_OFT (单收/TEU) from level3
+  // Vessel avg PER_UNIT_OFT (单海运费价格/TEU) from level3
   let vesselOftSum = 0, vesselOftTeu = 0;
   (DATA.level3||[]).forEach(r => {
     if (r.avg_per_unit_oft > 0 && r.teu > 0) {
@@ -1576,10 +1577,10 @@ function renderPOLRank() {
   document.getElementById('pol-me-kpi').innerHTML = [
     { label:'口岸数量', val:mePols.length },
     { label:'合计 TEU', val:fmt.teu(mePols.reduce((s,d)=>s+(d.teu||0),0)) },
-    { label:'平均 单收/TEU', val:fmt.usd(meAvgOft) },
-    { label:'船舶平均单收', val:fmt.usd(vesselAvgOft) },
-    { label:'高于整船平均单收', val:'<span style="color:var(--positive);font-weight:700;">' + meAbove + '</span>' },
-    { label:'低于整船平均单收', val:'<span style="color:var(--negative);font-weight:700;">' + meBelow + '</span>' },
+    { label:'平均 单海运费价格/TEU', val:fmt.usd(meAvgOft) },
+    { label:'船舶平均单海运费价格', val:fmt.usd(vesselAvgOft) },
+    { label:'高于整船平均单海运费价格', val:'<span style="color:var(--positive);font-weight:700;">' + meAbove + '</span>' },
+    { label:'低于整船平均单海运费价格', val:'<span style="color:var(--negative);font-weight:700;">' + meBelow + '</span>' },
   ].map(i => '<div class="item"><span>' + i.label + ':</span><span class="val">' + i.val + '</span></div>').join('');
 
   function calcPolFak(pol) {
@@ -1632,10 +1633,10 @@ function renderPOLRank() {
   document.getElementById('pol-rs-kpi').innerHTML = [
     { label:'口岸数量', val:rsPols.length },
     { label:'合计 TEU', val:fmt.teu(rsPols.reduce((s,d)=>s+(d.teu||0),0)) },
-    { label:'平均 单收/TEU', val:fmt.usd(rsAvgOft) },
-    { label:'船舶平均单收', val:fmt.usd(vesselAvgOft) },
-    { label:'高于整船平均单收', val:'<span style="color:var(--positive);font-weight:700;">' + rsAbove + '</span>' },
-    { label:'低于整船平均单收', val:'<span style="color:var(--negative);font-weight:700;">' + rsBelow + '</span>' },
+    { label:'平均 单海运费价格/TEU', val:fmt.usd(rsAvgOft) },
+    { label:'船舶平均单海运费价格', val:fmt.usd(vesselAvgOft) },
+    { label:'高于整船平均单海运费价格', val:'<span style="color:var(--positive);font-weight:700;">' + rsAbove + '</span>' },
+    { label:'低于整船平均单海运费价格', val:'<span style="color:var(--negative);font-weight:700;">' + rsBelow + '</span>' },
   ].map(i => '<div class="item"><span>' + i.label + ':</span><span class="val">' + i.val + '</span></div>').join('');
 
   const rsSorted = rsPols.sort((a,b) => (b.avg_per_unit_oft||0) - (a.avg_per_unit_oft||0));
@@ -1702,14 +1703,14 @@ function renderBubbleChart() {
     const below = (d.vs_vessel_pct||0) < -2;
     const color = above ? '#0d6e3e' : below ? '#c0392b' : '#1a6bb5';
     const vsV = d.vs_vessel_pct||0;
-    const tooltip = '<strong>' + (d['POL Code']||'') + '</strong><br>TEU: ' + fmt.teu(d.teu) + '（占总量 ' + ((d.teu/(DATA.level1.total_teu||1))*100).toFixed(1) + '%）<br>Revenue/TEU: ' + fmt.usd(d.revenue_per_teu) + '<br>REVENUE: ' + fmt.usd(d.revenue) + '<br>vs 整船平均单收: ' + fmt.pct(vsV);
+    const tooltip = '<strong>' + (d['POL Code']||'') + '</strong><br>TEU: ' + fmt.teu(d.teu) + '（占总量 ' + ((d.teu/(DATA.level1.total_teu||1))*100).toFixed(1) + '%）<br>Revenue/TEU: ' + fmt.usd(d.revenue_per_teu) + '<br>REVENUE: ' + fmt.usd(d.revenue) + '<br>vs 整船平均单海运费价格: ' + fmt.pct(vsV);
     circles += '<circle class="bubble-hover" cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + color + '" fill-opacity="0.65" stroke="' + color + '" stroke-width="1.5" data-tip="' + tooltip.replace(/"/g,'&quot;') + '" onmousemove="showBubbleTip(event,this)" onmouseleave="hideBubbleTip()"/>';
     circles += '<text x="' + x + '" y="' + y + '" text-anchor="middle" dominant-baseline="middle" font-size="10" font-weight="700" fill="' + (above||below?'#fff':'#1a6bb5') + '" pointer-events="none">' + (d['POL Code']||'').substring(2) + '</text>';
   });
 
   // Vessel avg horizontal line
   const vesselY = toY(vesselAvg);
-  const vesselLabel = '<text x="' + (pad.left + chartW + 4) + '" y="' + vesselY + '" class="axis-label" font-size="9" fill="#0f4c81" font-weight="600">整船平均单收</text>';
+  const vesselLabel = '<text x="' + (pad.left + chartW + 4) + '" y="' + vesselY + '" class="axis-label" font-size="9" fill="#0f4c81" font-weight="600">整船平均单海运费价格</text>';
 
   let svg = '<div class="bubble-wrap" style="position:relative;width:' + W + 'px;">';
   svg += '<div class="bubble-tooltip" id="bubble-tip"></div>';
@@ -1913,7 +1914,7 @@ function renderHeatmap() {
         const vsV = r.vs_Vessel_Pct||0;
         const bg = cmColor(cm, vsV);
         const textColor = cm > (globalMax*0.7) ? '#fff' : '#333';
-        html += '<div class="heatmap-cell" style="background:' + bg + ';color:' + textColor + ';" title="' + pol + ' → ' + del + '\nRevenue/TEU: ' + fmt.usd(cm) + '\nTEU: ' + fmt.teu(r.Total_TEU) + '\nREVENUE: ' + fmt.usd(r.Revenue) + '\nvs 整船平均单收: ' + fmt.pct(vsV) + '">' + fmt.teu(r.Total_TEU) + '</div>';
+        html += '<div class="heatmap-cell" style="background:' + bg + ';color:' + textColor + ';" title="' + pol + ' → ' + del + '\nRevenue/TEU: ' + fmt.usd(cm) + '\nTEU: ' + fmt.teu(r.Total_TEU) + '\nREVENUE: ' + fmt.usd(r.Revenue) + '\nvs 整船平均单海运费价格: ' + fmt.pct(vsV) + '">' + fmt.teu(r.Total_TEU) + '</div>';
       } else {
         html += '<div class="heatmap-cell" style="background:#e8eaed;color:#ccc;" title="No data">—</div>';
       }

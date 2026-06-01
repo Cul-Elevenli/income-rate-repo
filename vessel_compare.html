@@ -103,7 +103,7 @@ tbody tr:last-child td { border-bottom:none; }
 <div class="header">
   <div class="header-left">
     <h1>CGX 航线船舶对比</h1>
-    <div class="header-sub">RACE 2616W vs BERLIN 2618W — 口岸TEU运价及收入分析</div>
+    <div class="header-sub">RACE 2616W vs BERLIN 2618W — 口岸TEU OFT&Revenue分析</div>
   </div>
   <div class="header-right">
     <div id="generated-time"></div>
@@ -139,7 +139,7 @@ tbody tr:last-child td { border-bottom:none; }
 
 <!-- Section 4: FAK vs OFT Comparison -->
 <div class="section">
-  <div class="section-head"><span class="section-title">FAK 占比对比 — 各口岸单收占 FAK 均值</span></div>
+  <div class="section-head"><span class="section-title">FAK 占比对比 — 各口岸单海运费价格占 FAK 均值</span></div>
   <div style="display:flex;gap:12px;align-items:center;padding:8px 20px;background:#fafbfc;border-bottom:1px solid var(--border-light);font-size:12px;">
     <select id="fak-filter-pol" style="padding:3px 8px;border:1px solid var(--border);border-radius:3px;font-size:12px;" onchange="applyFakFilter()">
       <option value="">全部口岸</option>
@@ -253,12 +253,12 @@ function fakColor(pct) {
   return 'red';
 }
 
-// ── Compute per-POL 单收/TEU for RACE (from level5, since RACE lacks avg_per_unit_oft) ──
+// ── Compute per-POL 单海运费价格/TEU for RACE (from level5, since RACE lacks avg_per_unit_oft) ──
 function computeRaceOftPerTeu(data) {
   // RACE doesn't have Per_Unit_OFT in level5, use Revenue_Per_TEU as proxy
-  // Actually, Revenue/TEU is different from 单收/TEU
+  // Actually, Revenue/TEU is different from 单海运费价格/TEU
   // For RACE, CM_Per_TEU is available and is the core metric
-  // We'll compare: RACE CM/TEU vs BERLIN 单收/TEU (different metrics, clearly labeled)
+  // We'll compare: RACE CM/TEU vs BERLIN 单海运费价格/TEU (different metrics, clearly labeled)
   return null;
 }
 
@@ -298,7 +298,7 @@ function buildPolData() {
     const bTeu = b.teu || 0;
     const rRev = r.revenue || 0;
     const bRev = b.revenue || 0;
-    // Both vessels: 单收/TEU (avg_per_unit_oft)
+    // Both vessels: 单海运费价格/TEU (avg_per_unit_oft)
     const rOftPerTeu = r.avg_per_unit_oft || 0;
     const bOftPerTeu = b.avg_per_unit_oft || 0;
     // Both have Revenue/TEU
@@ -308,7 +308,7 @@ function buildPolData() {
     // FAK values per POL
     const rFak = raceFakByPol[pol] || 0;
     const bFak = berlinFakByPol[pol] || 0;
-    // FAK % — use 单收/TEU vs FAK (same metric for both)
+    // FAK % — use 单海运费价格/TEU vs FAK (same metric for both)
     const rFakPct = rFak > 0 && rOftPerTeu > 0 ? (rOftPerTeu / rFak * 100) : null;
     const bFakPct = bFak > 0 && bOftPerTeu > 0 ? (bOftPerTeu / bFak * 100) : null;
 
@@ -487,7 +487,7 @@ function renderKPI() {
   const rRev = r.total_revenue;
   const bRev = b.total_revenue;
 
-  // 单收/TEU — weighted average from level3
+  // 单海运费价格/TEU — weighted average from level3
   const raceL3 = DATA.race.level3 || [];
   const berlinL3 = DATA.berlin.level3 || [];
   let rOftSum = 0, rOftTeu = 0, bOftSum = 0, bOftTeu = 0;
@@ -536,7 +536,7 @@ function renderKPI() {
       <div class="kpi-sub">RACE / BERLIN</div>
     </div>
     <div class="kpi-cell">
-      <div class="kpi-label">单收/TEU</div>
+      <div class="kpi-label">单海运费价格/TEU</div>
       <div class="kpi-pair">
         <span class="kpi-race">${fmt.dec(rOftPerTeu)}</span>
         <span style="color:var(--text3);font-size:12px">vs</span>
@@ -579,8 +579,8 @@ function renderPOL() {
     <th>RACE TEU</th>
     <th>BERLIN TEU</th>
     <th>TEU 对比</th>
-    <th>RACE 单收/TEU</th>
-    <th>BERLIN 单收/TEU</th>
+    <th>RACE 单海运费价格/TEU</th>
+    <th>BERLIN 单海运费价格/TEU</th>
     <th>差异</th>
     <th>RACE Rev/TEU</th>
     <th>BERLIN Rev/TEU</th>
@@ -688,8 +688,8 @@ function renderFAK() {
     <th>箱型</th>
     <th>FAK (RACE)</th>
     <th>FAK (BERLIN)</th>
-    <th>RACE 单收</th>
-    <th>BERLIN 单收</th>
+    <th>RACE 单海运费价格</th>
+    <th>BERLIN 单海运费价格</th>
     <th>RACE 占FAK</th>
     <th>BERLIN 占FAK</th>
   </tr>`;
