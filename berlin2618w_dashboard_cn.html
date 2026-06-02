@@ -1218,7 +1218,7 @@ function renderShipperTop3(allRows, hasFinancial) {
     map[name].teu += d.TEU||0;
     map[name].TotalC += d.Revenue||0;
     map[name].routes += 1;
-    const pod = d['DEL Code']||'';
+    const pod = d['DEL_CD']||'';
     const reg = getRegion(pod);
     if (reg) map[name].podRegions[reg] = (map[name].podRegions[reg]||0) + (d.TEU||0);
   });
@@ -1291,7 +1291,7 @@ function renderShipperSummary() {
     map[name].teu += d.TEU||0;
     map[name].TotalC += d.Revenue||0;
     map[name].routes += 1;
-    const pod = d['DEL Code']||'';
+    const pod = d['DEL_CD']||'';
     const reg = getRegion(pod);
     if (reg) map[name].podRegions[reg] = (map[name].podRegions[reg]||0) + (d.TEU||0);
   });
