@@ -400,33 +400,6 @@ function buildFakCompareData() {
   const raceFak = DATA.race.fak_data || [];
   const berlinFak = DATA.berlin.fak_data || [];
 
-  // Build OFT avg from level4 for RACE (since RACE fak_data lacks OFT_Avg)
-  // RACE level4: POL Code, DEL Code, Box_Type, Revenue_Per_TEU, TEU
-  const raceOftMap = {};
-  (DATA.race.level4||[]).forEach(r => {
-    const key = r['POL Code'] + '-' + r['DEL Code'] + '-' + (r.Box_Type === '20GP' ? '20' : '40');
-    if (!raceOftMap[key]) raceOftMap[key] = {sum:0, teu:0};
-    raceOftMap[key].sum += (r.Revenue_Per_TEU||0) * (r.TEU||0);
-    raceOftMap[key].teu += r.TEU||0;
-  });
-  Object.keys(raceOftMap).forEach(k => {
-    const d = raceOftMap[k];
-    raceOftMap[k] = d.teu > 0 ? d.sum / d.teu : 0;
-  });
-
-  // BERLIN already has OFT_Avg in fak_data, but also compute from level4 for consistency
-  const berlinOftMap = {};
-  (DATA.berlin.level4||[]).forEach(r => {
-    const key = r['POL Code'] + '-' + r['DEL Code'] + '-' + (r.TEU_20GP > r.TEU_40HC ? '20' : '40');
-    if (!berlinOftMap[key]) berlinOftMap[key] = {sum:0, teu:0};
-    berlinOftMap[key].sum += (r.Avg_Per_Unit_OFT||0) * (r.Total_TEU||0);
-    berlinOftMap[key].teu += r.Total_TEU||0;
-  });
-  Object.keys(berlinOftMap).forEach(k => {
-    const d = berlinOftMap[k];
-    berlinOftMap[k] = d.teu > 0 ? d.sum / d.teu : 0;
-  });
-
   // Normalize Size field: "20'" -> "20", "40'" -> "40"
   function normSize(s) { return String(s||'').replace(/'/g,'').replace(/GP/,'').replace(/HC/,'').replace(/HQ/,'').trim(); }
 
@@ -453,9 +426,9 @@ function buildFakCompareData() {
     if (fakFilter.pod && pod !== fakFilter.pod) return;
     const isCommon = d.race && d.berlin;
 
-    // Get OFT from level4-computed map or fak_data
-    const rOft = raceOftMap[key] || (d.race ? (d.race.OFT_Avg || 0) : 0);
-    const bOft = berlinOftMap[key] || (d.berlin ? (d.berlin.OFT_Avg || 0) : 0);
+    // Get OFT directly from fak_data (per-box price, not per-TEU)
+    const rOft = d.race ? (d.race.OFT_Avg || 0) : 0;
+    const bOft = d.berlin ? (d.berlin.OFT_Avg || 0) : 0;
     const rFak = d.race ? d.race.FAK : 0;
     const bFak = d.berlin ? d.berlin.FAK : 0;
 
@@ -749,6 +722,8 @@ function renderAll() {
   renderFAK();
   renderTEU();
 }
+
+;
 
 ;
 
