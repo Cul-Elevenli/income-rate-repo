@@ -565,7 +565,7 @@ function renderPOL() {
   document.querySelector('#pol-table tbody').innerHTML = rows.map(r => {
     const rW = Math.round(r.rTeu / maxTeu * 100);
     const bW = Math.round(r.bTeu / maxTeu * 100);
-    const oftDiff = r.rOftPerTeu > 0 && r.bOftPerTeu > 0 ? ((r.rOftPerTeu - r.bOftPerTeu) / r.bOftPerTeu * 100) : null;
+    const oftDiff = r.rOftPerTeu > 0 && r.bOftPerTeu > 0 ? ((r.bOftPerTeu - r.rOftPerTeu) / r.rOftPerTeu * 100) : null;
     const oftDiffCls = oftDiff != null ? (oftDiff >= 0 ? 'up' : 'down') : '';
     const oftDiffSign = oftDiff != null ? (oftDiff >= 0 ? '+' : '') : '';
 
