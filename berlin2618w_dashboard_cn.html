@@ -237,7 +237,8 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <table id="revenue-me-table">
       <thead><tr>
         <th>POL</th>
-        <th class="num">单海运费价格/TEU</th>
+        <th class="num">单海运费价格(20')</th>
+        <th class="num">单海运费价格(40')</th>
         <th class="num">REVENUE USD</th>
         <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK(20')</th>
@@ -254,7 +255,8 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <table id="revenue-rs-table">
       <thead><tr>
         <th>POL</th>
-        <th class="num">单海运费价格/TEU</th>
+        <th class="num">单海运费价格(20')</th>
+        <th class="num">单海运费价格(40')</th>
         <th class="num">REVENUE USD</th>
         <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK(20')</th>
@@ -271,7 +273,8 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <table id="revenue-oth-table">
       <thead><tr>
         <th>POL</th>
-        <th class="num">单海运费价格/TEU</th>
+        <th class="num">单海运费价格(20')</th>
+        <th class="num">单海运费价格(40')</th>
         <th class="num">REVENUE USD</th>
         <th class="num">TEU</th>
         <th class="num" style="color:#b45309;">FAK(20')</th>
@@ -281,7 +284,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
       <tbody id="revenue-oth-tbody"></tbody>
     </table>
 
-    <div class="note">* 按区域划分，展示各 POL 单海运费价格/TEU（PER_UNIT_OFT 按 TEU 加权均值）与 FAK 基准价对比。FAK(20') 和 FAK(40') 为该 POL 下各航线对应箱型 FAK 按 TEU 加权均值。绿色 = 高于船舶平均单海运费价格，红色 = 低于船舶平均单海运费价格。</div>
+    <div class="note">* 按区域划分，展示各 POL 单海运费价格（20'/40' 分列，按对应箱型 TEU 加权均值）与 FAK 基准价对比。绿色 = 高于船舶平均单海运费价格，红色 = 低于船舶平均单海运费价格。</div>
   </div>
 
 
@@ -896,10 +899,10 @@ function renderRevenueRegionCompare() {
       if (!pol || !pod) return;
       const isTarget = regionKey === 'me' ? ME_PODS.has(pod) : regionKey === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
       if (!isTarget) return;
-      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, fak20Sum:0, fak20Teu:0, fak40Sum:0, fak40Teu:0, oftSum:0, oftTeu:0 };
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, fak20Sum:0, fak20Teu:0, fak40Sum:0, fak40Teu:0, oftSum:0, oftTeu:0, oft20Sum:0, oft20Teu:0, oft40Sum:0, oft40Teu:0 };
       polMap[pol].teu += r.Total_TEU||0;
       polMap[pol].revenue += r.Revenue||0;
-      // Accumulate Avg_Per_Unit_OFT weighted by TEU
+      // Accumulate Avg_Per_Unit_OFT weighted by TEU (for sorting & vs vessel)
       const oft = r.Avg_Per_Unit_OFT||0;
       if (oft > 0) {
         polMap[pol].oftSum += oft * (r.Total_TEU||0);
@@ -924,8 +927,31 @@ function renderRevenueRegionCompare() {
         }
       }
     });
+    // 从 level5 聚合 20'/40' 单海运费价格
+    (DATA.level5||[]).forEach(r => {
+      const pol = r.POL_CD || '';
+      const pod = (r.DEL_CD || '').toUpperCase();
+      if (!pol || !pod) return;
+      const isTarget = regionKey === 'me' ? ME_PODS.has(pod) : regionKey === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
+      if (!isTarget) return;
+      if (!polMap[pol]) return;
+      const oft20 = r.Per_Unit_OFT_20 || 0;
+      const teu20 = r.TEU_20 || 0;
+      if (oft20 > 0 && teu20 > 0) {
+        polMap[pol].oft20Sum += oft20 * teu20;
+        polMap[pol].oft20Teu += teu20;
+      }
+      const oft40 = r.Per_Unit_OFT_40 || 0;
+      const teu40 = r.TEU_40 || 0;
+      if (oft40 > 0 && teu40 > 0) {
+        polMap[pol].oft40Sum += oft40 * teu40;
+        polMap[pol].oft40Teu += teu40;
+      }
+    });
     Object.values(polMap).forEach(p => {
       p.avgPerUnitOft = p.oftTeu > 0 ? p.oftSum / p.oftTeu : 0;
+      p.avgOft20 = p.oft20Teu > 0 ? p.oft20Sum / p.oft20Teu : 0;
+      p.avgOft40 = p.oft40Teu > 0 ? p.oft40Sum / p.oft40Teu : 0;
       p.avgFak20 = p.fak20Teu > 0 ? p.fak20Sum / p.fak20Teu : null;
       p.avgFak40 = p.fak40Teu > 0 ? p.fak40Sum / p.fak40Teu : null;
     });
@@ -946,10 +972,13 @@ function renderRevenueRegionCompare() {
         ? '<span style="color:var(--negative);font-weight:700;font-size:13px;">▼</span>'
         : '<span style="color:var(--neutral);font-size:13px;">—</span>';
       const vsText = vsV > 0 ? '+' + vsV.toFixed(1) + '%' : vsV === 0 ? '0.0%' : vsV.toFixed(1) + '%';
+      const oft20Html = p.avgOft20 > 0 ? fmt.usd(p.avgOft20) : '—';
+      const oft40Html = p.avgOft40 > 0 ? fmt.usd(p.avgOft40) : '—';
       const fak20Html = p.avgFak20 !== null ? fmt.usd(p.avgFak20) : '—';
       const fak40Html = p.avgFak40 !== null ? fmt.usd(p.avgFak40) : '—';
       return '<tr><td class="code">' + p.pol + '</td>' +
-        '<td class="num ' + cls + '"><strong>' + fmt.usd(avgOft) + '</strong></td>' +
+        '<td class="num">' + oft20Html + '</td>' +
+        '<td class="num">' + oft40Html + '</td>' +
         '<td class="num">' + fmt.usd(p.revenue) + '</td>' +
         '<td class="num">' + fmt.teu(p.teu) + '</td>' +
         '<td class="num" style="color:#b45309;">' + fak20Html + '</td>' +
