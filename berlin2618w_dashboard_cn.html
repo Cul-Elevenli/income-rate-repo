@@ -1111,15 +1111,10 @@ function renderShippers() {
     return orderMode === 'bottom' ? -diff : diff;
   });
 
-  // 根据下拉框过滤显示
+  // displayAgg = 全部货代（不全局切片，各区域独立取前10/后10）
   let displayAgg = sortedAgg;
-  if (orderMode === 'bottom') {
-    // 倒数模式：先取全部，等区域分组后按区域均摊取后n位
-    displayAgg = sortedAgg;
-  } else if (shipperFilterVal === 'top10') {
-    // TOP10 按 TEU 降序（独立排序，不受单海运费价格排序影响）
-    displayAgg = Object.values(aggMap).sort((a,b) => (b.teu||0) - (a.teu||0)).slice(0,10);
-  } else if (shipperFilterVal !== 'all') {
+  // 仅当筛选单个货代时切片
+  if (shipperFilterVal !== 'all' && shipperFilterVal !== 'top10') {
     displayAgg = sortedAgg.filter(m => m.name === shipperFilterVal);
   }
 
@@ -1175,41 +1170,31 @@ function renderShippers() {
     Object.keys(regionGroupMap).filter(r => !REGION_ORDER.includes(r))
   );
 
-  // 倒数模式：按区域均摊取后n位，总数控制在10个
-  if (orderMode === 'bottom') {
-    const numRegions = orderedRegions.length;
-    const basePerRegion = Math.max(1, Math.floor(10 / numRegions));
-    let remaining = 10 - basePerRegion * numRegions;
-    orderedRegions.forEach((region, idx) => {
-      let take = basePerRegion;
-      if (remaining > 0) { take++; remaining--; }
-      regionGroupMap[region] = regionGroupMap[region].slice(0, take);
-    });
-    const newAgg = [];
-    orderedRegions.forEach(region => { newAgg.push(...regionGroupMap[region]); });
-    displayAgg = newAgg;
-  }
+  // 全部货代的TEU总量（用于各区域的百分比计算）
+  const totalAllTeu = Object.values(aggMap).reduce((s,m) => s+(m.teu||0), 0);
 
-  // 全局排名计数器
-  let globalRankCounter = 0;
-  let totalTeu = displayAgg.reduce((s,m) => s+(m.teu||0), 0);
-  let maxTeu = Math.max(...displayAgg.map(m => m.teu||0), 1);
-  let maxPerTeu = Math.max(...displayAgg.map(m => m.Revenue_Per_TEU||0), 1);
-
-  // 构建扁平渲染列表：[ {type:'header', region, teu, TotalC, shipperCount}, {type:'row', m, globalRank}, ... ]
+  // 各区域内独立排序、各取前10/倒序10、排名各区域独立从1开始
   const displayItems = [];
   orderedRegions.forEach(region => {
-    const shippers = regionGroupMap[region]; // 已按 Revenue_Per_TEU 降序（复用 sortedAgg 顺序）
+    let shippers = regionGroupMap[region];
+    // 该区域内按 Revenue/TEU 排序（TOP降序，倒序升序）
+    shippers.sort((a,b) => {
+      const diff = (b.Revenue_Per_TEU||0) - (a.Revenue_Per_TEU||0);
+      return orderMode === 'bottom' ? -diff : diff;
+    });
+    // 取前10或全部（不足10家则全展示）
+    shippers = shippers.slice(0, 10);
+    // 区域内排名从1开始
     const regionTeu = shippers.reduce((s,m) => s+(m.teu||0), 0);
     const regionC = shippers.reduce((s,m) => s+(m.TotalC||0), 0);
     const hasF = shippers.some(m => m.TotalC > 0);
-    const teuPct = totalTeu > 0 ? (regionTeu/totalTeu*100).toFixed(1) : '0.0';
+    const teuPct = totalAllTeu > 0 ? (regionTeu/totalAllTeu*100).toFixed(1) : '0.0';
     const cText = hasF ? fmt.usd(regionC) + ' · ' : '';
     displayItems.push({ type: 'header', region, teu: regionTeu, TotalC: regionC, shipperCount: shippers.length,
       label: region + ' (' + shippers.length + ' 货代 · ' + teuPct + '% · ' + cText + fmt.teu(regionTeu) + ')' });
-    shippers.forEach(m => {
-      globalRankCounter++;
-      displayItems.push({ type: 'row', m, globalRank: globalRankCounter });
+    shippers.forEach((m, idx) => {
+      displayItems.push({ type: 'row', m, globalRank: idx + 1, regionMaxTeu: Math.max(...shippers.map(s=>s.teu||0), 1),
+        regionMaxPerTeu: Math.max(...shippers.map(s=>s.Revenue_Per_TEU||0), 1) });
     });
   });
 
@@ -1246,9 +1231,11 @@ function renderShippers() {
     const m = item.m;
     const i = item.globalRank - 1;
     const globalRank = item.globalRank;
-    const pct = totalTeu > 0 ? (m.teu/totalTeu*100).toFixed(1) : 0;
-    const teuBarW = maxTeu > 0 ? (m.teu/maxTeu*100) : 0;
-    const perTeuBarW = maxPerTeu > 0 ? ((m.Revenue_Per_TEU||0)/maxPerTeu*100) : 0;
+    const pct = totalAllTeu > 0 ? (m.teu/totalAllTeu*100).toFixed(1) : 0;
+    const regionMaxTeu = item.regionMaxTeu || 1;
+    const regionMaxPerTeu = item.regionMaxPerTeu || 1;
+    const teuBarW = (m.teu||0) / regionMaxTeu * 100;
+    const perTeuBarW = (m.Revenue_Per_TEU||0) / regionMaxPerTeu * 100;
     const isTop = globalRank <= 3;
 
     // vs 整船均
