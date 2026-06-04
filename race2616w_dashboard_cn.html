@@ -370,7 +370,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="section-head">
       <div class="section-title">大货代排名 — 按 CM/TEU 降序（含 FAK vs OFT 运价对比）</div>
       <div style="display:flex;gap:10px;align-items:center;">
-        <button id="shipper-order-toggle" data-mode="top" onclick="toggleShipperOrder()" style="font-size:11px;padding:4px 12px;border:1px solid var(--accent);border-radius:4px;background:var(--surface);color:var(--accent);cursor:pointer;font-weight:600;white-space:nowrap;">查看倒数</button>
+        <button id="shipper-order-toggle" data-mode="top" onclick="toggleShipperOrder()" style="font-size:11px;padding:4px 12px;border:1px solid var(--accent);border-radius:4px;background:var(--surface);color:var(--accent);cursor:pointer;font-weight:600;white-space:nowrap;">查看倒序</button>
         <label style="font-size:11px;color:var(--text2);">筛选 POD</label>
         <select id="pod-filter" onchange="renderShippers()" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);cursor:pointer;">
           <option value="all">全部 POD</option>
@@ -994,7 +994,7 @@ function toggleShipperOrder() {
   const next = current === 'top' ? 'bottom' : 'top';
   if (btn) {
     btn.dataset.mode = next;
-    btn.textContent = next === 'top' ? '查看倒数' : '查看TOP';
+    btn.textContent = next === 'top' ? '查看倒序' : '查看TOP';
   }
   renderShippers();
 }
@@ -1064,11 +1064,11 @@ function renderShippers() {
     return orderMode === 'bottom' ? -diff : diff;
   });
 
-  // 根据下拉框过滤显示（倒数模式下"全部货代"展示全部，"TOP10"展示后10位）
+  // 根据下拉框过滤显示（倒数模式展示后10位）
   let displayAgg = sortedAgg;
   if (orderMode === 'bottom') {
-    // 倒数模式：展示全部货代按 CM/TEU 升序（最差排最前）
-    displayAgg = sortedAgg;
+    // 倒数模式：CM/TEU 最低的 10 个货代（升序排列，最差排最前）
+    displayAgg = sortedAgg.slice(0, 10);
   } else if (shipperFilterVal === 'top10') {
     // TOP10 按 TEU 降序（独立排序，不受单海运费价格排序影响）
     displayAgg = Object.values(aggMap).sort((a,b) => (b.teu||0) - (a.teu||0)).slice(0,10);
