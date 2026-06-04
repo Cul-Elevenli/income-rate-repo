@@ -370,6 +370,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="section-head">
       <div class="section-title">大货代排名 — 按 CM/TEU 降序（含 FAK vs OFT 运价对比）</div>
       <div style="display:flex;gap:10px;align-items:center;">
+        <button id="shipper-order-toggle" data-mode="top" onclick="toggleShipperOrder()" style="font-size:11px;padding:4px 12px;border:1px solid var(--accent);border-radius:4px;background:var(--surface);color:var(--accent);cursor:pointer;font-weight:600;white-space:nowrap;">查看倒数</button>
         <label style="font-size:11px;color:var(--text2);">筛选 POD</label>
         <select id="pod-filter" onchange="renderShippers()" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);cursor:pointer;">
           <option value="all">全部 POD</option>
@@ -987,6 +988,17 @@ function toggleRow(section, k) {
   }
 }
 
+function toggleShipperOrder() {
+  const btn = document.getElementById('shipper-order-toggle');
+  const current = btn ? (btn.dataset.mode || 'top') : 'top';
+  const next = current === 'top' ? 'bottom' : 'top';
+  if (btn) {
+    btn.dataset.mode = next;
+    btn.textContent = next === 'top' ? '查看倒数' : '查看TOP';
+  }
+  renderShippers();
+}
+
 function renderShippers() {
   const podFilterVal = document.getElementById('pod-filter').value;
 
@@ -1044,15 +1056,24 @@ function renderShippers() {
     m.maxTeuPerRow = Math.max(...m.rows.map(r => r.TEU||0));
   });
 
-  // 按单海运费价格降序排列
-  const sortedAgg = Object.values(aggMap).sort((a,b) => (b.C_Per_TEU||0) - (a.C_Per_TEU||0));
+  // 按单海运费价格排序（默认降序，倒数模式升序）
+  const orderToggle = document.getElementById('shipper-order-toggle');
+  const orderMode = orderToggle ? (orderToggle.dataset.mode || 'top') : 'top';
+  const sortedAgg = Object.values(aggMap).sort((a,b) => {
+    const diff = (b.C_Per_TEU||0) - (a.C_Per_TEU||0);
+    return orderMode === 'bottom' ? -diff : diff;
+  });
 
   // 根据下拉框过滤显示
   let displayAgg = sortedAgg;
   if (shipperFilterVal === 'top10') {
-    // TOP10 按 TEU 降序（独立排序，不受单海运费价格排序影响）
-    const top10ByTeu = Object.values(aggMap).sort((a,b) => (b.teu||0) - (a.teu||0)).slice(0,10);
-    displayAgg = top10ByTeu;
+    if (orderMode === 'bottom') {
+      // 倒数10 按 TEU 升序（TEU 最少的10个）
+      displayAgg = Object.values(aggMap).sort((a,b) => (a.teu||0) - (b.teu||0)).slice(0,10);
+    } else {
+      // TOP10 按 TEU 降序（独立排序，不受单海运费价格排序影响）
+      displayAgg = Object.values(aggMap).sort((a,b) => (b.teu||0) - (a.teu||0)).slice(0,10);
+    }
   } else if (shipperFilterVal !== 'all') {
     displayAgg = sortedAgg.filter(m => m.name === shipperFilterVal);
   }
