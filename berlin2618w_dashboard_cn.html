@@ -1111,16 +1111,14 @@ function renderShippers() {
     return orderMode === 'bottom' ? -diff : diff;
   });
 
-  // 根据下拉框过滤显示
+  // 根据下拉框过滤显示（倒数模式下忽略 TOP10，始终展示全部货代从最差到最好）
   let displayAgg = sortedAgg;
-  if (shipperFilterVal === 'top10') {
-    if (orderMode === 'bottom') {
-      // 倒数10 按 TEU 升序（TEU 最少的10个）
-      displayAgg = Object.values(aggMap).sort((a,b) => (a.teu||0) - (b.teu||0)).slice(0,10);
-    } else {
-      // TOP10 按 TEU 降序（独立排序，不受单海运费价格排序影响）
-      displayAgg = Object.values(aggMap).sort((a,b) => (b.teu||0) - (a.teu||0)).slice(0,10);
-    }
+  if (orderMode === 'bottom') {
+    // 倒数模式：所有货代按 Revenue/TEU 升序（最差排最前）
+    displayAgg = sortedAgg;
+  } else if (shipperFilterVal === 'top10') {
+    // TOP10 按 TEU 降序（独立排序，不受单海运费价格排序影响）
+    displayAgg = Object.values(aggMap).sort((a,b) => (b.teu||0) - (a.teu||0)).slice(0,10);
   } else if (shipperFilterVal !== 'all') {
     displayAgg = sortedAgg.filter(m => m.name === shipperFilterVal);
   }
