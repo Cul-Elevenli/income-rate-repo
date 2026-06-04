@@ -1064,11 +1064,11 @@ function renderShippers() {
     return orderMode === 'bottom' ? -diff : diff;
   });
 
-  // 根据下拉框过滤显示（倒数模式展示后10位）
+  // 根据下拉框过滤显示（倒数模式下"全部货代"展示全部，"TOP10"展示后10位）
   let displayAgg = sortedAgg;
   if (orderMode === 'bottom') {
-    // 倒数模式：CM/TEU 最低的 10 个货代（升序排列，最差排最前）
-    displayAgg = sortedAgg.slice(0, 10);
+    // 倒数模式：展示全部货代按 CM/TEU 升序（最差排最前）
+    displayAgg = sortedAgg;
   } else if (shipperFilterVal === 'top10') {
     // TOP10 按 TEU 降序（独立排序，不受单海运费价格排序影响）
     displayAgg = Object.values(aggMap).sort((a,b) => (b.teu||0) - (a.teu||0)).slice(0,10);
