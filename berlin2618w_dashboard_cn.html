@@ -1175,12 +1175,15 @@ function renderShippers() {
     Object.keys(regionGroupMap).filter(r => !REGION_ORDER.includes(r))
   );
 
-  // 倒数模式：按区域均摊取后n位，确保每个区域都有展示
+  // 倒数模式：按区域均摊取后n位，总数控制在10个
   if (orderMode === 'bottom') {
     const numRegions = orderedRegions.length;
-    const perRegion = Math.max(1, Math.ceil(10 / numRegions));
-    orderedRegions.forEach(region => {
-      regionGroupMap[region] = regionGroupMap[region].slice(0, perRegion);
+    const basePerRegion = Math.max(1, Math.floor(10 / numRegions));
+    let remaining = 10 - basePerRegion * numRegions;
+    orderedRegions.forEach((region, idx) => {
+      let take = basePerRegion;
+      if (remaining > 0) { take++; remaining--; }
+      regionGroupMap[region] = regionGroupMap[region].slice(0, take);
     });
     const newAgg = [];
     orderedRegions.forEach(region => { newAgg.push(...regionGroupMap[region]); });
