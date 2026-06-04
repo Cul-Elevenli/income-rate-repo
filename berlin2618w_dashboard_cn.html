@@ -1111,11 +1111,11 @@ function renderShippers() {
     return orderMode === 'bottom' ? -diff : diff;
   });
 
-  // 根据下拉框过滤显示（倒数模式展示后10位）
+  // 根据下拉框过滤显示
   let displayAgg = sortedAgg;
   if (orderMode === 'bottom') {
-    // 倒数模式：Revenue/TEU 最低的 10 个货代（升序排列，最差排最前）
-    displayAgg = sortedAgg.slice(0, 10);
+    // 倒数模式：先取全部，等区域分组后按区域均摊取后n位
+    displayAgg = sortedAgg;
   } else if (shipperFilterVal === 'top10') {
     // TOP10 按 TEU 降序（独立排序，不受单海运费价格排序影响）
     displayAgg = Object.values(aggMap).sort((a,b) => (b.teu||0) - (a.teu||0)).slice(0,10);
@@ -1175,11 +1175,23 @@ function renderShippers() {
     Object.keys(regionGroupMap).filter(r => !REGION_ORDER.includes(r))
   );
 
+  // 倒数模式：按区域均摊取后n位，确保每个区域都有展示
+  if (orderMode === 'bottom') {
+    const numRegions = orderedRegions.length;
+    const perRegion = Math.max(1, Math.ceil(10 / numRegions));
+    orderedRegions.forEach(region => {
+      regionGroupMap[region] = regionGroupMap[region].slice(0, perRegion);
+    });
+    const newAgg = [];
+    orderedRegions.forEach(region => { newAgg.push(...regionGroupMap[region]); });
+    displayAgg = newAgg;
+  }
+
   // 全局排名计数器
   let globalRankCounter = 0;
-  const totalTeu = displayAgg.reduce((s,m) => s+(m.teu||0), 0);
-  const maxTeu = Math.max(...displayAgg.map(m => m.teu||0), 1);
-  const maxPerTeu = Math.max(...displayAgg.map(m => m.Revenue_Per_TEU||0), 1);
+  let totalTeu = displayAgg.reduce((s,m) => s+(m.teu||0), 0);
+  let maxTeu = Math.max(...displayAgg.map(m => m.teu||0), 1);
+  let maxPerTeu = Math.max(...displayAgg.map(m => m.Revenue_Per_TEU||0), 1);
 
   // 构建扁平渲染列表：[ {type:'header', region, teu, TotalC, shipperCount}, {type:'row', m, globalRank}, ... ]
   const displayItems = [];
