@@ -654,7 +654,7 @@ function renderAll() {
       '<div class="kpi-sub" style="color:#b45309;">' + fakPctSub + '</div>' +
     '</div>' +
     [
-      { label:'Total Teu', value:fmt.teu(8816), sub:'TEU' },
+      { label:'Total Teu', value:fmt.teu(d.total_teu), sub:'TEU' },
       { label:'总营收<br>TOTAL REVENUE', value:fmt.usd(d.total_revenue), sub:'USD' },
       { label:'单箱收入', value:fmt.usd(vesselAvgOft), sub:'单海运费价格/TEU', highlight: true },
       { label:'整船均值', value:fmt.usd(d.revenue_per_teu), sub:'Revenue/TEU' },
