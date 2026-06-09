@@ -394,7 +394,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
   </div>
 
   <!-- ============ SECTION 4A: 中东 — 口岸综合考核 ============ -->
-  <div class="section">
+  <div class="section" id="section-pol-me">
     <div class="section-head">
       <div class="section-title">中东 — 口岸综合考核（AEJEA · AEKLF · OMSOH · AESCT · SADMM · SARUH）</div>
     </div>
@@ -417,7 +417,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
   </div>
 
   <!-- ============ SECTION 4B: 红海 — 口岸综合考核 ============ -->
-  <div class="section">
+  <div class="section" id="section-pol-rs">
     <div class="section-head">
       <div class="section-title">红海 — 口岸综合考核（SAJED · SDPZU · EGSOK · YEADE · DJJIB · JOAQJ）</div>
     </div>
@@ -536,6 +536,71 @@ function getRegion(pod) {
   return '';
 }
 
+function hideEmptyRegions() {
+  // 根据 level4 数据判断三个区域是否有 TEU，隐藏无数据区域的 HTML 容器
+  var hasMe = false, hasRs = false, hasOth = false;
+  (DATA.level4 || []).forEach(function(r) {
+    var pod = (r['DEL Code'] || '').toUpperCase();
+    var teu = r.Total_TEU || 0;
+    if (teu <= 0) return;
+    if (ME_PODS.has(pod)) hasMe = true;
+    else if (RS_PODS.has(pod)) hasRs = true;
+    else hasOth = true;
+  });
+
+  // 需要隐藏的 HTML 容器 ID 列表（每个区域对应的 section-head + table 组合）
+  var regionContainers = {
+    me: {
+      wrapper: 'section-revenue-me',
+      revenue: ['revenue-me-table'],
+      cm: ['cm-me-table'],
+      teu: ['teu-me-table'],
+      pol: 'section-pol-me'
+    },
+    rs: {
+      wrapper: 'section-revenue-rs',
+      revenue: ['revenue-rs-table'],
+      cm: ['cm-rs-table'],
+      teu: ['teu-rs-table'],
+      pol: 'section-pol-rs'
+    },
+    oth: {
+      wrapper: 'section-revenue-oth',
+      revenue: ['revenue-oth-table'],
+      cm: ['cm-other-table'],
+      teu: ['teu-other-table']
+    }
+  };
+
+  // 隐藏策略：找到每个区域对应的 section-head + table，用 display:none 隐藏
+  function hideRegionSection(headPrefix, tableIds) {
+    // 找到紧邻 table 前面的 section-head div
+    tableIds.forEach(function(tid) {
+      var table = document.getElementById(tid);
+      if (!table) return;
+      // 隐藏 table
+      table.style.display = 'none';
+      // 隐藏紧邻的 section-head
+      var prev = table.previousElementSibling;
+      while (prev) {
+        if (prev.classList && prev.classList.contains('section-head') && prev.style.background) {
+          prev.style.display = 'none';
+          break;
+        }
+        prev = prev.previousElementSibling;
+      }
+    });
+  }
+
+  if (!hasMe) hideRegionSection(null, regionContainers.me.revenue.concat(regionContainers.me.cm, regionContainers.me.teu));
+  if (!hasRs) hideRegionSection(null, regionContainers.rs.revenue.concat(regionContainers.rs.cm, regionContainers.rs.teu));
+  if (!hasOth) hideRegionSection(null, regionContainers.oth.revenue.concat(regionContainers.oth.cm, regionContainers.oth.teu));
+
+  // 隐藏口岸综合考核整个 section
+  if (!hasMe) { var sp = document.getElementById('section-pol-me'); if (sp) sp.style.display = 'none'; }
+  if (!hasRs) { var sp2 = document.getElementById('section-pol-rs'); if (sp2) sp2.style.display = 'none'; }
+}
+
 function renderAll() {
   const d = DATA.level1;
   document.getElementById('vessel-title').textContent = DATA.vessel + ' — 口岸TEU OFT&Revenue分析';
@@ -589,6 +654,9 @@ function renderAll() {
       { label:'单箱收入', value:fmt.usd(vesselAvgOft), sub:'单海运费价格/TEU', highlight: true },
       { label:'整船均值', value:fmt.usd(d.revenue_per_teu), sub:'Revenue/TEU' },
     ].map(c => '<div class="kpi-cell"><div class="kpi-label">' + c.label + '</div><div class="kpi-value' + (c.highlight ? '' : ' secondary') + '">' + c.value + '</div><div class="kpi-sub">' + c.sub + '</div></div>').join('');
+
+  // === 隐藏无数据区域 ===
+  hideEmptyRegions();
 
   renderTEU();
   renderCM();
@@ -651,12 +719,16 @@ function renderTEU() {
       }).join('') + '</div>';
   }
 
+  // 动态拼接 Top3 卡片：只显示有数据的区域
+  var teuTop3Html = '';
+  if (mePolTeu.length) teuTop3Html += buildTop3TeuCol(mePolTeu, '🌊 中东', 'me');
+  if (rsPolTeu.length) teuTop3Html += buildTop3TeuCol(rsPolTeu, '🔴 红海', 'rs');
+  if (othPolTeu.length) teuTop3Html += buildTop3TeuCol(othPolTeu, '⚪ 其他', 'other');
+
   document.getElementById('top3-teu-cards').innerHTML =
     '<div class="top3-section-label">🏆 出口 TEU 排名前三 — 装货港（按目的港区域分组）</div>' +
     '<div class="top3-cards-row">' +
-      buildTop3TeuCol(mePolTeu, '🌊 中东', 'me') +
-      buildTop3TeuCol(rsPolTeu, '🔴 红海', 'rs') +
-      buildTop3TeuCol(othPolTeu, '⚪ 其他', 'other') +
+      teuTop3Html +
     '</div>';
 
   document.getElementById('teu-kpi').innerHTML = [
@@ -769,12 +841,16 @@ function renderCM() {
       }).join('') + '</div>';
   }
 
+  // 动态拼接 Top3 卡片：只显示有数据的区域
+  var cmTop3Html = '';
+  if (mePolCm.length) cmTop3Html += buildTop3CmCol(mePolCm, '🌊 中东', 'me');
+  if (rsPolCm.length) cmTop3Html += buildTop3CmCol(rsPolCm, '🔴 红海', 'rs');
+  if (othPolCm.length) cmTop3Html += buildTop3CmCol(othPolCm, '⚪ 其他', 'other');
+
   document.getElementById('top3-cm-cards').innerHTML =
     '<div class="top3-section-label">💰 整船Revenue/TEU 区域排名前三 — 装货港（按Revenue/TEU 降序）</div>' +
     '<div class="top3-cards-row">' +
-      buildTop3CmCol(mePolCm, '🌊 中东', 'me') +
-      buildTop3CmCol(rsPolCm, '🔴 红海', 'rs') +
-      buildTop3CmCol(othPolCm, '⚪ 其他', 'other') +
+      cmTop3Html +
     '</div>';
 
   document.getElementById('cm-kpi').innerHTML = [
@@ -859,12 +935,16 @@ function renderRevenueTop3() {
       }).join('') + '</div>';
   }
 
+  // 动态拼接 Top3 卡片：只显示有数据的区域
+  var revTop3Html = '';
+  if (mePolRev.length) revTop3Html += buildTop3RevCol(mePolRev, '🌊 中东', 'me');
+  if (rsPolRev.length) revTop3Html += buildTop3RevCol(rsPolRev, '🔴 红海', 'rs');
+  if (othPolRev.length) revTop3Html += buildTop3RevCol(othPolRev, '⚪ 其他', 'other');
+
   document.getElementById('top3-revenue-cards').innerHTML =
     '<div class="top3-section-label">💵 单海运费价格/TEU 区域排名前三 — 装货港（按 PER_TEU_OFT 降序）</div>' +
     '<div class="top3-cards-row">' +
-      buildTop3RevCol(mePolRev, '🌊 中东', 'me') +
-      buildTop3RevCol(rsPolRev, '🔴 红海', 'rs') +
-      buildTop3RevCol(othPolRev, '⚪ 其他', 'other') +
+      revTop3Html +
     '</div>';
 }
 
