@@ -411,7 +411,8 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">TEU</th>
         <th class="num">占比</th>
         <th class="num">REVENUE USD</th>
-        <th class="num">单海运费价格/TEU</th>
+        <th class="num">单海运费价格(20')</th>
+        <th class="num">单海运费价格(40')</th>
         <th class="num" style="color:#b45309;">FAK 均值</th>
         <th class="num" style="color:#b45309;background:#fff8e1;">占 FAK % (单海运费价格)</th>
         <th class="num">vs 整船平均单海运费价格</th>
@@ -434,7 +435,8 @@ tbody tr.region-header-row + tr td { border-top:none; }
         <th class="num">TEU</th>
         <th class="num">占比</th>
         <th class="num">REVENUE USD</th>
-        <th class="num">单海运费价格/TEU</th>
+        <th class="num">单海运费价格(20')</th>
+        <th class="num">单海运费价格(40')</th>
         <th class="num" style="color:#b45309;">FAK 均值</th>
         <th class="num" style="color:#b45309;background:#fff8e1;">占 FAK % (单海运费价格)</th>
         <th class="num">vs 整船平均单海运费价格</th>
@@ -1682,6 +1684,29 @@ function renderPOLRank() {
     if (!regData.pods.includes(pod)) regData.pods.push(pod);
   });
 
+  // Build per-POL per-region 20'/40' split from level5
+  const polRegOftSplit = {};
+  (DATA.level5||[]).forEach(r => {
+    const pol = r.POL_CD || '';
+    const pod = (r.DEL_CD || '').toUpperCase();
+    if (!pol || !pod) return;
+    const region = RS_PODS.has(pod) ? 'rs' : ME_PODS.has(pod) ? 'me' : null;
+    if (!region) return;
+    if (!polRegOftSplit[pol]) polRegOftSplit[pol] = { me:{oft20Sum:0,oft20Teu:0,oft40Sum:0,oft40Teu:0}, rs:{oft20Sum:0,oft20Teu:0,oft40Sum:0,oft40Teu:0} };
+    const oft20 = r.Per_Unit_OFT_20 || 0;
+    const teu20 = r.TEU_20 || 0;
+    if (oft20 > 0 && teu20 > 0) {
+      polRegOftSplit[pol][region].oft20Sum += oft20 * teu20;
+      polRegOftSplit[pol][region].oft20Teu += teu20;
+    }
+    const oft40 = r.Per_Unit_OFT_40 || 0;
+    const teu40 = r.TEU_40 || 0;
+    if (oft40 > 0 && teu40 > 0) {
+      polRegOftSplit[pol][region].oft40Sum += oft40 * teu40;
+      polRegOftSplit[pol][region].oft40Teu += teu40;
+    }
+  });
+
   // Merge: fill gaps from level3
   Object.keys(polBase).forEach(pol => {
     if (!polRegTeu[pol]) {
@@ -1708,6 +1733,9 @@ function renderPOLRank() {
       rd.revenue_per_teu = rd.teu > 0 ? rd.revenue / rd.teu : 0;
       rd.avg_per_unit_oft = rd.oftTeu > 0 ? rd.oftSum / rd.oftTeu : 0;
       rd.vs_vessel_pct = vesselAvgOft > 0 ? (rd.avg_per_unit_oft / vesselAvgOft - 1) * 100 : 0;
+      const split = polRegOftSplit[pol] ? polRegOftSplit[pol][reg] : null;
+      rd.avgOft20 = split && split.oft20Teu > 0 ? split.oft20Sum / split.oft20Teu : 0;
+      rd.avgOft40 = split && split.oft40Teu > 0 ? split.oft40Sum / split.oft40Teu : 0;
     });
   });
 
@@ -1770,10 +1798,11 @@ function renderPOLRank() {
       '<td class="num accent"><strong>' + fmt.teu(d.teu) + '</strong></td>' +
       '<td class="num">' + pctTeu + '%</td>' +
       '<td class="num">' + fmt.usd(d.revenue) + '</td>' +
-      '<td class="num ' + cls + '"><strong>' + fmt.usd(d.avg_per_unit_oft) + '</strong></td>' +
+      '<td class="num">' + (d.avgOft20 > 0 ? fmt.usd(d.avgOft20) : '—') + '</td>' +
+      '<td class="num">' + (d.avgOft40 > 0 ? fmt.usd(d.avgOft40) : '—') + '</td>' +
       '<td class="num" style="color:var(--text2);">' + (polFak > 0 ? fmt.usd(polFak) : '—') + '</td>' +
       '<td class="num" style="background:#fffbf0;">' + fakPctBadge(fakPct) + '</td>' +
-      '<td class="num">' + badge(vsV) + '</td>' +
+      '<td class="num ' + cls + '">' + badge(vsV) + '</td>' +
       '</tr>';
   }).join('');
 
@@ -1805,10 +1834,11 @@ function renderPOLRank() {
       '<td class="num accent"><strong>' + fmt.teu(d.teu) + '</strong></td>' +
       '<td class="num">' + pctTeu + '%</td>' +
       '<td class="num">' + fmt.usd(d.revenue) + '</td>' +
-      '<td class="num ' + cls + '"><strong>' + fmt.usd(d.avg_per_unit_oft) + '</strong></td>' +
+      '<td class="num">' + (d.avgOft20 > 0 ? fmt.usd(d.avgOft20) : '—') + '</td>' +
+      '<td class="num">' + (d.avgOft40 > 0 ? fmt.usd(d.avgOft40) : '—') + '</td>' +
       '<td class="num" style="color:var(--text2);">' + (polFak > 0 ? fmt.usd(polFak) : '—') + '</td>' +
       '<td class="num" style="background:#fffbf0;">' + fakPctBadge(fakPct) + '</td>' +
-      '<td class="num">' + badge(vsV) + '</td>' +
+      '<td class="num ' + cls + '">' + badge(vsV) + '</td>' +
       '</tr>';
   }).join('');
 }
