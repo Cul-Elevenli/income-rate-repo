@@ -98,6 +98,12 @@ tbody tr.region-header-row + tr td { border-top:none; }
 .top3-card-head.region-me { background:#1a6bb5; color:#fff; border-color:#1a6bb5; }
 .top3-card-head.region-rs { background:#0d6e3e; color:#fff; border-color:#0d6e3e; }
 .top3-card-head.region-other { background:#5f6368; color:#fff; border-color:#5f6368; }
+.region-summary { padding:10px 14px; font-size:13px; line-height:1.7; color:var(--text1); background:#fafbfc; border-bottom:1px solid var(--border-light); }
+.region-summary .k { color:var(--text3); margin-right:4px; }
+.region-summary .v { font-weight:700; }
+.region-summary .v.pos { color:#0d6e3e; }
+.region-summary .v.neg { color:#c0392b; }
+.region-summary .v.neu { color:#b45309; }
 .top3-row { display:flex; align-items:center; padding:9px 14px; border-bottom:1px solid var(--border-light); gap:10px; }
 .top3-row:last-child { border-bottom:none; }
 .top3-rank { font-size:16px; font-weight:700; color:var(--text3); min-width:20px; text-align:center; }
@@ -239,6 +245,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="section-head" style="background:#e8f1fb;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#1a6bb5;">◆ 中东</div>
     </div>
+    <div id="revenue-me-summary" class="region-summary"></div>
     <table id="revenue-me-table">
       <thead><tr>
         <th>POL</th>
@@ -257,6 +264,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="section-head" style="background:#e6f4ed;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#0d6e3e;">◆ 红海</div>
     </div>
+    <div id="revenue-rs-summary" class="region-summary"></div>
     <table id="revenue-rs-table">
       <thead><tr>
         <th>POL</th>
@@ -275,6 +283,7 @@ tbody tr.region-header-row + tr td { border-top:none; }
     <div class="section-head" style="background:#f1f3f4;border-bottom:1px solid var(--border);">
       <div class="section-title" style="color:#5f6368;">◆ 其他</div>
     </div>
+    <div id="revenue-oth-summary" class="region-summary"></div>
     <table id="revenue-oth-table">
       <thead><tr>
         <th>POL</th>
@@ -1082,6 +1091,42 @@ function renderRevenueRegionCompare() {
   renderPolTable('revenue-me-tbody', buildPolRows('me'));
   renderPolTable('revenue-rs-tbody', buildPolRows('rs'));
   renderPolTable('revenue-oth-tbody', buildPolRows('oth'));
+
+  // Build region summary lines
+  function fmtUSD(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+  function pctClass(v) { return v > 0 ? 'pos' : v < 0 ? 'neg' : 'neu'; }
+  function buildRegionSummary(suffix, regionKey, regionName) {
+    const pols = buildPolRows(regionKey);
+    const el = document.getElementById('revenue-' + suffix + '-summary');
+    if (!el) return;
+    if (!pols.length) { el.innerHTML = ''; return; }
+    let teu=0, rev=0, oftSum=0, oftTeu=0, fak20Sum=0, fak20Teu=0, fak40Sum=0, fak40Teu=0;
+    pols.forEach(p => {
+      teu += p.teu; rev += p.revenue;
+      oftSum += p.avgPerUnitOft * p.teu; oftTeu += p.teu;
+      if (p.avgFak20) { fak20Sum += p.avgFak20 * (p.fak20Teu||0); fak20Teu += (p.fak20Teu||0); }
+      if (p.avgFak40) { fak40Sum += p.avgFak40 * (p.fak40Teu||0); fak40Teu += (p.fak40Teu||0); }
+    });
+    const avgOft = oftTeu > 0 ? oftSum/oftTeu : 0;
+    const avgFak20 = fak20Teu > 0 ? fak20Sum/fak20Teu : null;
+    const avgFak40 = fak40Teu > 0 ? fak40Sum/fak40Teu : null;
+    const revPerTeu = teu > 0 ? rev/teu : 0;
+    const vsV = vesselAvgOft > 0 ? (avgOft/vesselAvgOft - 1) * 100 : 0;
+    const vsCls = pctClass(vsV);
+    const polCount = pols.length;
+    const topPol = pols[0];
+    const topStr = topPol ? '头名 <span class="v">' + topPol.pol + '</span> 整船单收 ' + fmtUSD(topPol.avgPerUnitOft) : '';
+    const fakStr = (avgFak20 || avgFak40)
+      ? '区域加权 FAK ' + (avgFak20 ? '<span class="v">' + fmtUSD(avgFak20) + '/20\'</span>' : '') + (avgFak40 ? ' / <span class="v">' + fmtUSD(avgFak40) + '/40\'</span>' : '')
+      : '区域无 FAK 基准';
+    el.innerHTML =
+      '<div><span class="k">区域表现：</span>共 <span class="v">' + polCount + '</span> 个 POL 装货，<span class="v">' + teu.toLocaleString('en-US') + '</span> TEU / 收入 <span class="v">' + fmtUSD(rev) + '</span>（<span class="v">' + fmtUSD(revPerTeu) + '</span>/TEU）</div>' +
+      '<div><span class="k">整船单收/TEU：</span>' + fmtUSD(avgOft) + '（vs 整船 ' + fmtUSD(vesselAvgOft) + '，<span class="v ' + vsCls + '">' + (vsV>=0?'+':'') + vsV.toFixed(1) + '%</span>）。' + topStr + '</div>' +
+      '<div><span class="k">FAK 对比：</span>' + fakStr + '</div>';
+  }
+  buildRegionSummary('me', 'me', '中东');
+  buildRegionSummary('rs', 'rs', '红海');
+  buildRegionSummary('oth', 'oth', '其他');
 }
 
 
