@@ -476,6 +476,13 @@ tbody tr.region-header-row + tr td { border-top:none; }
 </div>
 
 <script>
+const ME_PODS = new Set(['AEJEA','AEKLF','OMSOH','AESCT','SADMM','SARUH']);
+const RS_PODS = new Set(['SAJED','SDPZU','EGSOK','YEADE','DJJIB','JOAQJ']);
+const POD_REGION_MAP = {
+  'AEJEA':'中东', 'AEKLF':'中东', 'OMSOH':'中东', 'AESCT':'中东', 'SADMM':'中东', 'SARUH':'中东',
+  'SAJED':'红海', 'SDPZU':'红海', 'EGSOK':'红海', 'YEADE':'红海', 'DJJIB':'红海', 'JOAQJ':'红海'
+};
+
 var DATA = {
   "vessel": "H7282620W",
   "generated": "2026-06-09",
@@ -7804,6 +7811,7 @@ function renderShippers() {
 
 console.log("H7282620W Dashboard loaded");
 renderAll();
+}
 </script>
 </body>
 </html>

@@ -1,0 +1,8269 @@
+
+
+
+const fmt = {
+  usd: v => v == null || isNaN(v) ? '—' : '$' + Math.round(v).toLocaleString('en-US'),
+  num: v => v == null || isNaN(v) ? '—' : Math.round(v).toLocaleString('en-US'),
+  pct: v => v == null || isNaN(v) ? '—' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%',
+  teu: v => v == null || isNaN(v) ? '—' : Math.round(v).toLocaleString('en-US'),
+};
+
+// Helper: build "单海运费价格占 FAK % (单海运费价格)" summary HTML for a shipper's rows
+function buildFakInfo(rows) {
+  if (!rows || !rows.length) return '<span style="color:var(--text3);font-size:11px;">—</span>';
+  const fakMap = {};
+  (DATA.fak_data||[]).forEach(r => {
+    const key = r.POL + '|' + r.POD + '|' + r.Size;
+    fakMap[key] = r;
+  });
+
+  // Compute shipper's weighted avg OFT (actual revenue per TEU proxy)
+  let totalTeu = 0, weightedOFT = 0, weightedFAK = 0;
+  rows.forEach(r => {
+    const pol = r['POL Code']||'';
+    const pod = r['DEL Code']||'';
+    let key = pol + '|' + pod + '|40';
+    let fak = fakMap[key];
+    if (!fak) {
+      key = pol + '|' + pod + '|20';
+      fak = fakMap[key];
+    }
+    if (fak && fak.FAK > 0) {
+      const teu = r.TEU||0;
+      totalTeu += teu;
+      weightedOFT += (fak.OFT_Avg||0) * teu;
+      weightedFAK += fak.FAK * teu;
+    }
+  });
+
+  if (totalTeu === 0 || weightedFAK === 0) return '<span style="color:var(--text3);font-size:11px;">无 FAK 数据</span>';
+
+  const avgOFT = weightedOFT / totalTeu;
+  const avgFAK = weightedFAK / totalTeu;
+  const pct = avgOFT / avgFAK * 100;
+  const color = pct >= 80 ? '#0d6e3e' : pct >= 60 ? '#b45309' : '#c0392b';
+  const bg = pct >= 80 ? '#e6f4ed' : pct >= 60 ? '#fff8e1' : '#fce8e6';
+  const label = pct >= 80 ? '优' : pct >= 60 ? '正常' : '偏低';
+
+  return '<div style="display:flex;flex-direction:column;gap:2px;font-size:11px;align-items:center;line-height:1.3;">' +
+    '<span style="background:' + bg + ';color:' + color + ';font-weight:700;padding:2px 8px;border-radius:10px;font-size:13px;">' + pct.toFixed(1) + '%</span>' +
+    '<span style="color:var(--text3);font-size:10px;">占 FAK · ' + label + '</span>' +
+  '</div>';
+}
+
+function badge(v) {
+  if (v == null || isNaN(v)) return '<span class="badge badge-neutral">—</span>';
+  if (v > 2) return '<span class="badge badge-up">' + fmt.pct(v) + '</span>';
+  if (v < -2) return '<span class="badge badge-down">' + fmt.pct(v) + '</span>';
+  return '<span class="badge badge-neutral">' + fmt.pct(v) + '</span>';
+}
+
+
+function getRegion(pod) {
+  const podUpper = (pod||'').toUpperCase();
+  if (ME_PODS.has(podUpper)) return '【中东】';
+  if (RS_PODS.has(podUpper)) return '【红海】';
+  return '';
+}
+
+function hideEmptyRegions() {
+  // 根据 level4 数据判断三个区域是否有 TEU，隐藏无数据区域的 HTML 容器
+  var hasMe = false, hasRs = false, hasOth = false;
+  (DATA.level4 || []).forEach(function(r) {
+    var pod = (r['DEL Code'] || '').toUpperCase();
+    var teu = r.Total_TEU || 0;
+    if (teu <= 0) return;
+    if (ME_PODS.has(pod)) hasMe = true;
+    else if (RS_PODS.has(pod)) hasRs = true;
+    else hasOth = true;
+  });
+
+  // 需要隐藏的 HTML 容器 ID 列表（每个区域对应的 section-head + table 组合）
+  var regionContainers = {
+    me: {
+      wrapper: 'section-revenue-me',
+      revenue: ['revenue-me-table'],
+      cm: ['cm-me-table'],
+      teu: ['teu-me-table'],
+      pol: 'section-pol-me'
+    },
+    rs: {
+      wrapper: 'section-revenue-rs',
+      revenue: ['revenue-rs-table'],
+      cm: ['cm-rs-table'],
+      teu: ['teu-rs-table'],
+      pol: 'section-pol-rs'
+    },
+    oth: {
+      wrapper: 'section-revenue-oth',
+      revenue: ['revenue-oth-table'],
+      cm: ['cm-other-table'],
+      teu: ['teu-other-table']
+    }
+  };
+
+  // 隐藏策略：找到每个区域对应的 section-head + table，用 display:none 隐藏
+  function hideRegionSection(headPrefix, tableIds) {
+    // 找到紧邻 table 前面的 section-head div
+    tableIds.forEach(function(tid) {
+      var table = document.getElementById(tid);
+      if (!table) return;
+      // 隐藏 table
+      table.style.display = 'none';
+      // 隐藏紧邻的 section-head
+      var prev = table.previousElementSibling;
+      while (prev) {
+        if (prev.classList && prev.classList.contains('section-head') && prev.style.background) {
+          prev.style.display = 'none';
+          break;
+        }
+        prev = prev.previousElementSibling;
+      }
+    });
+  }
+
+  if (!hasMe) hideRegionSection(null, regionContainers.me.revenue.concat(regionContainers.me.cm, regionContainers.me.teu));
+  if (!hasRs) hideRegionSection(null, regionContainers.rs.revenue.concat(regionContainers.rs.cm, regionContainers.rs.teu));
+  if (!hasOth) hideRegionSection(null, regionContainers.oth.revenue.concat(regionContainers.oth.cm, regionContainers.oth.teu));
+
+  // 隐藏口岸综合考核整个 section
+  if (!hasMe) { var sp = document.getElementById('section-pol-me'); if (sp) sp.style.display = 'none'; }
+  if (!hasRs) { var sp2 = document.getElementById('section-pol-rs'); if (sp2) sp2.style.display = 'none'; }
+}
+
+function renderAll() {
+  const d = DATA.level1;
+  document.getElementById('vessel-title').textContent = DATA.vessel + ' — 口岸TEU OFT&Revenue分析';
+  document.getElementById('generated-time').textContent = 'Generated: ' + DATA.generated;
+
+  // 计算整船加权 FAK 均值 & 单海运费价格占 FAK 比
+  const fakData = DATA.fak_data || [];
+  let fakWeightedSum = 0, fakWeightedTeu = 0;
+  (DATA.level3||[]).forEach(pol => {
+    const polCode = pol['POL Code']||'';
+    // 取该 POL 下所有 POD 的 FAK（40' 优先，20' 次之），按 TEU 加权
+    (DATA.level4||[]).filter(r => (r['POL Code']||'') === polCode).forEach(r => {
+      const pod = r['DEL Code']||'';
+      const teu = r.Total_TEU||0;
+      if (!teu) return;
+      let fak = fakData.find(f => f.POL===polCode && f.POD===pod && f.Size==='40');
+      if (!fak) fak = fakData.find(f => f.POL===polCode && f.POD===pod && f.Size==='20');
+      if (fak && fak.FAK > 0) {
+        fakWeightedSum += fak.FAK * teu;
+        fakWeightedTeu += teu;
+      }
+    });
+  });
+  const vesselFakAvg = fakWeightedTeu > 0 ? fakWeightedSum / fakWeightedTeu : 0;
+  const cmPerTeu = d.revenue_per_teu || 0;
+  // Calculate vessel avg PER_UNIT_OFT (单海运费价格/TEU) from level3
+  let vesselOftSum = 0, vesselOftTeu = 0;
+  (DATA.level3||[]).forEach(pol => {
+    if (pol.avg_per_unit_oft > 0 && pol.teu > 0) {
+      vesselOftSum += pol.avg_per_unit_oft * pol.teu;
+      vesselOftTeu += pol.teu;
+    }
+  });
+  const vesselAvgOft = vesselOftTeu > 0 ? vesselOftSum / vesselOftTeu : 0;
+  const fakPct = vesselFakAvg > 0 ? (vesselAvgOft / vesselFakAvg * 100) : null;
+  const fakPctHtml = fakPct !== null
+    ? '<div class="kpi-value" style="font-size:22px;color:' + (fakPct >= 80 ? '#0d6e3e' : fakPct >= 60 ? '#b45309' : '#c0392b') + ';">' + fakPct.toFixed(1) + '%</div>'
+    : '<div class="kpi-value" style="font-size:22px;color:var(--text3);">—</div>';
+  const fakPctSub = vesselFakAvg > 0 ? '基准 FAK $' + Math.round(vesselFakAvg).toLocaleString() : '无 FAK 数据';
+
+  // KPI strip
+  document.getElementById('kpi-strip').innerHTML =
+    '<div class="kpi-cell" style="background:#fff8e1;border-left:4px solid #b45309;">' +
+      '<div class="kpi-label" style="color:#b45309;font-size:10px;">★ 单海运费价格占 FAK 均值</div>' +
+      fakPctHtml +
+      '<div class="kpi-sub" style="color:#b45309;">' + fakPctSub + '</div>' +
+    '</div>' +
+    [
+      { label:'Total Teu', value:fmt.teu(d.total_teu), sub:'TEU' },
+      { label:'总营收<br>TOTAL REVENUE', value:fmt.usd(d.total_revenue), sub:'USD' },
+      { label:'单箱收入', value:fmt.usd(vesselAvgOft), sub:'单海运费价格/TEU', highlight: true },
+      { label:'整船均值', value:fmt.usd(d.revenue_per_teu), sub:'Revenue/TEU' },
+    ].map(c => '<div class="kpi-cell"><div class="kpi-label">' + c.label + '</div><div class="kpi-value' + (c.highlight ? '' : ' secondary') + '">' + c.value + '</div><div class="kpi-sub">' + c.sub + '</div></div>').join('');
+
+  // === 隐藏无数据区域 ===
+  hideEmptyRegions();
+
+  renderTEU();
+  renderCM();
+  renderRevenueTop3();
+  renderRevenueRegionCompare();
+  renderShippers();
+  renderPOLRank();
+  renderBubbleChart();
+  renderFAK();
+  renderShipperSummary();
+}
+
+function renderTEU() {
+  const pods = DATA.level2;
+  const maxTeu = Math.max(...pods.map(d => d.teu||0));
+  const totalTeu = DATA.level1.total_teu;
+  const total20gp = pods.reduce((s,d) => s+(d.teu_20gp||0), 0);
+  const total40hc = pods.reduce((s,d) => s+(d.teu_40hc||0), 0);
+
+  // Top 3 POL by TEU — 按区域分组，每区域取前三（按 level4 拆解）
+  function buildRegionPolTeuList(region) {
+    const polMap = {};
+    (DATA.level4||[]).forEach(r => {
+      const pol = r['POL Code']||'';
+      const pod = (r['DEL Code']||'').toUpperCase();
+      if (!pol || !pod) return;
+      const isTarget = region === 'me' ? ME_PODS.has(pod) : region === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
+      if (!isTarget) return;
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0 };
+      polMap[pol].teu += r.Total_TEU||0;
+    });
+    return Object.values(polMap).sort((a,b) => (b.teu||0)-(a.teu||0)).slice(0,3);
+  }
+
+  const mePolTeu = buildRegionPolTeuList('me');
+  const rsPolTeu = buildRegionPolTeuList('rs');
+  const othPolTeu = buildRegionPolTeuList('oth');
+  const polTeuMax = Math.max(
+    mePolTeu[0]?.teu||0, rsPolTeu[0]?.teu||0, othPolTeu[0]?.teu||0
+  ) || 1;
+
+  function buildTop3TeuCol(arr, regionLabel, regionClass) {
+    if (!arr.length) return '<div class="top3-card"><div class="top3-card-head region-' + regionClass + '">' + regionLabel + '</div><div style="padding:16px 14px;color:var(--text3);font-size:12px;text-align:center;">—</div></div>';
+    const max = polTeuMax;
+    return '<div class="top3-card"><div class="top3-card-head region-' + regionClass + '">' + regionLabel + '</div>' +
+      arr.map((d,i) => {
+        const pct = totalTeu > 0 ? ((d.teu||0)/totalTeu*100).toFixed(1) : 0;
+        const bw = max > 0 ? ((d.teu||0)/max*100) : 0;
+        return '<div class="top3-row">' +
+          '<div class="top3-rank">' + (i+1) + '</div>' +
+          '<div class="top3-info">' +
+            '<div class="top3-code">' + (d.pol||'') + '</div>' +
+            '<div class="top3-bar-wrap"><div class="top3-bar-track"><div class="top3-bar-fill" style="width:' + bw + '%"></div></div></div>' +
+          '</div>' +
+          '<div class="top3-metric">' +
+            '<div class="top3-teu">' + fmt.teu(d.teu) + ' TEU</div>' +
+            '<div class="top3-sub">占总量 ' + pct + '%</div>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+  }
+
+  // 动态拼接 Top3 卡片：只显示有数据的区域
+  var teuTop3Html = '';
+  if (mePolTeu.length) teuTop3Html += buildTop3TeuCol(mePolTeu, '🌊 中东', 'me');
+  if (rsPolTeu.length) teuTop3Html += buildTop3TeuCol(rsPolTeu, '🔴 红海', 'rs');
+  if (othPolTeu.length) teuTop3Html += buildTop3TeuCol(othPolTeu, '⚪ 其他', 'other');
+
+  document.getElementById('top3-teu-cards').innerHTML =
+    '<div class="top3-section-label">🏆 出口 TEU 排名前三 — 装货港（按目的港区域分组）</div>' +
+    '<div class="top3-cards-row">' +
+      teuTop3Html +
+    '</div>';
+
+  document.getElementById('teu-kpi').innerHTML = [
+    { label:'总 TEU', val:fmt.teu(totalTeu) },
+    { label:'20GP', val:fmt.teu(total20gp) },
+    { label:'40HC', val:fmt.teu(total40hc) },
+    { label:'POD 数量', val:pods.length },
+  ].map(i => '<div class="item"><span>' + i.label + ':</span><span class="val">' + i.val + '</span></div>').join('');
+
+  const meP=pods.filter(d=>ME_PODS.has((d['DEL Code']||'').toUpperCase()));
+  const rsP=pods.filter(d=>RS_PODS.has((d['DEL Code']||'').toUpperCase()));
+  const othP=pods.filter(d=>{const u=(d['DEL Code']||'').toUpperCase();return !ME_PODS.has(u)&&!RS_PODS.has(u);});
+  function renderTeuTbody(id,arr,showPolDetail){
+    const tb=document.getElementById(id);if(!tb)return;
+    const polDetail = showPolDetail && id==='teu-rs-tbody';
+    tb.innerHTML=[...arr].sort((a,b)=>(b.teu||0)-(a.teu||0)).map(d=>{
+      const pct=totalTeu>0?(d.teu/totalTeu*100).toFixed(1):0;
+      const barW=maxTeu>0?(d.teu/maxTeu*100):0;
+      const k=(d['DEL Code']||'').replace(/[^A-Z0-9]/g,'');
+      const row='<tr class="clickable" onclick="toggleRow(\'teu\',\''+k+'\')"><td><span class="arrow" id="teu-arrow-'+k+'">▶</span></td><td class="code">'+(d['DEL Code']||'')+'</td><td class="num accent"><strong>'+fmt.teu(d.teu)+'</strong></td><td class="num">'+fmt.teu(d.teu_20gp||0)+'</td><td class="num">'+fmt.teu(d.teu_40hc||0)+'</td><td class="num">'+pct+'%</td></tr>';
+      // Inline POL sub-rows for Red Sea pods (when toggle is on)
+      if (polDetail) {
+        const podRows = DATA.level4.filter(r => (r['DEL Code']||'') === d['DEL Code']).sort((a,b)=>(b.Total_TEU||0)-(a.Total_TEU||0));
+        if (podRows.length) {
+          const subRows = podRows.map(r => {
+            const polTeu = r.Total_TEU||0;
+            const polPct = d.teu>0?(polTeu/d.teu*100).toFixed(1):0;
+            const polBar = maxTeu>0?(polTeu/maxTeu*100):0;
+            const polBg = polTeu > 0 ? (polTeu/d.teu>0.3?'#e6f4ed':'#f0fdf4') : 'transparent';
+            return '<tr style="background:'+polBg+';"><td></td><td class="code" style="color:var(--text2);padding-left:24px;font-size:11px;">　└─ '+(r['POL Code']||'')+'</td><td class="num" style="font-size:11px;">'+fmt.teu(polTeu)+'</td><td class="num" style="font-size:11px;">'+fmt.teu(r.TEU_20GP||0)+'</td><td class="num" style="font-size:11px;">'+fmt.teu(r.TEU_40HC||0)+'</td><td class="num" style="font-size:11px;">'+polPct+'%</td></tr>';
+          }).join('');
+          return row + subRows;
+        }
+      }
+      return row+'<tr class="detail-row" id="teu-detail-'+k+'" style="display:none"><td colspan="6"><div class="detail-inner" id="teu-inner-'+k+'"></div></td></tr>';
+    }).join('');
+  }
+  renderTeuTbody('teu-me-tbody',meP,false);
+  renderTeuTbody('teu-rs-tbody',rsP,false);
+  renderTeuTbody('teu-other-tbody',othP,false);
+}
+
+function renderTEUDetail(podCode) {
+  const rows = DATA.level4.filter(r => (r['DEL Code']||'') === podCode);
+  if (!rows.length) return;
+  const max = Math.max(...rows.map(r => r.Total_TEU||0));
+  const inner = document.getElementById('teu-inner-' + podCode);
+  if (!inner) return;
+  inner.innerHTML = '<table><thead><tr><th>POL</th><th class="num">TEU 合计</th><th class="num">20GP</th><th class="num">40HC</th><th>占 POD 比例</th></tr></thead><tbody>' +
+    rows.map(r => {
+      const w = max>0 ? (r.Total_TEU/max*100) : 0;
+      return '<tr><td class="code">' + (r['POL Code']||'') + '</td>' +
+        '<td class="num accent">' + fmt.teu(r.Total_TEU) + '</td>' +
+        '<td class="num">' + fmt.teu(r.TEU_20GP||0) + '</td>' +
+        '<td class="num">' + fmt.teu(r.TEU_40HC||0) + '</td>' +
+        '<td><div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:' + w + '%"></div></div></div></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+function renderCM() {
+  const pods = DATA.level2;
+  const vesselAvg = DATA.level1.vessel_avg_revenue_per_teu;
+  const maxCm = Math.max(...pods.map(d => d.revenue_per_teu||0));
+
+  // Top 3 POL by 单海运费价格 — 按区域拆分：一个 POL 可同时出现在中东和红海
+  function buildRegionPolList(region) {
+    const polMap = {};
+    (DATA.level4||[]).forEach(r => {
+      const pol = r['POL Code']||'';
+      const pod = (r['DEL Code']||'').toUpperCase();
+      if (!pol || !pod) return;
+      const isTarget = region === 'me' ? ME_PODS.has(pod) : region === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
+      if (!isTarget) return;
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, revenue_per_teu:0, vs_vessel_pct:0 };
+      polMap[pol].teu += r.Total_TEU||0;
+      polMap[pol].revenue += r.Revenue||0;
+    });
+    Object.values(polMap).forEach(p => {
+      p.revenue_per_teu = p.teu > 0 ? p.revenue / p.teu : 0;
+      p.vs_vessel_pct = vesselAvg > 0 ? (p.revenue_per_teu / vesselAvg - 1) * 100 : 0;
+    });
+    return Object.values(polMap).sort((a,b) => (b.revenue_per_teu||0)-(a.revenue_per_teu||0)).slice(0,3);
+  }
+
+  const mePolCm = buildRegionPolList('me');
+  const rsPolCm = buildRegionPolList('rs');
+  const othPolCm = buildRegionPolList('oth');
+  const polCmMax = Math.max(
+    mePolCm[0]?.revenue_per_teu||0, rsPolCm[0]?.revenue_per_teu||0, othPolCm[0]?.revenue_per_teu||0
+  ) || 1;
+
+  function buildTop3CmCol(arr, regionLabel, regionClass) {
+    if (!arr.length) return '<div class="top3-card"><div class="top3-card-head region-' + regionClass + '">' + regionLabel + '</div><div style="padding:16px 14px;color:var(--text3);font-size:12px;text-align:center;">—</div></div>';
+    const max = polCmMax;
+    return '<div class="top3-card"><div class="top3-card-head region-' + regionClass + '">' + regionLabel + '</div>' +
+      arr.map((d,i) => {
+        const bw = max > 0 ? ((d.revenue_per_teu||0)/max*100) : 0;
+        const vsV = d.vs_vessel_pct||0;
+        return '<div class="top3-row">' +
+          '<div class="top3-rank">' + (i+1) + '</div>' +
+          '<div class="top3-info">' +
+            '<div class="top3-code">' + d.pol + '</div>' +
+            '<div class="top3-bar-wrap"><div class="top3-bar-track"><div class="top3-bar-fill" style="width:' + bw + '%"></div></div></div>' +
+          '</div>' +
+          '<div class="top3-metric">' +
+            '<div class="top3-teu">' + fmt.usd(d.revenue_per_teu) + '/TEU</div>' +
+            '<div class="top3-sub">' + fmt.usd(d.revenue) + ' · ' + fmt.teu(d.teu) + ' TEU · ' + badge(vsV) + '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+  }
+
+  // 动态拼接 Top3 卡片：只显示有数据的区域
+  var cmTop3Html = '';
+  if (mePolCm.length) cmTop3Html += buildTop3CmCol(mePolCm, '🌊 中东', 'me');
+  if (rsPolCm.length) cmTop3Html += buildTop3CmCol(rsPolCm, '🔴 红海', 'rs');
+  if (othPolCm.length) cmTop3Html += buildTop3CmCol(othPolCm, '⚪ 其他', 'other');
+
+  document.getElementById('top3-cm-cards').innerHTML =
+    '<div class="top3-section-label">💰 整船Revenue/TEU 区域排名前三 — 装货港（按Revenue/TEU 降序）</div>' +
+    '<div class="top3-cards-row">' +
+      cmTop3Html +
+    '</div>';
+
+  document.getElementById('cm-kpi').innerHTML = [
+    { label:'总营收', val:fmt.usd(DATA.level1.total_revenue) },
+    { label:'平均 Revenue/TEU', val:fmt.usd(DATA.level1.revenue_per_teu) },
+    { label:'船舶平均', val:fmt.usd(vesselAvg) },
+    { label:'POD 数量', val:pods.length },
+  ].map(i => '<div class="item"><span>' + i.label + ':</span><span class="val">' + i.val + '</span></div>').join('');
+
+  // 分区：中东 / 红海 / 其他
+  const mePods = pods.filter(d => ME_PODS.has((d['DEL Code']||'').toUpperCase()));
+  const rsPods = pods.filter(d => RS_PODS.has((d['DEL Code']||'').toUpperCase()));
+  const othPods = pods.filter(d => { const u=(d['DEL Code']||'').toUpperCase(); return !ME_PODS.has(u)&&!RS_PODS.has(u); });
+  function renderCmTbody(id,arr){const tb=document.getElementById(id);if(!tb)return;tb.innerHTML=[...arr].sort((a,b)=>(b.revenue_per_teu||0)-(a.revenue_per_teu||0)).map(d=>{const v=d.vs_vessel_pct||0,c=v>2?'positive':v<-2?'negative':'';const ar=v>2?'<span style="color:var(--positive);font-weight:700;font-size:14px;">▲</span>':v<-2?'<span style="color:var(--negative);font-weight:700;font-size:14px;">▼</span>':'<span style="color:var(--neutral);font-size:14px;">—</span>';const tx=v>0?'+'+v.toFixed(1)+'%':v===0?'0.0%':v.toFixed(1)+'%';const k=(d['DEL Code']||'').replace(/[^A-Z0-9]/g,'');return'<tr class="clickable" onclick="toggleRow(\'cm\',\''+k+'\')"><td><span class="arrow" id="cm-arrow-'+k+'">▶</span></td><td class="code">'+(d['DEL Code']||'')+'</td><td class="num">'+fmt.usd(d.revenue)+'</td><td class="num '+c+'"><strong>'+fmt.usd(d.revenue_per_teu)+'</strong></td><td class="num neutral">'+fmt.usd(d.vessel_revenue_per_teu)+'</td><td class="num '+c+'"><strong>'+ar+' '+tx+'</strong></td></tr><tr class="detail-row" id="cm-detail-'+k+'" style="display:none"><td colspan="6"><div class="detail-inner" id="cm-inner-'+k+'"></div></td></tr>';}).join('');}
+  renderCmTbody('cm-me-tbody',mePods);
+  renderCmTbody('cm-rs-tbody',rsPods);
+  renderCmTbody('cm-other-tbody',othPods);
+}
+
+function renderRevenueTop3() {
+  const vesselAvgRev = DATA.level1.total_revenue / DATA.level1.total_teu;
+  // Vessel avg PER_UNIT_OFT (单海运费价格/TEU): weighted from level3
+  let vesselOftSum = 0, vesselOftTeu = 0;
+  (DATA.level3||[]).forEach(r => {
+    if (r.avg_per_unit_oft > 0 && r.teu > 0) {
+      vesselOftSum += r.avg_per_unit_oft * r.teu;
+      vesselOftTeu += r.teu;
+    }
+  });
+  const vesselAvgOft = vesselOftTeu > 0 ? vesselOftSum / vesselOftTeu : 0;
+
+  function buildRegionPolRevenue(region) {
+    const polMap = {};
+    (DATA.level4||[]).forEach(r => {
+      const pol = r['POL Code']||'';
+      const pod = (r['DEL Code']||'').toUpperCase();
+      if (!pol || !pod) return;
+      const isTarget = region === 'me' ? ME_PODS.has(pod) : region === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
+      if (!isTarget) return;
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, avg_per_unit_oft:0, oftSum:0, oftTeu:0, vs_vessel_pct:0 };
+      polMap[pol].teu += r.Total_TEU||0;
+      polMap[pol].revenue += r.Revenue||0;
+      // Accumulate Avg_Per_Unit_OFT weighted by TEU
+      const oft = r.Avg_Per_Unit_OFT||0;
+      if (oft > 0) {
+        polMap[pol].oftSum += oft * (r.Total_TEU||0);
+        polMap[pol].oftTeu += r.Total_TEU||0;
+      }
+    });
+    Object.values(polMap).forEach(p => {
+      p.avg_per_unit_oft = p.oftTeu > 0 ? p.oftSum / p.oftTeu : 0;
+      p.vs_vessel_pct = vesselAvgOft > 0 ? (p.avg_per_unit_oft / vesselAvgOft - 1) * 100 : 0;
+    });
+    return Object.values(polMap).sort((a,b) => (b.avg_per_unit_oft||0)-(a.avg_per_unit_oft||0)).slice(0,3);
+  }
+
+  const mePolRev = buildRegionPolRevenue('me');
+  const rsPolRev = buildRegionPolRevenue('rs');
+  const othPolRev = buildRegionPolRevenue('oth');
+  const polRevMax = Math.max(
+    mePolRev[0]?.avg_per_unit_oft||0, rsPolRev[0]?.avg_per_unit_oft||0, othPolRev[0]?.avg_per_unit_oft||0
+  ) || 1;
+
+  function buildTop3RevCol(arr, regionLabel, regionClass) {
+    if (!arr.length) return '<div class="top3-card"><div class="top3-card-head region-' + regionClass + '">' + regionLabel + '</div><div style="padding:16px 14px;color:var(--text3);font-size:12px;text-align:center;">—</div></div>';
+    const max = polRevMax;
+    return '<div class="top3-card"><div class="top3-card-head region-' + regionClass + '">' + regionLabel + '</div>' +
+      arr.map((d,i) => {
+        const bw = max > 0 ? ((d.avg_per_unit_oft||0)/max*100) : 0;
+        const vsV = d.vs_vessel_pct||0;
+        return '<div class="top3-row">' +
+          '<div class="top3-rank">' + (i+1) + '</div>' +
+          '<div class="top3-info">' +
+            '<div class="top3-code">' + d.pol + '</div>' +
+            '<div class="top3-bar-wrap"><div class="top3-bar-track"><div class="top3-bar-fill" style="width:' + bw + '%"></div></div></div>' +
+          '</div>' +
+          '<div class="top3-metric">' +
+            '<div class="top3-teu">' + fmt.usd(d.avg_per_unit_oft) + '/TEU</div>' +
+            '<div class="top3-sub">' + fmt.usd(d.revenue) + ' · ' + fmt.teu(d.teu) + ' TEU · ' + badge(vsV) + '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+  }
+
+  // 动态拼接 Top3 卡片：只显示有数据的区域
+  var revTop3Html = '';
+  if (mePolRev.length) revTop3Html += buildTop3RevCol(mePolRev, '🌊 中东', 'me');
+  if (rsPolRev.length) revTop3Html += buildTop3RevCol(rsPolRev, '🔴 红海', 'rs');
+  if (othPolRev.length) revTop3Html += buildTop3RevCol(othPolRev, '⚪ 其他', 'other');
+
+  document.getElementById('top3-revenue-cards').innerHTML =
+    '<div class="top3-section-label">💵 单海运费价格/TEU 区域排名前三 — 装货港（按 PER_TEU_OFT 降序）</div>' +
+    '<div class="top3-cards-row">' +
+      revTop3Html +
+    '</div>';
+}
+
+function renderRevenueRegionCompare() {
+  const vesselAvgRev = DATA.level1.total_revenue / DATA.level1.total_teu;
+  // Vessel avg PER_UNIT_OFT (单海运费价格/TEU): weighted from level3
+  let vesselOftSum = 0, vesselOftTeu = 0;
+  (DATA.level3||[]).forEach(r => {
+    if (r.avg_per_unit_oft > 0 && r.teu > 0) {
+      vesselOftSum += r.avg_per_unit_oft * r.teu;
+      vesselOftTeu += r.teu;
+    }
+  });
+  const vesselAvgOft = vesselOftTeu > 0 ? vesselOftSum / vesselOftTeu : 0;
+
+  const fakData = DATA.fak_data || [];
+  const fakMap = {};
+  fakData.forEach(r => {
+    const key = r.POL + '|' + r.POD + '|' + r.Size;
+    fakMap[key] = r;
+  });
+
+  function getFak(pol, pod) {
+    let f = fakMap[pol+'|'+pod+'|40'] || fakMap[pol+'|'+pod+'|20'];
+    return f ? f.FAK : null;
+  }
+
+  function buildPolRows(regionKey) {
+    const polMap = {};
+    (DATA.level4||[]).forEach(r => {
+      const pol = r['POL Code']||'';
+      const pod = (r['DEL Code']||'').toUpperCase();
+      if (!pol || !pod) return;
+      const isTarget = regionKey === 'me' ? ME_PODS.has(pod) : regionKey === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
+      if (!isTarget) return;
+      if (!polMap[pol]) polMap[pol] = { pol, teu:0, revenue:0, fak20Sum:0, fak20Teu:0, fak40Sum:0, fak40Teu:0, oftSum:0, oftTeu:0, oft20Sum:0, oft20Teu:0, oft40Sum:0, oft40Teu:0 };
+      polMap[pol].teu += r.Total_TEU||0;
+      polMap[pol].revenue += r.Revenue||0;
+      // Accumulate Avg_Per_Unit_OFT weighted by TEU (for sorting & vs vessel)
+      const oft = r.Avg_Per_Unit_OFT||0;
+      if (oft > 0) {
+        polMap[pol].oftSum += oft * (r.Total_TEU||0);
+        polMap[pol].oftTeu += r.Total_TEU||0;
+      }
+      // 20' FAK weighted by TEU_20GP
+      const f20 = fakMap[pol+'|'+pod+'|20'];
+      if (f20 && f20.FAK > 0) {
+        const teu20 = r.TEU_20GP||0;
+        if (teu20 > 0) {
+          polMap[pol].fak20Sum += f20.FAK * teu20;
+          polMap[pol].fak20Teu += teu20;
+        }
+      }
+      // 40' FAK weighted by TEU_40HC
+      const f40 = fakMap[pol+'|'+pod+'|40'];
+      if (f40 && f40.FAK > 0) {
+        const teu40 = r.TEU_40HC||0;
+        if (teu40 > 0) {
+          polMap[pol].fak40Sum += f40.FAK * teu40;
+          polMap[pol].fak40Teu += teu40;
+        }
+      }
+    });
+    // 从 level5 聚合 20'/40' 单海运费价格
+    (DATA.level5||[]).forEach(r => {
+      const pol = r.POL_CD || '';
+      const pod = (r.DEL_CD || '').toUpperCase();
+      if (!pol || !pod) return;
+      const isTarget = regionKey === 'me' ? ME_PODS.has(pod) : regionKey === 'rs' ? RS_PODS.has(pod) : (!ME_PODS.has(pod) && !RS_PODS.has(pod));
+      if (!isTarget) return;
+      if (!polMap[pol]) return;
+      const oft20 = r.Per_Unit_OFT_20 || 0;
+      const teu20 = r.TEU_20 || 0;
+      if (oft20 > 0 && teu20 > 0) {
+        polMap[pol].oft20Sum += oft20 * teu20;
+        polMap[pol].oft20Teu += teu20;
+      }
+      const oft40 = r.Per_Unit_OFT_40 || 0;
+      const teu40 = r.TEU_40 || 0;
+      if (oft40 > 0 && teu40 > 0) {
+        polMap[pol].oft40Sum += oft40 * teu40;
+        polMap[pol].oft40Teu += teu40;
+      }
+    });
+    Object.values(polMap).forEach(p => {
+      p.avgPerUnitOft = p.oftTeu > 0 ? p.oftSum / p.oftTeu : 0;
+      p.avgOft20 = p.oft20Teu > 0 ? p.oft20Sum / p.oft20Teu : 0;
+      p.avgOft40 = p.oft40Teu > 0 ? p.oft40Sum / p.oft40Teu : 0;
+      p.avgFak20 = p.fak20Teu > 0 ? p.fak20Sum / p.fak20Teu : null;
+      p.avgFak40 = p.fak40Teu > 0 ? p.fak40Sum / p.fak40Teu : null;
+    });
+    // Sort by avgPerUnitOft (单海运费价格/TEU) descending
+    return Object.values(polMap).sort((a,b) => (b.avgPerUnitOft||0)-(a.avgPerUnitOft||0));
+  }
+
+  function renderPolTable(tbodyId, pols) {
+    const tb = document.getElementById(tbodyId);
+    if (!tb) return;
+    tb.innerHTML = pols.map(p => {
+      const avgOft = p.avgPerUnitOft;
+      const vsV = vesselAvgOft > 0 ? (avgOft / vesselAvgOft - 1) * 100 : 0;
+      const cls = vsV > 2 ? 'positive' : vsV < -2 ? 'negative' : '';
+      const arrowHtml = vsV > 2
+        ? '<span style="color:var(--positive);font-weight:700;font-size:13px;">▲</span>'
+        : vsV < -2
+        ? '<span style="color:var(--negative);font-weight:700;font-size:13px;">▼</span>'
+        : '<span style="color:var(--neutral);font-size:13px;">—</span>';
+      const vsText = vsV > 0 ? '+' + vsV.toFixed(1) + '%' : vsV === 0 ? '0.0%' : vsV.toFixed(1) + '%';
+      const oft20Html = p.avgOft20 > 0 ? fmt.usd(p.avgOft20) : '—';
+      const oft40Html = p.avgOft40 > 0 ? fmt.usd(p.avgOft40) : '—';
+      const fak20Html = p.avgFak20 !== null ? fmt.usd(p.avgFak20) : '—';
+      const fak40Html = p.avgFak40 !== null ? fmt.usd(p.avgFak40) : '—';
+      return '<tr><td class="code">' + p.pol + '</td>' +
+        '<td class="num">' + oft20Html + '</td>' +
+        '<td class="num">' + oft40Html + '</td>' +
+        '<td class="num">' + fmt.usd(p.revenue) + '</td>' +
+        '<td class="num">' + fmt.teu(p.teu) + '</td>' +
+        '<td class="num" style="color:#b45309;">' + fak20Html + '</td>' +
+        '<td class="num" style="color:#b45309;">' + fak40Html + '</td>' +
+        '<td class="num ' + cls + '">' + arrowHtml + ' ' + vsText + '</td></tr>';
+    }).join('');
+  }
+
+  renderPolTable('revenue-me-tbody', buildPolRows('me'));
+  renderPolTable('revenue-rs-tbody', buildPolRows('rs'));
+  renderPolTable('revenue-oth-tbody', buildPolRows('oth'));
+}
+
+
+
+function renderCMDetail(podCode) {
+  const rows = DATA.level4.filter(r => (r['DEL Code']||'') === podCode);
+  if (!rows.length) return;
+  const max = Math.max(...rows.map(r => r.Revenue_Per_TEU||0), 1);
+  const inner = document.getElementById('cm-inner-' + podCode);
+  if (!inner) return;
+  inner.innerHTML = '<table><thead><tr><th>POL</th><th class="num">Revenue/TEU</th><th class="num">REVENUE</th><th class="num">TEU</th><th>vs 整船平均单海运费价格</th></tr></thead><tbody>' +
+    rows.map(r => {
+      const vsV = r.vs_Vessel_Pct||0;
+      const cls = vsV > 2 ? 'positive' : vsV < -2 ? 'negative' : '';
+      const arrowHtml = vsV > 2
+        ? '<span style="color:var(--positive);font-weight:700;font-size:13px;">▲</span>'
+        : vsV < -2
+        ? '<span style="color:var(--negative);font-weight:700;font-size:13px;">▼</span>'
+        : '<span style="color:var(--neutral);font-size:13px;">—</span>';
+      const vsText = vsV > 0 ? '+' + vsV.toFixed(1) + '%' : vsV === 0 ? '0.0%' : vsV.toFixed(1) + '%';
+      return '<tr><td class="code">' + (r['POL Code']||'') + '</td>' +
+        '<td class="num ' + cls + '"><strong>' + fmt.usd(r.Revenue_Per_TEU) + '</strong></td>' +
+        '<td class="num">' + fmt.usd(r.Revenue) + '</td>' +
+        '<td class="num">' + fmt.teu(r.Total_TEU) + '</td>' +
+        '<td class="num ' + cls + '">' + arrowHtml + ' ' + vsText + '</td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+function toggleRow(section, k) {
+  const detail = document.getElementById(section + '-detail-' + k);
+  const arrow = document.getElementById(section + '-arrow-' + k);
+  if (!detail) return;
+  if (detail.style.display === 'none') {
+    if (section === 'teu') renderTEUDetail(k);
+    if (section === 'cm') renderCMDetail(k);
+
+    detail.style.display = '';
+    if (arrow) arrow.classList.add('open');
+  } else {
+    detail.style.display = 'none';
+    if (arrow) arrow.classList.remove('open');
+  }
+}
+
+function toggleShipperOrder() {
+  const btn = document.getElementById('shipper-order-toggle');
+  const current = btn ? (btn.dataset.mode || 'top') : 'top';
+  const next = current === 'top' ? 'bottom' : 'top';
+  if (btn) {
+    btn.dataset.mode = next;
+    btn.textContent = next === 'top' ? '查看倒序' : '查看TOP';
+  }
+  renderShippers();
+}
+
+function renderShippers() {
+  const podFilterVal = document.getElementById('pod-filter').value;
+
+  // Build & populate POD dropdown
+  const podSelect = document.getElementById('pod-filter');
+  const savedPodVal = podSelect.value;
+  podSelect.innerHTML = '<option value="all">全部 POD</option>';
+  if (DATA.level5 && DATA.level5.length > 0) {
+    const podSet = [...new Set(DATA.level5.map(d => d['DEL Code']||''))].filter(Boolean).sort();
+    podSet.forEach(p => podSelect.add(new Option(p, p)));
+  }
+  if ([...podSelect.options].some(o => o.value === savedPodVal)) {
+    podSelect.value = savedPodVal;
+  } else {
+    podSelect.value = 'all';
+  }
+
+  // Build & populate shipper dropdown (always rebuild to ensure it reflects current data)
+  const shipperSelect = document.getElementById('shipper-filter');
+  const savedShipperVal = shipperSelect.value; // remember selection
+  shipperSelect.innerHTML = '<option value="top10">TOP10（按TEU）</option><option value="all">全部货代</option>';
+  if (DATA.level5 && DATA.level5.length > 0) {
+    const shipperNames = [...new Set(DATA.level5.map(d => d.Shipper||'').filter(Boolean))].sort();
+    shipperNames.forEach(s => shipperSelect.add(new Option(s, s)));
+    console.log('[DEBUG] shipper names loaded:', shipperNames.length, 'options added');
+  } else {
+    console.warn('[DEBUG] DATA.level5 is empty or missing, cannot populate shipper dropdown');
+  }
+  // Restore selection only if user previously picked a specific shipper (not system defaults 'all' or 'top10')
+  const systemDefaults = new Set(['all', 'top10']);
+  if (!systemDefaults.has(savedShipperVal) && savedShipperVal) {
+    shipperSelect.value = savedShipperVal;
+  } else {
+    shipperSelect.value = 'top10';
+  }
+  const shipperFilterVal = shipperSelect.value; // read AFTER dropdown is rebuilt
+  console.log('[DEBUG] shipper dropdown options after render:', shipperSelect.options.length, '| value:', shipperSelect.value);
+
+  const allRows = DATA.level5 || [];
+
+  // --- Aggregate: group rows by shipper name
+  const aggMap = {};
+  allRows.forEach(d => {
+    const name = d.Shipper||'';
+    if (!name) return;
+    if (!aggMap[name]) aggMap[name] = { name, teu:0, TotalC:0, rows:[], routes:0 };
+    aggMap[name].teu += d.TEU||0;
+    aggMap[name].TotalC += d.Revenue||0;
+    aggMap[name].routes += 1;
+    aggMap[name].rows.push(d);
+  });
+  Object.values(aggMap).forEach(m => {
+    m.Revenue_Per_TEU = m.teu > 0 ? m.TotalC / m.teu : 0;
+    // Per-row TEU for bar scaling
+    m.maxTeuPerRow = Math.max(...m.rows.map(r => r.TEU||0));
+  });
+
+  // 按单海运费价格排序（默认降序，倒数模式升序）
+  const orderToggle = document.getElementById('shipper-order-toggle');
+  const orderMode = orderToggle ? (orderToggle.dataset.mode || 'top') : 'top';
+  const sortedAgg = Object.values(aggMap).sort((a,b) => {
+    const diff = (b.Revenue_Per_TEU||0) - (a.Revenue_Per_TEU||0);
+    return orderMode === 'bottom' ? -diff : diff;
+  });
+
+  // displayAgg = 全部货代（不全局切片，各区域独立取前10/后10）
+  let displayAgg = sortedAgg;
+  // 仅当筛选单个货代时切片
+  if (shipperFilterVal !== 'all' && shipperFilterVal !== 'top10') {
+    displayAgg = sortedAgg.filter(m => m.name === shipperFilterVal);
+  }
+
+  // hasFinancial：是否显示金额列
+  const hasFinancial = displayAgg.some(m => m.TotalC > 0);
+
+  // Build POD avg map from level5 (avg_per_unit_oft per POD)
+  const podAvgMap = {};
+  (DATA.level5||[]).forEach(r => {
+    const pod = r['DEL_CD']||'';
+    if (!pod) return;
+    const teu = r['TEU']||0;
+    const teu20 = r['TEU_20']||0;
+    const teu40 = r['TEU_40']||0;
+    const oft20 = r['Per_Unit_OFT_20']||0;
+    const oft40 = r['Per_Unit_OFT_40']||0;
+    if (!podAvgMap[pod]) podAvgMap[pod] = { sum:0, teu:0 };
+    if (oft20 > 0 && teu20 > 0) { podAvgMap[pod].sum += oft20 * teu20; podAvgMap[pod].teu += teu20; }
+    if (oft40 > 0 && teu40 > 0) { podAvgMap[pod].sum += (oft40 / 2) * teu40; podAvgMap[pod].teu += teu40; }
+  });
+  Object.keys(podAvgMap).forEach(pod => {
+    const d = podAvgMap[pod];
+    podAvgMap[pod] = d.teu > 0 ? d.sum / d.teu : 0;
+  });
+  const vesselAvg = DATA.level1.vessel_avg_revenue_per_teu || 1;
+
+  // --- 区域分组：按 POD 区域聚合货代 → 每个区域一个区块（TOP 货代按单海运费价格排序）
+  const regionGroupMap = {};
+  displayAgg.forEach(m => {
+    // 找出该货代最常出现的 POD，用其区域
+    let bestRegion = '';
+    if (m.rows && m.rows.length > 0) {
+      const podCount = {};
+      m.rows.forEach(r => {
+        const pod = r['DEL_CD']||'';
+        const reg = getRegion(pod);
+        if (!podCount[reg]) podCount[reg] = { reg, count: 0, teu: 0, TotalC: 0 };
+        podCount[reg].count++;
+        podCount[reg].teu += r.TEU||0;
+        podCount[reg].TotalC += r.Revenue||0;
+      });
+      const sorted = Object.values(podCount).sort((a,b) => b.count - a.count);
+      bestRegion = sorted[0] ? sorted[0].reg : '';
+    }
+    if (!bestRegion) bestRegion = '【其他】';
+    if (!regionGroupMap[bestRegion]) regionGroupMap[bestRegion] = [];
+    regionGroupMap[bestRegion].push(m);
+  });
+
+  // 区块顺序：红海 → 中东
+  const REGION_ORDER = ['【红海】','【中东】'];
+  const orderedRegions = REGION_ORDER.filter(r => regionGroupMap[r]).concat(
+    Object.keys(regionGroupMap).filter(r => !REGION_ORDER.includes(r))
+  );
+
+  // 全部货代的TEU总量（用于各区域的百分比计算）
+  const totalAllTeu = Object.values(aggMap).reduce((s,m) => s+(m.teu||0), 0);
+
+  // 各区域内独立排序、各取前10/倒序10、排名各区域独立从1开始
+  const displayItems = [];
+  orderedRegions.forEach(region => {
+    let shippers = regionGroupMap[region];
+    // 该区域内按 Revenue/TEU 排序（TOP降序，倒序升序）
+    shippers.sort((a,b) => {
+      const diff = (b.Revenue_Per_TEU||0) - (a.Revenue_Per_TEU||0);
+      return orderMode === 'bottom' ? -diff : diff;
+    });
+    // 取前10或全部（不足10家则全展示）
+    shippers = shippers.slice(0, 10);
+    // 区域内排名从1开始
+    const regionTeu = shippers.reduce((s,m) => s+(m.teu||0), 0);
+    const regionC = shippers.reduce((s,m) => s+(m.TotalC||0), 0);
+    const hasF = shippers.some(m => m.TotalC > 0);
+    const teuPct = totalAllTeu > 0 ? (regionTeu/totalAllTeu*100).toFixed(1) : '0.0';
+    const cText = hasF ? fmt.usd(regionC) + ' · ' : '';
+    displayItems.push({ type: 'header', region, teu: regionTeu, TotalC: regionC, shipperCount: shippers.length,
+      label: region + ' (' + shippers.length + ' 货代 · ' + teuPct + '% · ' + cText + fmt.teu(regionTeu) + ')' });
+    shippers.forEach((m, idx) => {
+      displayItems.push({ type: 'row', m, globalRank: idx + 1, regionMaxTeu: Math.max(...shippers.map(s=>s.teu||0), 1),
+        regionMaxPerTeu: Math.max(...shippers.map(s=>s.Revenue_Per_TEU||0), 1) });
+    });
+  });
+
+  // Build dynamic header
+  let thCols = [
+    { label:'#', style:'width:32px;' },
+    { label:'货代', style:'' },
+  ];
+  if (hasFinancial) {
+    thCols.push({ label:'Revenue/TEU', style:'text-align:right;' });
+    thCols.push({ label:'vs 口岸均', style:'text-align:right;' });
+    thCols.push({ label:'vs 整船均', style:'text-align:right;' });
+    thCols.push({ label:'REVENUE USD', style:'text-align:right;' });
+  }
+  thCols.push({ label:'TEU', style:'text-align:right;' });
+  thCols.push({ label:'占比', style:'text-align:right;' });
+  thCols.push({ label:'航段', style:'text-align:center;' });
+
+  const theadRow = document.getElementById('shipper-thead-row');
+  theadRow.innerHTML = thCols.map(c =>
+    '<th style="' + (c.style||'') + '">' + c.label + '</th>'
+  ).join('');
+
+  // Build rows
+  document.getElementById('shipper-tbody').innerHTML = displayItems.map(item => {
+    if (item.type === 'header') {
+      // 区域标题行：中东=蓝色，红海=绿色
+      const isME = (item.region||'').includes('中东');
+      const bgColor = isME ? '#1a6bb5' : '#0d6e3e';
+      return '<tr class="region-header-row">' +
+        '<td colspan="' + thCols.length + '" style="background:' + bgColor + ';color:#fff;padding:6px 10px;font-size:12px;font-weight:700;letter-spacing:0.5px;">' +
+        '▌ ' + item.label + '</td></tr>';
+    }
+    const m = item.m;
+    const i = item.globalRank - 1;
+    const globalRank = item.globalRank;
+    const pct = totalAllTeu > 0 ? (m.teu/totalAllTeu*100).toFixed(1) : 0;
+    const regionMaxTeu = item.regionMaxTeu || 1;
+    const regionMaxPerTeu = item.regionMaxPerTeu || 1;
+    const teuBarW = (m.teu||0) / regionMaxTeu * 100;
+    const perTeuBarW = (m.Revenue_Per_TEU||0) / regionMaxPerTeu * 100;
+    const isTop = globalRank <= 3;
+
+    // vs 整船均
+    const vsV = vesselAvg > 0 ? ((m.Revenue_Per_TEU/vesselAvg)-1)*100 : null;
+
+    // vs 口岸均：计算该货代各航段的加权口岸均
+    let weightedPodAvg = 0;
+    if (m.rows && m.rows.length > 0) {
+      const totalRowsTeu = m.rows.reduce((s,r) => s+(r.TEU||0), 0);
+      if (totalRowsTeu > 0) {
+        weightedPodAvg = m.rows.reduce((s,r) => {
+          const podAvg = podAvgMap[r['DEL_CD']] || 0;
+          return s + podAvg * (r.TEU||0);
+        }, 0) / totalRowsTeu;
+      }
+    }
+    const vsPodPct = weightedPodAvg > 0 ? ((m.Revenue_Per_TEU/weightedPodAvg)-1)*100 : null;
+
+    const rankStyle = isTop
+      ? 'font-size:13px;font-weight:700;color:' + (globalRank===1?'#b45309':globalRank===2?'#6b7280':'#92400e') + ';'
+      : 'font-size:12px;color:var(--text3);';
+
+    let cells = [
+      '<td class="num" style="' + rankStyle + '">' + globalRank + '</td>',
+      '<td class="shipper" title="' + m.name + '" style="font-weight:' + (isTop?'700':'500') + ';color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + m.name + '</td>',
+    ];
+    if (hasFinancial) {
+      cells.push('<td class="num accent"><strong>' + fmt.usd(m.Revenue_Per_TEU) + '</strong></td>');
+      cells.push('<td class="num ' + (vsPodPct===null?'':vsPodPct>2?'positive':vsPodPct<-2?'negative':'') + '">' + (vsPodPct===null?'—':badge(vsPodPct)) + '</td>');
+      cells.push('<td class="num ' + (vsV===null?'':vsV>2?'positive':vsV<-2?'negative':'') + '">' + (vsV===null?'—':badge(vsV)) + '</td>');
+      cells.push('<td class="num" style="font-size:12px;">' + fmt.usd(m.TotalC) + '</td>');
+    }
+    cells.push('<td class="num"><strong>' + fmt.teu(m.teu) + '</strong></td>');
+    cells.push('<td class="num">' + pct + '%</td>');
+    cells.push('<td class="num neutral" style="text-align:center;cursor:pointer;color:var(--accent);font-weight:700;" onclick="toggleShipperRow(\'' + encodeURIComponent(m.name) + '\')" title="点击展开航段明细"><span id="shipper-arrow-' + encodeURIComponent(m.name) + '" class="arrow">▶</span>' + m.routes + ' 个航段</td>');
+    // FAK vs OFT comparison: look up each route in DATA.fak_data
+    return '<tr class="clickable" onclick="toggleShipperRow(\'' + encodeURIComponent(m.name) + '\')">' + cells.join('') + '</tr>' +
+           '<tr class="detail-row" id="shipper-detail-' + encodeURIComponent(m.name) + '" style="display:none"><td colspan="' + thCols.length + '"><div class="detail-inner" id="shipper-inner-' + encodeURIComponent(m.name) + '"></div></td></tr>';
+  }).join('');
+}
+
+function renderShipperTop3(allRows, hasFinancial) {
+  // Aggregate by shipper name: sum TEU, sum TotalC, avg C_Per_TEU (weighted), count routes
+  const map = {};
+  allRows.forEach(d => {
+    const name = d.Shipper||'';
+    if (!name) return;
+    if (!map[name]) map[name] = { name, teu:0, TotalC:0, routes:0, podRegions:{} };
+    map[name].teu += d.TEU||0;
+    map[name].TotalC += d.Revenue||0;
+    map[name].routes += 1;
+    const pod = d['DEL_CD']||'';
+    const reg = getRegion(pod);
+    if (reg) map[name].podRegions[reg] = (map[name].podRegions[reg]||0) + (d.TEU||0);
+  });
+  Object.values(map).forEach(m => {
+    m.Revenue_Per_TEU = m.teu > 0 ? m.TotalC / m.teu : 0;
+    // Dominant region: pick region with highest TEU
+    const sortedRegs = Object.entries(m.podRegions).sort((a,b) => b[1]-a[1]);
+    m.dominantRegion = sortedRegs[0] ? sortedRegs[0][0] : '';
+  });
+
+  // Split into 中东 / 红海 / 其他 三个区块
+  const meShippers = Object.values(map).filter(m => m.dominantRegion === '【中东】');
+  const rsShippers = Object.values(map).filter(m => m.dominantRegion === '【红海】');
+  const otherShippers = Object.values(map).filter(m =>
+    m.dominantRegion && m.dominantRegion !== '【中东】' && m.dominantRegion !== '【红海】'
+  );
+
+  const vesselAvg = DATA.level1.vessel_avg_revenue_per_teu || 1;
+
+  function renderTop3Group(shippers, label, color) {
+    if (!shippers.length) return '';
+    const top3 = [...shippers].sort((a,b) => (b.teu||0)-(a.teu||0)).slice(0,3);
+    const topMax = top3[0] ? top3[0].teu||1 : 1;
+    return '<div style="margin-bottom:16px;">' +
+      '<div class="top3-section-label" style="color:' + color + ';">' + label + '</div>' +
+      '<div class="top3-cards-row">' +
+      top3.map((m,i) => {
+        const rank = ['r1','r2','r3'][i];
+        const bw = topMax > 0 ? ((m.teu||0)/topMax*100) : 0;
+        const vsV = vesselAvg > 0 ? ((m.Revenue_Per_TEU/vesselAvg)-1)*100 : null;
+        const teuText = hasFinancial && m.TotalC > 0
+          ? fmt.usd(m.Revenue_Per_TEU) + '/TEU · ' + fmt.teu(m.teu) + ' TEU'
+          : fmt.teu(m.teu) + ' TEU';
+        const subText = hasFinancial && m.TotalC > 0
+          ? fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段 · ' + badge(vsV)
+          : m.routes + ' 段';
+        return '<div class="top3-card">' +
+          '<div class="top3-card-head" style="background:' + color + ';color:#fff;">#' + (i+1) + ' ' + label + '</div>' +
+          '<div class="top3-row" style="flex-direction:column;align-items:flex-start;gap:5px;">' +
+            '<div style="display:flex;align-items:center;gap:10px;width:100%;">' +
+              '<div class="top3-rank ' + rank + '">' + (i+1) + '</div>' +
+              '<div class="top3-code" style="font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + m.name + '</div>' +
+            '</div>' +
+            '<div class="top3-bar-wrap" style="width:100%;padding-left:30px;">' +
+              '<div class="top3-bar-track"><div class="top3-bar-fill" style="width:' + bw + '%;background:' + color + ';"></div></div>' +
+            '</div>' +
+            '<div style="padding-left:30px;font-size:11px;color:var(--text2);">' +
+              teuText + ' · ' + subText +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div></div>';
+  }
+
+  const meHtml = renderTop3Group(meShippers, '中东', '#1a6bb5');
+  const rsHtml = renderTop3Group(rsShippers, '红海', '#0d6e3e');
+  const otherHtml = renderTop3Group(otherShippers, '其他', '#5f6368');
+
+  document.getElementById('top3-shipper-cards').innerHTML = meHtml + rsHtml + otherHtml;
+}
+
+function renderShipperSummary() {
+  // Same aggregation as renderShipperTop3 but render into top3-shipper-summary
+  const allRows = DATA.level5 || [];
+  const map = {};
+  allRows.forEach(d => {
+    const name = d.Shipper||'';
+    if (!name) return;
+    if (!map[name]) map[name] = { name, teu:0, TotalC:0, routes:0, podRegions:{} };
+    map[name].teu += d.TEU||0;
+    map[name].TotalC += d.Revenue||0;
+    map[name].routes += 1;
+    const pod = d['DEL_CD']||'';
+    const reg = getRegion(pod);
+    if (reg) map[name].podRegions[reg] = (map[name].podRegions[reg]||0) + (d.TEU||0);
+  });
+  Object.values(map).forEach(m => {
+    m.Revenue_Per_TEU = m.teu > 0 ? m.TotalC / m.teu : 0;
+    const sortedRegs = Object.entries(m.podRegions).sort((a,b) => b[1]-a[1]);
+    m.dominantRegion = sortedRegs[0] ? sortedRegs[0][0] : '';
+  });
+
+  const meShippers = Object.values(map).filter(m => m.dominantRegion === '【中东】');
+  const rsShippers = Object.values(map).filter(m => m.dominantRegion === '【红海】');
+  const otherShippers = Object.values(map).filter(m =>
+    m.dominantRegion && m.dominantRegion !== '【中东】' && m.dominantRegion !== '【红海】'
+  );
+
+  const vesselAvg = DATA.level1.vessel_avg_revenue_per_teu || 1;
+  const hasFinancial = true;
+
+  function renderTop3GroupCompact(shippers, label, color) {
+    if (!shippers.length) return '';
+    const top3 = [...shippers].sort((a,b) => (b.teu||0)-(a.teu||0)).slice(0,3);
+    const topMax = top3[0] ? top3[0].teu||1 : 1;
+    return '<div style="margin-bottom:12px;">' +
+      '<div class="top3-section-label" style="color:' + color + ';font-size:11px;margin-bottom:4px;">' + label + '</div>' +
+      '<div class="top3-cards-row">' +
+      top3.map((m,i) => {
+        const rank = ['r1','r2','r3'][i];
+        const bw = topMax > 0 ? ((m.teu||0)/topMax*100) : 0;
+        const vsV = vesselAvg > 0 ? ((m.Revenue_Per_TEU/vesselAvg)-1)*100 : null;
+        const teuText = hasFinancial && m.TotalC > 0
+          ? fmt.usd(m.Revenue_Per_TEU) + '/TEU · ' + fmt.teu(m.teu) + ' TEU'
+          : fmt.teu(m.teu) + ' TEU';
+        const subText = hasFinancial && m.TotalC > 0
+          ? fmt.usd(m.TotalC) + ' · ' + m.routes + ' 段 · ' + badge(vsV)
+          : m.routes + ' 段';
+        return '<div class="top3-card">' +
+          '<div class="top3-card-head" style="background:' + color + ';color:#fff;font-size:9px;">#' + (i+1) + ' ' + label + '</div>' +
+          '<div class="top3-row" style="flex-direction:column;align-items:flex-start;gap:4px;">' +
+            '<div style="display:flex;align-items:center;gap:8px;width:100%;">' +
+              '<div class="top3-rank ' + rank + '" style="font-size:14px;">' + (i+1) + '</div>' +
+              '<div class="top3-code" style="font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + m.name + '</div>' +
+            '</div>' +
+            '<div class="top3-bar-wrap" style="width:100%;padding-left:26px;">' +
+              '<div class="top3-bar-track"><div class="top3-bar-fill" style="width:' + bw + '%;background:' + color + ';"></div></div>' +
+            '</div>' +
+            '<div style="padding-left:26px;font-size:10px;color:var(--text2);">' +
+              teuText + ' · ' + subText +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div></div>';
+  }
+
+  const meHtml = renderTop3GroupCompact(meShippers, '中东', '#1a6bb5');
+  const rsHtml = renderTop3GroupCompact(rsShippers, '红海', '#0d6e3e');
+  const otherHtml = renderTop3GroupCompact(otherShippers, '其他', '#5f6368');
+
+  document.getElementById('top3-shipper-summary').innerHTML =
+    '<div class="top3-section-label" style="font-size:12px;">🏢 TOP 货代 — 按 TEU 降序（按区域分组）</div>' +
+    meHtml + rsHtml + otherHtml;
+}
+
+function toggleShipperRow(name) {
+  // onclick 传入的 name 已经是 encodeURIComponent 编码后的字符串，直接用
+  const k = name;
+  const detail = document.getElementById('shipper-detail-' + k);
+  const arrow = document.getElementById('shipper-arrow-' + k);
+  if (!detail) return;
+  if (detail.style.display === 'none') {
+    renderShipperDetail(name);
+    detail.style.display = '';
+    if (arrow) arrow.classList.add('open');
+  } else {
+    detail.style.display = 'none';
+    if (arrow) arrow.classList.remove('open');
+  }
+}
+
+// Improved shipper detail with route display (grouped by POL→POD) + FAK comparison
+function renderShipperDetail(name) {
+  const allRows = DATA.level5 || [];
+  const vesselAvg = DATA.level1.vessel_avg_revenue_per_teu || 1;
+  const decodedName = decodeURIComponent(name);
+  const rows = allRows.filter(d => (d.Shipper||'') === decodedName);
+  const maxTeu = Math.max(...rows.map(r => r.TEU||0), 1);
+  const inner = document.getElementById('shipper-inner-' + name);
+  if (!inner) return;
+
+  // Build FAK lookup map
+  const fakMap = {};
+  (DATA.fak_data||[]).forEach(r => {
+    const key = r.POL + '|' + r.POD + '|' + r.Size;
+    fakMap[key] = r;
+  });
+
+  // Group by route (POL → POD)
+  const routeMap = {};
+  rows.forEach(r => {
+    const pol = r['POL_CD'] || '';
+    const pod = r['DEL_CD'] || '';
+    const key = pol + '→' + pod;
+    if (!routeMap[key]) {
+      routeMap[key] = { pol, pod, teu: 0, rows: [] };
+    }
+    routeMap[key].teu += r.TEU || 0;
+    routeMap[key].rows.push(r);
+  });
+  const routes = Object.values(routeMap);
+  const totalTeu = routes.reduce((s, r) => s + r.teu, 0);
+  const maxRouteTeu = Math.max(...routes.map(r => r.teu), 1);
+
+  inner.innerHTML = '<div style="margin-bottom:10px;font-size:11px;color:var(--text2);">' +
+    '<strong>航段明细</strong> — 共 ' + routes.length + ' 个航段，总计 ' + fmt.teu(totalTeu) + ' TEU' +
+    '</div>' +
+    '<table style="min-width:700px;"><thead><tr>' +
+    '<th>航段</th>' +
+    '<th class="num">TEU</th>' +
+    '<th class="num">占货代比例</th>' +
+    '<th class="num">FAK 基准</th>' +
+    '<th class="num">实际 OFT</th>' +
+    '<th class="num" style="color:#b45309;background:#fff8e1;">占 FAK % (单海运费价格)</th>' +
+    '<th class="num">差异</th>' +
+    '<th>TEU 分布</th>' +
+    '</tr></thead><tbody>' +
+    routes.map(r => {
+      const pct = totalTeu > 0 ? (r.teu / totalTeu * 100).toFixed(1) : 0;
+      const w = maxRouteTeu > 0 ? (r.teu / maxRouteTeu * 100) : 0;
+      const routeStr = r.pol + ' → ' + r.pod;
+      const key40 = r.pol + '|' + r.pod + '|40';
+      const key20 = r.pol + '|' + r.pod + '|20';
+      const fak = fakMap[key40] || fakMap[key20];
+      let fakCell = '<span style="color:var(--text3);">—</span>';
+      let oftCell = '<span style="color:var(--text3);">—</span>';
+      let diffCell = '<span style="color:var(--text3);">—</span>';
+      let fakPctCell = '<span style="color:var(--text3);">—</span>';
+      if (fak) {
+        const diff = fak.Diff||0;
+        const diffColor = diff > 0 ? 'var(--positive)' : diff < 0 ? 'var(--negative)' : 'var(--neutral)';
+        const diffStr = diff >= 0 ? '+' + Math.round(diff) : '' + Math.round(diff);
+        const hasData = fak.OFT_Avg > 0 && fak.Count > 0;
+        fakCell = '$' + Math.round(fak.FAK).toLocaleString('en-US');
+        oftCell = hasData ? '$' + Math.round(fak.OFT_Avg).toLocaleString('en-US') : '—';
+        diffCell = hasData ? '<span style="color:' + diffColor + ';font-weight:700;">' + diffStr + '</span>' : '—';
+        const ofp = hasData && fak.FAK > 0 ? (fak.OFT_Avg / fak.FAK * 100) : null;
+        if (ofp !== null) {
+          const pc = ofp >= 80 ? '#0d6e3e' : ofp >= 60 ? '#b45309' : '#c0392b';
+          const pb = ofp >= 80 ? '#e6f4ed' : ofp >= 60 ? '#fff8e1' : '#fce8e6';
+          fakPctCell = '<span style="background:' + pb + ';color:' + pc + ';font-weight:700;padding:2px 7px;border-radius:8px;">' + ofp.toFixed(1) + '%</span>';
+        }
+      }
+      return '<tr>' +
+        '<td class="code" style="font-size:13px;font-weight:700;color:var(--accent);">' + routeStr + '</td>' +
+        '<td class="num accent"><strong>' + fmt.teu(r.teu) + '</strong></td>' +
+        '<td class="num">' + pct + '%</td>' +
+        '<td class="num">' + fakCell + '</td>' +
+        '<td class="num">' + oftCell + '</td>' +
+        '<td class="num" style="background:#fffbf0;">' + fakPctCell + '</td>' +
+        '<td class="num">' + diffCell + '</td>' +
+        '<td><div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:' + w + '%"></div></div><span class="bar-label">' + fmt.teu(r.teu) + '</span></div></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+// Chinese: update generated time label
+const origRenderAll = renderAll;
+renderAll = function() {
+  origRenderAll.call(this);
+  document.getElementById('generated-time').textContent = '生成时间：' + DATA.generated;
+};
+
+// 中东 POD 列表
+const ME_PODS = new Set(['AEJEA','AEKLF','OMSOH','AESCT','SADMM','SARUH']);
+// 红海 POD 列表
+const RS_PODS = new Set(['SAJED','SDPZU','EGSOK','YEADE','DJJIB','JOAQJ']);
+// 区域标签映射（用于货代分组）
+const POD_REGION_MAP = {
+  'AEJEA':'中东', 'AEKLF':'中东', 'OMSOH':'中东', 'AESCT':'中东', 'SADMM':'中东', 'SARUH':'中东',
+  'SAJED':'红海', 'SDPZU':'红海', 'EGSOK':'红海', 'YEADE':'红海', 'DJJIB':'红海', 'JOAQJ':'红海'
+};
+
+// 根据 level4 数据，判断某 POL 所属区域（以 TEU 最大的 POD 所在区域为准）
+function getPolRegion(pol) {
+  const rows = DATA.level4.filter(r => (r['POL Code']||'') === (pol['POL Code']||''));
+  if (!rows.length) return '';
+  let meTeu = 0, rsTeu = 0;
+  rows.forEach(r => {
+    const pod = (r['DEL Code']||'').toUpperCase();
+    if (ME_PODS.has(pod)) meTeu += r.Total_TEU||0;
+    if (RS_PODS.has(pod)) rsTeu += r.Total_TEU||0;
+  });
+  if (meTeu >= rsTeu) return 'me';
+  return 'rs';
+}
+
+function renderPOLRank() {
+  const vesselAvgRev = DATA.level1.vessel_avg_revenue_per_teu;
+  const totalTeu = DATA.level1.total_teu || 1;
+
+  // Vessel avg PER_UNIT_OFT (单海运费价格/TEU) from level3
+  let vesselOftSum = 0, vesselOftTeu = 0;
+  (DATA.level3||[]).forEach(r => {
+    if (r.avg_per_unit_oft > 0 && r.teu > 0) {
+      vesselOftSum += r.avg_per_unit_oft * r.teu;
+      vesselOftTeu += r.teu;
+    }
+  });
+  const vesselAvgOft = vesselOftTeu > 0 ? vesselOftSum / vesselOftTeu : 0;
+
+  // Build POL base from level3 (includes avg_per_unit_oft)
+  const polBase = {};
+  (DATA.level3||[]).forEach(d => {
+    polBase[d['POL Code']] = {
+      pol: d['POL Code'],
+      teu: d.teu||0,
+      revenue: d.revenue||0,
+      revenue_per_teu: d.revenue_per_teu||0,
+      avg_per_unit_oft: d.avg_per_unit_oft||0
+    };
+  });
+
+  // Build per-POL per-region from level4
+  const polRegTeu = {};
+  (DATA.level4||[]).forEach(r => {
+    const pol = r['POL Code']||'';
+    const pod = r['DEL Code']||'';
+    if (!pol || !pod) return;
+    const region = RS_PODS.has(pod) ? 'rs' : ME_PODS.has(pod) ? 'me' : 'oth';
+    if (region === 'oth') return;
+    if (!polRegTeu[pol]) polRegTeu[pol] = { me:{teu:0,revenue:0,oftSum:0,oftTeu:0,pods:[]}, rs:{teu:0,revenue:0,oftSum:0,oftTeu:0,pods:[]} };
+    const regData = polRegTeu[pol][region];
+    regData.teu += r.Total_TEU||0;
+    regData.revenue += r.Revenue||0;
+    const oft = r.Avg_Per_Unit_OFT||0;
+    if (oft > 0) { regData.oftSum += oft * (r.Total_TEU||0); regData.oftTeu += r.Total_TEU||0; }
+    if (!regData.pods.includes(pod)) regData.pods.push(pod);
+  });
+
+  // Build per-POL per-region 20'/40' split from level5
+  const polRegOftSplit = {};
+  (DATA.level5||[]).forEach(r => {
+    const pol = r.POL_CD || '';
+    const pod = (r.DEL_CD || '').toUpperCase();
+    if (!pol || !pod) return;
+    const region = RS_PODS.has(pod) ? 'rs' : ME_PODS.has(pod) ? 'me' : null;
+    if (!region) return;
+    if (!polRegOftSplit[pol]) polRegOftSplit[pol] = { me:{oft20Sum:0,oft20Teu:0,oft40Sum:0,oft40Teu:0}, rs:{oft20Sum:0,oft20Teu:0,oft40Sum:0,oft40Teu:0} };
+    const oft20 = r.Per_Unit_OFT_20 || 0;
+    const teu20 = r.TEU_20 || 0;
+    if (oft20 > 0 && teu20 > 0) {
+      polRegOftSplit[pol][region].oft20Sum += oft20 * teu20;
+      polRegOftSplit[pol][region].oft20Teu += teu20;
+    }
+    const oft40 = r.Per_Unit_OFT_40 || 0;
+    const teu40 = r.TEU_40 || 0;
+    if (oft40 > 0 && teu40 > 0) {
+      polRegOftSplit[pol][region].oft40Sum += oft40 * teu40;
+      polRegOftSplit[pol][region].oft40Teu += teu40;
+    }
+  });
+
+  // Merge: fill gaps from level3
+  Object.keys(polBase).forEach(pol => {
+    if (!polRegTeu[pol]) {
+      const base = polBase[pol];
+      polRegTeu[pol] = { me:{teu:base.teu,revenue:base.revenue,oftSum:0,oftTeu:0,pods:['—']}, rs:{teu:0,revenue:0,oftSum:0,oftTeu:0,pods:[]} };
+      if (base.avg_per_unit_oft > 0 && base.teu > 0) {
+        polRegTeu[pol].me.oftSum = base.avg_per_unit_oft * base.teu;
+        polRegTeu[pol].me.oftTeu = base.teu;
+      }
+    } else {
+      const covered = (polRegTeu[pol].me.teu + polRegTeu[pol].rs.teu);
+      if (covered < polBase[pol].teu && covered > 0) {
+        const gap = polBase[pol].teu - covered;
+        polRegTeu[pol].me.teu += gap;
+        polRegTeu[pol].me.revenue += (polBase[pol].revenue * gap / polBase[pol].teu);
+        if (polBase[pol].avg_per_unit_oft > 0) {
+          polRegTeu[pol].me.oftSum += polBase[pol].avg_per_unit_oft * gap;
+          polRegTeu[pol].me.oftTeu += gap;
+        }
+      }
+    }
+    ['me','rs'].forEach(reg => {
+      const rd = polRegTeu[pol][reg];
+      rd.revenue_per_teu = rd.teu > 0 ? rd.revenue / rd.teu : 0;
+      rd.avg_per_unit_oft = rd.oftTeu > 0 ? rd.oftSum / rd.oftTeu : 0;
+      rd.vs_vessel_pct = vesselAvgOft > 0 ? (rd.avg_per_unit_oft / vesselAvgOft - 1) * 100 : 0;
+      const split = polRegOftSplit[pol] ? polRegOftSplit[pol][reg] : null;
+      rd.avgOft20 = split && split.oft20Teu > 0 ? split.oft20Sum / split.oft20Teu : 0;
+      rd.avgOft40 = split && split.oft40Teu > 0 ? split.oft40Sum / split.oft40Teu : 0;
+    });
+  });
+
+  const rsEntries = [];
+  const meEntries = [];
+  Object.keys(polRegTeu).forEach(pol => {
+    if (polRegTeu[pol].rs.teu > 0) rsEntries.push({ pol, ...polRegTeu[pol].rs });
+    if (polRegTeu[pol].me.teu > 0) meEntries.push({ pol, ...polRegTeu[pol].me });
+  });
+
+  const mePols = meEntries;
+  const rsPols = rsEntries;
+
+  // === 中东区块 ===
+  const meAbove = mePols.filter(d => (d.vs_vessel_pct||0) > 2).length;
+  const meBelow = mePols.filter(d => (d.vs_vessel_pct||0) < -2).length;
+  const meAvgOft = mePols.length ? mePols.reduce((s,d) => s+(d.avg_per_unit_oft||0),0)/mePols.length : 0;
+  document.getElementById('pol-me-kpi').innerHTML = [
+    { label:'口岸数量', val:mePols.length },
+    { label:'合计 TEU', val:fmt.teu(mePols.reduce((s,d)=>s+(d.teu||0),0)) },
+    { label:'平均 单海运费价格/TEU', val:fmt.usd(meAvgOft) },
+    { label:'船舶平均单海运费价格', val:fmt.usd(vesselAvgOft) },
+    { label:'高于整船平均单海运费价格', val:'<span style="color:var(--positive);font-weight:700;">' + meAbove + '</span>' },
+    { label:'低于整船平均单海运费价格', val:'<span style="color:var(--negative);font-weight:700;">' + meBelow + '</span>' },
+  ].map(i => '<div class="item"><span>' + i.label + ':</span><span class="val">' + i.val + '</span></div>').join('');
+
+  function calcPolFak(pol) {
+    const fakD = DATA.fak_data || [];
+    let wSum = 0, wTeu = 0;
+    (DATA.level4||[]).filter(r => (r['POL Code']||'') === pol).forEach(r => {
+      const pod = r['DEL Code']||'';
+      const teu = r.Total_TEU||0;
+      if (!teu) return;
+      let f = fakD.find(x => x.POL===pol && x.POD===pod && x.Size==='40');
+      if (!f) f = fakD.find(x => x.POL===pol && x.POD===pod && x.Size==='20');
+      if (!f) f = fakD.find(x => x.POL===pol && x.POD===pod && x.Size==="20'");
+      if (f && f.FAK > 0) { wSum += f.FAK * teu; wTeu += teu; }
+    });
+    return wTeu > 0 ? wSum / wTeu : 0;
+  }
+  function fakPctBadge(pct) {
+    if (!pct) return '<span style="color:var(--text3);">—</span>';
+    const color = pct >= 80 ? '#0d6e3e' : pct >= 60 ? '#b45309' : '#c0392b';
+    const bg = pct >= 80 ? '#e6f4ed' : pct >= 60 ? '#fff8e1' : '#fce8e6';
+    return '<span style="background:' + bg + ';color:' + color + ';font-weight:700;padding:2px 8px;border-radius:10px;font-size:12px;">' + pct.toFixed(1) + '%</span>';
+  }
+
+  const meSorted = mePols.sort((a,b) => (b.avg_per_unit_oft||0) - (a.avg_per_unit_oft||0));
+  document.getElementById('pol-me-tbody').innerHTML = meSorted.map((d,i) => {
+    const vsV = d.vs_vessel_pct||0;
+    const cls = vsV > 2 ? 'positive' : vsV < -2 ? 'negative' : '';
+    const pctTeu = totalTeu > 0 ? (d.teu/totalTeu*100).toFixed(1) : 0;
+    const rankStyle = i === 0 ? 'font-size:14px;font-weight:700;color:#b45309;' : i === 1 ? 'font-size:13px;font-weight:700;color:#6b7280;' : i === 2 ? 'font-size:13px;font-weight:700;color:#92400e;' : 'font-size:12px;color:var(--text3);';
+    const podNote = d.pods && d.pods.length ? ' <span style="color:var(--text3);font-size:10px;">→' + d.pods.join(',') + '</span>' : '';
+    const polFak = calcPolFak(d.pol);
+    const fakPct = polFak > 0 && d.avg_per_unit_oft > 0 ? (d.avg_per_unit_oft / polFak * 100) : null;
+    return '<tr>' +
+      '<td class="num" style="' + rankStyle + '">' + (i+1) + '</td>' +
+      '<td class="code">' + d.pol + podNote + '</td>' +
+      '<td class="num accent"><strong>' + fmt.teu(d.teu) + '</strong></td>' +
+      '<td class="num">' + pctTeu + '%</td>' +
+      '<td class="num">' + fmt.usd(d.revenue) + '</td>' +
+      '<td class="num">' + (d.avgOft20 > 0 ? fmt.usd(d.avgOft20) : '—') + '</td>' +
+      '<td class="num">' + (d.avgOft40 > 0 ? fmt.usd(d.avgOft40) : '—') + '</td>' +
+      '<td class="num" style="color:var(--text2);">' + (polFak > 0 ? fmt.usd(polFak) : '—') + '</td>' +
+      '<td class="num" style="background:#fffbf0;">' + fakPctBadge(fakPct) + '</td>' +
+      '<td class="num ' + cls + '">' + badge(vsV) + '</td>' +
+      '</tr>';
+  }).join('');
+
+  // === 红海区块 ===
+  const rsAbove = rsPols.filter(d => (d.vs_vessel_pct||0) > 2).length;
+  const rsBelow = rsPols.filter(d => (d.vs_vessel_pct||0) < -2).length;
+  const rsAvgOft = rsPols.length ? rsPols.reduce((s,d) => s+(d.avg_per_unit_oft||0),0)/rsPols.length : 0;
+  document.getElementById('pol-rs-kpi').innerHTML = [
+    { label:'口岸数量', val:rsPols.length },
+    { label:'合计 TEU', val:fmt.teu(rsPols.reduce((s,d)=>s+(d.teu||0),0)) },
+    { label:'平均 单海运费价格/TEU', val:fmt.usd(rsAvgOft) },
+    { label:'船舶平均单海运费价格', val:fmt.usd(vesselAvgOft) },
+    { label:'高于整船平均单海运费价格', val:'<span style="color:var(--positive);font-weight:700;">' + rsAbove + '</span>' },
+    { label:'低于整船平均单海运费价格', val:'<span style="color:var(--negative);font-weight:700;">' + rsBelow + '</span>' },
+  ].map(i => '<div class="item"><span>' + i.label + ':</span><span class="val">' + i.val + '</span></div>').join('');
+
+  const rsSorted = rsPols.sort((a,b) => (b.avg_per_unit_oft||0) - (a.avg_per_unit_oft||0));
+  document.getElementById('pol-rs-tbody').innerHTML = rsSorted.map((d,i) => {
+    const vsV = d.vs_vessel_pct||0;
+    const cls = vsV > 2 ? 'positive' : vsV < -2 ? 'negative' : '';
+    const pctTeu = totalTeu > 0 ? (d.teu/totalTeu*100).toFixed(1) : 0;
+    const rankStyle = i === 0 ? 'font-size:14px;font-weight:700;color:#b45309;' : i === 1 ? 'font-size:13px;font-weight:700;color:#6b7280;' : i === 2 ? 'font-size:13px;font-weight:700;color:#92400e;' : 'font-size:12px;color:var(--text3);';
+    const podNote = d.pods && d.pods.length ? ' <span style="color:var(--text3);font-size:10px;">→' + d.pods.join(',') + '</span>' : '';
+    const polFak = calcPolFak(d.pol);
+    const fakPct = polFak > 0 && d.avg_per_unit_oft > 0 ? (d.avg_per_unit_oft / polFak * 100) : null;
+    return '<tr>' +
+      '<td class="num" style="' + rankStyle + '">' + (i+1) + '</td>' +
+      '<td class="code">' + d.pol + podNote + '</td>' +
+      '<td class="num accent"><strong>' + fmt.teu(d.teu) + '</strong></td>' +
+      '<td class="num">' + pctTeu + '%</td>' +
+      '<td class="num">' + fmt.usd(d.revenue) + '</td>' +
+      '<td class="num">' + (d.avgOft20 > 0 ? fmt.usd(d.avgOft20) : '—') + '</td>' +
+      '<td class="num">' + (d.avgOft40 > 0 ? fmt.usd(d.avgOft40) : '—') + '</td>' +
+      '<td class="num" style="color:var(--text2);">' + (polFak > 0 ? fmt.usd(polFak) : '—') + '</td>' +
+      '<td class="num" style="background:#fffbf0;">' + fakPctBadge(fakPct) + '</td>' +
+      '<td class="num ' + cls + '">' + badge(vsV) + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function renderBubbleChart() {
+  const pols = [...DATA.level3].filter(d => (d.teu||0) > 0);
+  const vesselAvg = DATA.level1.vessel_avg_revenue_per_teu;
+  const maxTeu = Math.max(...pols.map(d => d.teu||0));
+  const maxCm = Math.max(...pols.map(d => d.revenue_per_teu||0));
+  const minCm = Math.min(...pols.map(d => d.revenue_per_teu||0));
+  const maxContrib = Math.max(...pols.map(d => d.revenue||0));
+
+  const W = 620, H = 330;
+  const pad = { top:20, right:30, bottom:50, left:70 };
+  const chartW = W - pad.left - pad.right;
+  const chartH = H - pad.top - pad.bottom;
+
+  // Axis ranges
+  const xMin = 0, xMax = maxTeu * 1.08;
+  const yMin = Math.max(0, minCm * 0.85);
+  const yMax = maxCm * 1.12;
+
+  const toX = v => pad.left + (v - xMin)/(xMax - xMin) * chartW;
+  const toY = v => pad.top + chartH - (v - yMin)/(yMax - yMin) * chartH;
+  const toR = v => 8 + Math.sqrt(v / maxContrib) * 38;
+
+  // Grid Y ticks
+  const yTicks = 5;
+  const yStep = (yMax - yMin) / yTicks;
+  const yLabels = Array.from({length:yTicks+1}, (_,i) => yMin + i*yStep);
+
+  // X ticks
+  const xTicks = 5;
+  const xStep = (xMax - xMin) / xTicks;
+  const xLabels = Array.from({length:xTicks+1}, (_,i) => xMin + i*xStep);
+
+  let circles = '';
+  pols.forEach(d => {
+    const x = toX(d.teu||0);
+    const y = toY(d.revenue_per_teu||0);
+    const r = toR(d.revenue||0);
+    const above = (d.vs_vessel_pct||0) > 2;
+    const below = (d.vs_vessel_pct||0) < -2;
+    const color = above ? '#0d6e3e' : below ? '#c0392b' : '#1a6bb5';
+    const vsV = d.vs_vessel_pct||0;
+    const tooltip = '<strong>' + (d['POL Code']||'') + '</strong><br>TEU: ' + fmt.teu(d.teu) + '（占总量 ' + ((d.teu/(DATA.level1.total_teu||1))*100).toFixed(1) + '%）<br>Revenue/TEU: ' + fmt.usd(d.revenue_per_teu) + '<br>REVENUE: ' + fmt.usd(d.revenue) + '<br>vs 整船平均单海运费价格: ' + fmt.pct(vsV);
+    circles += '<circle class="bubble-hover" cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + color + '" fill-opacity="0.65" stroke="' + color + '" stroke-width="1.5" data-tip="' + tooltip.replace(/"/g,'&quot;') + '" onmousemove="showBubbleTip(event,this)" onmouseleave="hideBubbleTip()"/>';
+    circles += '<text x="' + x + '" y="' + y + '" text-anchor="middle" dominant-baseline="middle" font-size="10" font-weight="700" fill="' + (above||below?'#fff':'#1a6bb5') + '" pointer-events="none">' + (d['POL Code']||'').substring(2) + '</text>';
+  });
+
+  // Vessel avg horizontal line
+  const vesselY = toY(vesselAvg);
+  const vesselLabel = '<text x="' + (pad.left + chartW + 4) + '" y="' + vesselY + '" class="axis-label" font-size="9" fill="#0f4c81" font-weight="600">整船平均单海运费价格</text>';
+
+  let svg = '<div class="bubble-wrap" style="position:relative;width:' + W + 'px;">';
+  svg += '<div class="bubble-tooltip" id="bubble-tip"></div>';
+  svg += '<svg class="bubble-svg" width="' + W + '" height="' + H + '">';
+
+  // Grid lines
+  yLabels.forEach(v => {
+    const y = toY(v);
+    svg += '<line x1="' + pad.left + '" x2="' + (pad.left+chartW) + '" y1="' + y + '" y2="' + y + '" class="grid-line"/>';
+    svg += '<text x="' + (pad.left - 8) + '" y="' + y + '" class="axis-label" text-anchor="end" dominant-baseline="middle">$' + Math.round(v) + '</text>';
+  });
+  xLabels.forEach(v => {
+    const x = toX(v);
+    svg += '<line x1="' + x + '" x2="' + x + '" y1="' + pad.top + '" y2="' + (pad.top+chartH) + '" class="grid-line"/>';
+    svg += '<text x="' + x + '" y="' + (pad.top+chartH+18) + '" class="axis-label" text-anchor="middle">' + Math.round(v) + '</text>';
+  });
+
+  // Axes
+  svg += '<line x1="' + pad.left + '" x2="' + pad.left + '" y1="' + pad.top + '" y2="' + (pad.top+chartH) + '" class="axis-line"/>';
+  svg += '<line x1="' + pad.left + '" x2="' + (pad.left+chartW) + '" y1="' + (pad.top+chartH) + '" y2="' + (pad.top+chartH) + '" class="axis-line"/>';
+
+  // Vessel avg line
+  svg += '<line x1="' + pad.left + '" x2="' + (pad.left+chartW) + '" y1="' + vesselY + '" y2="' + vesselY + '" class="vessel-line"/>';
+  svg += vesselLabel;
+
+  // Axis labels
+  svg += '<text x="' + (pad.left + chartW/2) + '" y="' + (pad.top+chartH+40) + '" class="axis-label" text-anchor="middle" font-size="11" font-weight="600">TEU 规模</text>';
+  svg += '<text x="14" y="' + (pad.top+chartH/2) + '" class="axis-label" text-anchor="middle" font-size="11" font-weight="600" transform="rotate(-90,14,' + (pad.top+chartH/2) + ')">Revenue/TEU (USD)</text>';
+
+  svg += circles;
+  svg += '</svg></div>';
+  document.getElementById('pol-bubble-chart').innerHTML = svg;
+}
+
+function showBubbleTip(e, el) {
+  const tip = document.getElementById('bubble-tip');
+  if (!tip) return;
+  tip.innerHTML = el.getAttribute('data-tip') || '';
+  const rect = el.ownerSVGElement.getBoundingClientRect();
+  const wrapRect = el.closest('.bubble-wrap').getBoundingClientRect();
+  tip.style.left = (e.clientX - wrapRect.left + 12) + 'px';
+  tip.style.top = (e.clientY - wrapRect.top - 20) + 'px';
+  tip.style.opacity = '1';
+}
+
+function hideBubbleTip() {
+  const tip = document.getElementById('bubble-tip');
+  if (tip) tip.style.opacity = '0';
+}
+
+function renderFAK() {
+  const rows = DATA.fak_data || [];
+  if (!rows.length) return;
+
+  // Group by POL, then by POD
+  const polGroups = {};
+  rows.forEach(r => {
+    if (!polGroups[r.POL]) polGroups[r.POL] = {};
+    if (!polGroups[r.POL][r.POD]) polGroups[r.POL][r.POD] = { fak20: null, fak40: null, oft20: null, oft40: null };
+    if (r.Size === '20') {
+      polGroups[r.POL][r.POD].fak20 = r.FAK;
+      polGroups[r.POL][r.POD].oft20 = r.OFT_Avg;
+    } else if (r.Size === '40') {
+      polGroups[r.POL][r.POD].fak40 = r.FAK;
+      polGroups[r.POL][r.POD].oft40 = r.OFT_Avg;
+    }
+  });
+
+  // Build HTML: one table per POL
+  let html = '';
+  Object.keys(polGroups).sort().forEach(pol => {
+    const podMap = polGroups[pol];
+    const pods = Object.keys(podMap).sort();
+    html += '<div style="margin-bottom:24px;">';
+    html += '<div style="background:var(--accent);color:#fff;padding:8px 16px;font-weight:700;font-size:14px;border-radius:4px 4px 0 0;">' + pol + '</div>';
+    html += '<table class="fak-pol-table" style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html += '<thead><tr style="background:#f8f9fa;">' +
+      '<th style="padding:8px 12px;text-align:left;border:1px solid var(--border);">POD</th>' +
+      '<th style="padding:8px 12px;text-align:right;border:1px solid var(--border);">FAK 20\'</th>' +
+      '<th style="padding:8px 12px;text-align:right;border:1px solid var(--border);color:var(--positive);">实际 20\'</th>' +
+      '<th style="padding:8px 12px;text-align:right;border:1px solid var(--border);">FAK 40\'</th>' +
+      '<th style="padding:8px 12px;text-align:right;border:1px solid var(--border);color:var(--positive);">实际 40\'</th>' +
+      '</tr></thead><tbody>';
+    pods.forEach(pod => {
+      const d = podMap[pod];
+      const fmtPrice = (v) => v !== null && v !== undefined ? '$' + Math.round(v).toLocaleString('en-US') : '—';
+      const fmtOft = (v, fak) => {
+        if (v === null || v === undefined || v === 0) return '—';
+        const cls = fak !== null && v > fak ? 'positive' : fak !== null && v < fak ? 'negative' : '';
+        return '<span class="' + cls + '">$' + Math.round(v).toLocaleString('en-US') + '</span>';
+      };
+      html += '<tr>' +
+        '<td style="padding:8px 12px;border:1px solid var(--border);" class="code">' + pod + '</td>' +
+        '<td style="padding:8px 12px;text-align:right;border:1px solid var(--border);">' + fmtPrice(d.fak20) + '</td>' +
+        '<td style="padding:8px 12px;text-align:right;border:1px solid var(--border);">' + fmtOft(d.oft20, d.fak20) + '</td>' +
+        '<td style="padding:8px 12px;text-align:right;border:1px solid var(--border);">' + fmtPrice(d.fak40) + '</td>' +
+        '<td style="padding:8px 12px;text-align:right;border:1px solid var(--border);">' + fmtOft(d.oft40, d.fak40) + '</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+  });
+
+  document.getElementById('fak-tables').innerHTML = html;
+}
+
+function renderHeatmap() {
+  const level4 = DATA.level4 || [];
+  const level3 = DATA.level3 || [];
+  const level1 = DATA.level1 || {};
+  const vesselAvg = level1.vessel_avg_revenue_per_teu || 1;
+
+  // TOP3: POL with highest avg Revenue/TEU across its routes (by revenue / teu weighted avg)
+  const polHeatTop3 = [...level3]
+    .filter(d => (d.teu||0) > 0)
+    .sort((a,b) => (b.revenue_per_teu||0) - (a.revenue_per_teu||0))
+    .slice(0,3);
+  const polHeatMax = polHeatTop3[0] ? (polHeatTop3[0].revenue_per_teu||1) : 1;
+  document.getElementById('top3-heatmap-cards').innerHTML =
+    '<div class="top3-section-label">🔥 Revenue/TEU 效率最高前三 — 装货港</div>' +
+    polHeatTop3.map((d,i) => {
+      const rank = ['r1','r2','r3'][i];
+      const bw = polHeatMax > 0 ? ((d.revenue_per_teu||0)/polHeatMax*100) : 0;
+      const vsV = d.vs_vessel_pct||0;
+      return '<div class="top3-card">' +
+        '<div class="top3-card-head">#' + (i+1) + ' POL</div>' +
+        '<div class="top3-row">' +
+          '<div class="top3-rank ' + rank + '">' + (i+1) + '</div>' +
+          '<div class="top3-info">' +
+            '<div class="top3-code">' + (d['POL Code']||'') + '</div>' +
+            '<div class="top3-bar-wrap"><div class="top3-bar-track"><div class="top3-bar-fill" style="width:' + bw + '%"></div></div></div>' +
+          '</div>' +
+          '<div class="top3-metric">' +
+            '<div class="top3-teu">' + fmt.usd(d.revenue_per_teu) + '/TEU</div>' +
+            '<div class="top3-sub">' + fmt.teu(d.teu) + ' TEU · ' + badge(vsV) + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+  // Filter mode from dropdown
+  const filterVal = document.getElementById('pol-heatmap-filter').value;
+  const allPols = level3.filter(d => (d.teu||0) > 0);
+  const pols = filterVal === 'top10'
+    ? [...allPols].sort((a,b) => (b.teu||0)-(a.teu||0)).slice(0,10)
+    : allPols;
+
+  // Build DEL list (sorted by level2 teu desc)
+  const podOrder = [...(DATA.level2||[])].sort((a,b) => (b.teu||0)-(a.teu||0)).map(d => d['DEL Code']||'');
+
+  // Find global min/max Revenue/TEU for color scale (use ALL data, not filtered)
+  const cmVals = level4.map(r => r.Revenue_Per_TEU||0).filter(v => v > 0);
+  const globalMin = cmVals.length ? Math.min(...cmVals) : 0;
+  const globalMax = cmVals.length ? Math.max(...cmVals) : 1;
+
+  // Color interpolation: red(negative) -> white -> green(positive)
+  function cmColor(cm, vsPct) {
+    if (!cm || cm <= 0) return '#e8eaed';
+    const ratio = (globalMax > globalMin) ? (cm - globalMin) / (globalMax - globalMin) : 0.5;
+    const r = Math.round(255 - ratio * 200);
+    const g = Math.round(100 + ratio * 130);
+    const b = Math.round(100 + ratio * 60);
+    if (vsPct > 5) {
+      return `rgb(${Math.round(r*0.7)},${Math.min(255,Math.round(g*1.2))},${Math.round(b*0.8)})`;
+    } else if (vsPct < -5) {
+      return `rgb(${Math.min(255,Math.round(r*1.3))},${Math.round(g*0.6)},${Math.round(b*0.6)})`;
+    }
+    return `rgb(${r},${g},${b})`;
+  }
+
+  // Build map: pol+del -> row
+  const map = {};
+  level4.forEach(r => {
+    const k = (r['POL Code']||'') + '|' + (r['DEL Code']||'');
+    map[k] = r;
+  });
+
+  // Legend
+  document.getElementById('heatmap-legend').innerHTML = [
+    { label:'数值区间', val:'$' + Math.round(globalMin) + ' → $' + Math.round(globalMax) },
+    { label:'船舶平均', val:fmt.usd(vesselAvg) },
+    { label:'航段数量', val:level4.length + ' 个' },
+    { label:'装货港数量', val:pols.length + (filterVal === 'top10' ? '（TOP10）' : '（全部）') },
+  ].map(i => '<div class="item"><span>' + i.label + ':</span><span class="val">' + i.val + '</span></div>').join('');
+
+  // Column headers
+  let html = '<div class="heatmap-col-labels">';
+  podOrder.forEach(del => {
+    html += '<div class="heatmap-header-cell" title="' + del + '">' + del + '</div>';
+  });
+  html += '</div>';
+
+  // Rows
+  pols.forEach(pol => {
+    html += '<div class="heatmap-row">';
+    html += '<div class="heatmap-row-label">' + pol + '</div>';
+    podOrder.forEach(del => {
+      const k = pol + '|' + del;
+      const r = map[k];
+      if (r) {
+        const cm = r.Revenue_Per_TEU||0;
+        const vsV = r.vs_Vessel_Pct||0;
+        const bg = cmColor(cm, vsV);
+        const textColor = cm > (globalMax*0.7) ? '#fff' : '#333';
+        html += '<div class="heatmap-cell" style="background:' + bg + ';color:' + textColor + ';" title="' + pol + ' → ' + del + '\nRevenue/TEU: ' + fmt.usd(cm) + '\nTEU: ' + fmt.teu(r.Total_TEU) + '\nREVENUE: ' + fmt.usd(r.Revenue) + '\nvs 整船平均单海运费价格: ' + fmt.pct(vsV) + '">' + fmt.teu(r.Total_TEU) + '</div>';
+      } else {
+        html += '<div class="heatmap-cell" style="background:#e8eaed;color:#ccc;" title="No data">—</div>';
+      }
+    });
+    html += '</div>';
+  });
+
+  document.getElementById('pol-del-heatmap').innerHTML = '<div class="heatmap-wrap">' + html + '</div>';
+}
+
+
+
+;
+
+window.DATA = {
+  "vessel": "H7282620W",
+  "generated": "2026-06-09",
+  "level1": {
+    "total_teu": 1446.0,
+    "total_revenue": 4578088.77,
+    "revenue_per_teu": 3166.04,
+    "vessel_avg_revenue_per_teu": 3166.04,
+    "kpi_fak40_pct": 4.9,
+    "kpi_fak20_pct": 6.1,
+    "kpi_avg_oft_40": 5950,
+    "kpi_avg_fak40": 6312,
+    "kpi_avg_oft_20": 3921,
+    "kpi_avg_fak20": 4001,
+    "fak_vs_oft_per_bl": {
+      "above20": 2,
+      "below20": 31,
+      "abovePct20": 6.1,
+      "belowPct20": 93.9,
+      "above40": 18,
+      "below40": 348,
+      "abovePct40": 4.9,
+      "belowPct40": 95.1
+    }
+  },
+  "level2": [
+    {
+      "DEL Code": "EGSOK",
+      "teu": 931.0,
+      "teu_20gp": 39.0,
+      "teu_40hc": 892.0,
+      "revenue": 2857004.2032386605,
+      "vessel_teu": 931.0,
+      "vessel_revenue_per_teu": 3166.04,
+      "revenue_per_teu": 3068.75,
+      "vs_vessel_pct": -3.07
+    },
+    {
+      "DEL Code": "SAJED",
+      "teu": 409.0,
+      "teu_20gp": 31.0,
+      "teu_40hc": 378.0,
+      "revenue": 1360588.8157553477,
+      "vessel_teu": 409.0,
+      "vessel_revenue_per_teu": 3166.04,
+      "revenue_per_teu": 3326.62,
+      "vs_vessel_pct": 5.07
+    },
+    {
+      "DEL Code": "SDPZU",
+      "teu": 76.0,
+      "teu_20gp": 0.0,
+      "teu_40hc": 76.0,
+      "revenue": 264709.94391440495,
+      "vessel_teu": 76.0,
+      "vessel_revenue_per_teu": 3166.04,
+      "revenue_per_teu": 3483.03,
+      "vs_vessel_pct": 10.01
+    },
+    {
+      "DEL Code": "YEADE",
+      "teu": 18.0,
+      "teu_20gp": 0.0,
+      "teu_40hc": 18.0,
+      "revenue": 57624.6984275993,
+      "vessel_teu": 18.0,
+      "vessel_revenue_per_teu": 3166.04,
+      "revenue_per_teu": 3201.37,
+      "vs_vessel_pct": 1.12
+    },
+    {
+      "DEL Code": "DJJIB",
+      "teu": 12.0,
+      "teu_20gp": 0.0,
+      "teu_40hc": 12.0,
+      "revenue": 38161.1107721188,
+      "vessel_teu": 12.0,
+      "vessel_revenue_per_teu": 3166.04,
+      "revenue_per_teu": 3180.09,
+      "vs_vessel_pct": 0.44
+    }
+  ],
+  "level3": [
+    {
+      "POL Code": "CNNGB",
+      "teu": 1244.0,
+      "teu_20gp": 68.0,
+      "teu_40hc": 1176.0,
+      "revenue": 4050973.31,
+      "revenue_per_teu": 3256.41,
+      "avg_per_unit_oft": 3039.19,
+      "contribution": 4050973.31,
+      "vs_vessel_pct": 2.85
+    },
+    {
+      "POL Code": "CNNAS",
+      "teu": 137.0,
+      "teu_20gp": 1.0,
+      "teu_40hc": 136.0,
+      "revenue": 378971.34,
+      "revenue_per_teu": 2766.21,
+      "avg_per_unit_oft": 2544.89,
+      "contribution": 378971.34,
+      "vs_vessel_pct": -12.63
+    },
+    {
+      "POL Code": "CNXGG",
+      "teu": 40.0,
+      "teu_20gp": 0.0,
+      "teu_40hc": 40.0,
+      "revenue": 80178.95,
+      "revenue_per_teu": 2004.47,
+      "avg_per_unit_oft": 1900.0,
+      "contribution": 80178.95,
+      "vs_vessel_pct": -36.69
+    },
+    {
+      "POL Code": "CNQZH",
+      "teu": 12.0,
+      "teu_20gp": 0.0,
+      "teu_40hc": 12.0,
+      "revenue": 38889.8,
+      "revenue_per_teu": 3240.82,
+      "avg_per_unit_oft": 3000.0,
+      "contribution": 38889.8,
+      "vs_vessel_pct": 2.36
+    },
+    {
+      "POL Code": "CNSWA",
+      "teu": 12.0,
+      "teu_20gp": 0.0,
+      "teu_40hc": 12.0,
+      "revenue": 26033.68,
+      "revenue_per_teu": 2169.47,
+      "avg_per_unit_oft": 1850.0,
+      "contribution": 26033.68,
+      "vs_vessel_pct": -31.48
+    },
+    {
+      "POL Code": "CNJMN",
+      "teu": 1.0,
+      "teu_20gp": 1.0,
+      "teu_40hc": 0.0,
+      "revenue": 3041.68,
+      "revenue_per_teu": 3041.68,
+      "avg_per_unit_oft": 2800.0,
+      "contribution": 3041.68,
+      "vs_vessel_pct": -3.93
+    }
+  ],
+  "level4": [
+    {
+      "POL Code": "CNNGB",
+      "DEL Code": "EGSOK",
+      "Total_TEU": 836.0,
+      "TEU_20GP": 38.0,
+      "TEU_40HC": 798.0,
+      "Revenue": 2660307.3,
+      "Revenue_Per_TEU": 3182.19,
+      "Avg_Per_Unit_OFT": 3009.21,
+      "vs_Vessel_Pct": 0.51,
+      "BL_Count": 209
+    },
+    {
+      "POL Code": "CNNGB",
+      "DEL Code": "SAJED",
+      "Total_TEU": 362.0,
+      "TEU_20GP": 30.0,
+      "TEU_40HC": 332.0,
+      "Revenue": 1225892.7,
+      "Revenue_Per_TEU": 3386.44,
+      "Avg_Per_Unit_OFT": 3071.69,
+      "vs_Vessel_Pct": 6.96,
+      "BL_Count": 138
+    },
+    {
+      "POL Code": "CNNAS",
+      "DEL Code": "EGSOK",
+      "Total_TEU": 54.0,
+      "TEU_20GP": 0.0,
+      "TEU_40HC": 54.0,
+      "Revenue": 113476.27,
+      "Revenue_Per_TEU": 2101.41,
+      "Avg_Per_Unit_OFT": 1972.22,
+      "vs_Vessel_Pct": -33.63,
+      "BL_Count": 6
+    },
+    {
+      "POL Code": "CNXGG",
+      "DEL Code": "EGSOK",
+      "Total_TEU": 40.0,
+      "TEU_20GP": 0.0,
+      "TEU_40HC": 40.0,
+      "Revenue": 80178.95,
+      "Revenue_Per_TEU": 2004.47,
+      "Avg_Per_Unit_OFT": 1900.0,
+      "vs_Vessel_Pct": -36.69,
+      "BL_Count": 1
+    },
+    {
+      "POL Code": "CNNAS",
+      "DEL Code": "SAJED",
+      "Total_TEU": 35.0,
+      "TEU_20GP": 1.0,
+      "TEU_40HC": 34.0,
+      "Revenue": 108662.43,
+      "Revenue_Per_TEU": 3104.64,
+      "Avg_Per_Unit_OFT": 2777.14,
+      "vs_Vessel_Pct": -1.94,
+      "BL_Count": 10
+    },
+    {
+      "POL Code": "CNNAS",
+      "DEL Code": "SDPZU",
+      "Total_TEU": 32.0,
+      "TEU_20GP": 0.0,
+      "TEU_40HC": 32.0,
+      "Revenue": 106930.29,
+      "Revenue_Per_TEU": 3341.57,
+      "Avg_Per_Unit_OFT": 3065.62,
+      "vs_Vessel_Pct": 5.54,
+      "BL_Count": 10
+    },
+    {
+      "POL Code": "CNNGB",
+      "DEL Code": "SDPZU",
+      "Total_TEU": 32.0,
+      "TEU_20GP": 0.0,
+      "TEU_40HC": 32.0,
+      "Revenue": 118889.85,
+      "Revenue_Per_TEU": 3715.31,
+      "Avg_Per_Unit_OFT": 3440.62,
+      "vs_Vessel_Pct": 17.35,
+      "BL_Count": 16
+    },
+    {
+      "POL Code": "CNNAS",
+      "DEL Code": "YEADE",
+      "Total_TEU": 16.0,
+      "TEU_20GP": 0.0,
+      "TEU_40HC": 16.0,
+      "Revenue": 49902.35,
+      "Revenue_Per_TEU": 3118.9,
+      "Avg_Per_Unit_OFT": 2928.12,
+      "vs_Vessel_Pct": -1.49,
+      "BL_Count": 2
+    },
+    {
+      "POL Code": "CNNGB",
+      "DEL Code": "DJJIB",
+      "Total_TEU": 12.0,
+      "TEU_20GP": 0.0,
+      "TEU_40HC": 12.0,
+      "Revenue": 38161.11,
+      "Revenue_Per_TEU": 3180.09,
+      "Avg_Per_Unit_OFT": 2975.0,
+      "vs_Vessel_Pct": 0.44,
+      "BL_Count": 5
+    },
+    {
+      "POL Code": "CNQZH",
+      "DEL Code": "SDPZU",
+      "Total_TEU": 12.0,
+      "TEU_20GP": 0.0,
+      "TEU_40HC": 12.0,
+      "Revenue": 38889.8,
+      "Revenue_Per_TEU": 3240.82,
+      "Avg_Per_Unit_OFT": 3000.0,
+      "vs_Vessel_Pct": 2.36,
+      "BL_Count": 1
+    },
+    {
+      "POL Code": "CNSWA",
+      "DEL Code": "SAJED",
+      "Total_TEU": 12.0,
+      "TEU_20GP": 0.0,
+      "TEU_40HC": 12.0,
+      "Revenue": 26033.68,
+      "Revenue_Per_TEU": 2169.47,
+      "Avg_Per_Unit_OFT": 1850.0,
+      "vs_Vessel_Pct": -31.48,
+      "BL_Count": 2
+    },
+    {
+      "POL Code": "CNNGB",
+      "DEL Code": "YEADE",
+      "Total_TEU": 2.0,
+      "TEU_20GP": 0.0,
+      "TEU_40HC": 2.0,
+      "Revenue": 7722.35,
+      "Revenue_Per_TEU": 3861.18,
+      "Avg_Per_Unit_OFT": 3650.0,
+      "vs_Vessel_Pct": 21.96,
+      "BL_Count": 1
+    },
+    {
+      "POL Code": "CNJMN",
+      "DEL Code": "EGSOK",
+      "Total_TEU": 1.0,
+      "TEU_20GP": 1.0,
+      "TEU_40HC": 0.0,
+      "Revenue": 3041.68,
+      "Revenue_Per_TEU": 3041.68,
+      "Avg_Per_Unit_OFT": 2800.0,
+      "vs_Vessel_Pct": -3.93,
+      "BL_Count": 1
+    }
+  ],
+  "level5": [
+    {
+      "Shipper": "HISENSE(HONGKONG) MIDDLE EAST-AFRICA SALES HOLDINGS CO.,LTD",
+      "POL_CD": "CNJMN",
+      "DEL_CD": "EGSOK",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 3041.68,
+      "OFT_20": 2800.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 2800.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "C2512701",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOTRANS SOUTH CHINA CONTAINER LOGISTICS CO., LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7154.09,
+      "OFT_20": 0.0,
+      "OFT_40": 6700.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6700.0,
+      "Contract": "A2637856",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOTRANS SOUTH CHINA CONTAINER LOGISTICS CO., LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 14170.84,
+      "OFT_20": 0.0,
+      "OFT_40": 13400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6700.0,
+      "Contract": "A2637856",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Hainan Midea International Logistics Technology Co., Ltd",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 3954.09,
+      "OFT_20": 0.0,
+      "OFT_40": 3600.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3600.0,
+      "Contract": "C2615321",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Hainan Midea International Logistics Technology Co., Ltd",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "EGSOK",
+      "TEU": 12.0,
+      "TEU_20": 0.0,
+      "TEU_40": 12.0,
+      "Revenue": 23037.83,
+      "OFT_20": 0.0,
+      "OFT_40": 21600.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3600.0,
+      "Contract": "C2615321",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Hainan Midea International Logistics Technology Co., Ltd",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "EGSOK",
+      "TEU": 14.0,
+      "TEU_20": 0.0,
+      "TEU_40": 14.0,
+      "Revenue": 26854.58,
+      "OFT_20": 0.0,
+      "OFT_40": 25200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3600.0,
+      "Contract": "C2615321",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Hainan Midea International Logistics Technology Co., Ltd",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "EGSOK",
+      "TEU": 20.0,
+      "TEU_20": 0.0,
+      "TEU_40": 20.0,
+      "Revenue": 38304.83,
+      "OFT_20": 0.0,
+      "OFT_40": 36000.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3600.0,
+      "Contract": "C2615321",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNITED OCEAN INTERNATIONAL LOGISTICS(GUANGZHOU)CO.,LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SAJED",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4529.5,
+      "OFT_20": 4000.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 4000.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2477784",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "GUANGZHOU GW LOGISTICS CO., LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7620.23,
+      "OFT_20": 0.0,
+      "OFT_40": 6900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6900.0,
+      "Contract": "A2485229",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "CTS INTERNATIONAL TRANSPORTATION (GUANGZHOU) CO.,LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SAJED",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 29046.28,
+      "OFT_20": 0.0,
+      "OFT_40": 26800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6700.0,
+      "Contract": "A2626535",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "GLORY INTERNATIONAL LOGISTICS LIMITED",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SAJED",
+      "TEU": 12.0,
+      "TEU_20": 0.0,
+      "TEU_40": 12.0,
+      "Revenue": 31171.68,
+      "OFT_20": 0.0,
+      "OFT_40": 27600.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 4600.0,
+      "Contract": "A2505702",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOOCEAN GROUP LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 5420.23,
+      "OFT_20": 0.0,
+      "OFT_40": 4700.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 4700.0,
+      "Contract": "A2485044",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "GUANGZHOU KD INTL LOG LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 5270.23,
+      "OFT_20": 0.0,
+      "OFT_40": 4550.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 4550.0,
+      "Contract": "A2505703",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UIFF SHIPPING CO LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7420.23,
+      "OFT_20": 0.0,
+      "OFT_40": 6700.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6700.0,
+      "Contract": "A2625184",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UIFF SHIPPING CO LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7420.23,
+      "OFT_20": 0.0,
+      "OFT_40": 6700.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6700.0,
+      "Contract": "A2625184",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "GUANGZHOU KD INTL LOG LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 5343.57,
+      "OFT_20": 0.0,
+      "OFT_40": 4550.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 4550.0,
+      "Contract": "A2505703",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOOCEAN GROUP LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 5420.23,
+      "OFT_20": 0.0,
+      "OFT_40": 4700.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 4700.0,
+      "Contract": "A2485044",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "GUANGZHOU KD INTL LOG LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SDPZU",
+      "TEU": 12.0,
+      "TEU_20": 0.0,
+      "TEU_40": 12.0,
+      "Revenue": 35007.4,
+      "OFT_20": 0.0,
+      "OFT_40": 32100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5350.0,
+      "Contract": "A2505703",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SUNTOP INTERNATIONAL LOGISTICS GUANGZHOU LIMITED",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 8011.98,
+      "OFT_20": 0.0,
+      "OFT_40": 7400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 7400.0,
+      "Contract": "A2479974",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SUNTOP INTERNATIONAL LOGISTICS GUANGZHOU LIMITED",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 8011.98,
+      "OFT_20": 0.0,
+      "OFT_40": 7400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 7400.0,
+      "Contract": "A2479974",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "GUANGZHOU KD INTL LOG LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 5961.98,
+      "OFT_20": 0.0,
+      "OFT_40": 5350.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5350.0,
+      "Contract": "A2505703",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "GLORY INTERNATIONAL LOGISTICS LIMITED",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 5967.98,
+      "OFT_20": 0.0,
+      "OFT_40": 5400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5400.0,
+      "Contract": "A2505702",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNITED OCEAN INTERNATIONAL LOGISTICS(GUANGZHOU)CO.,LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SDPZU",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 15871.06,
+      "OFT_20": 0.0,
+      "OFT_40": 14800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 7400.0,
+      "Contract": "A2477784",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOOCEAN GROUP LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6111.98,
+      "OFT_20": 0.0,
+      "OFT_40": 5500.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5500.0,
+      "Contract": "A2485044",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "GUANGZHOU KD INTL LOG LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 5961.98,
+      "OFT_20": 0.0,
+      "OFT_40": 5350.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5350.0,
+      "Contract": "A2505703",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SUNTOP INTERNATIONAL LOGISTICS GUANGZHOU LIMITED",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 8011.98,
+      "OFT_20": 0.0,
+      "OFT_40": 7400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 7400.0,
+      "Contract": "A2479974",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SUNTOP INTERNATIONAL LOGISTICS GUANGZHOU LIMITED",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 8011.98,
+      "OFT_20": 0.0,
+      "OFT_40": 7400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 7400.0,
+      "Contract": "A2479974",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "GLORY INTERNATIONAL LOGISTICS LIMITED",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "YEADE",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6447.76,
+      "OFT_20": 0.0,
+      "OFT_40": 5900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5900.0,
+      "Contract": "A2505702",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "HONHANN SUPPLY CHAIN CO., LTD",
+      "POL_CD": "CNNAS",
+      "DEL_CD": "YEADE",
+      "TEU": 14.0,
+      "TEU_20": 0.0,
+      "TEU_40": 14.0,
+      "Revenue": 43454.58,
+      "OFT_20": 0.0,
+      "OFT_40": 40950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5850.0,
+      "Contract": "A2636253",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo Union Ocean Shipping Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "DJJIB",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6383.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637617",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "DJJIB",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6383.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "DJJIB",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6383.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "DJJIB",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12627.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "DJJIB",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6383.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 10.0,
+      "TEU_20": 0.0,
+      "TEU_40": 10.0,
+      "Revenue": 32092.74,
+      "OFT_20": 0.0,
+      "OFT_40": 30500.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637601",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 18840.05,
+      "OFT_20": 0.0,
+      "OFT_40": 17850.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 4487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 4100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 4100.0,
+      "Contract": "A2523248",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637601",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Safround Logistics Co.,Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625348",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO  HAPPYPORT LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637605",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637601",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 25691.39,
+      "OFT_20": 0.0,
+      "OFT_40": 24400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO  HAPPYPORT LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12954.71,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637605",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHANGHAI WINWELL SUPPLYCHAIN MANAGEMENT LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4214.55,
+      "OFT_20": 3950.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2625349",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4139.55,
+      "OFT_20": 3875.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3875.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Qihe International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 16.0,
+      "TEU_20": 0.0,
+      "TEU_40": 16.0,
+      "Revenue": 50096.78,
+      "OFT_20": 0.0,
+      "OFT_40": 47600.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637610",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "XINFENGMING GROUP CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 11488.7,
+      "OFT_20": 0.0,
+      "OFT_40": 10800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5400.0,
+      "Contract": "A2516784",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "XINFENGMING GROUP CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 5787.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5400.0,
+      "Contract": "A2516784",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Safround Logistics Co.,Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625348",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHANGHAI WINWELL SUPPLYCHAIN MANAGEMENT LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625349",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO YAOHONG INTERNATIONAL FORWARDING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625346",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOTRANS ZHEJIANG CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 4287.35,
+      "OFT_20": 0.0,
+      "OFT_40": 3900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3900.0,
+      "Contract": "A2504262",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 25091.39,
+      "OFT_20": 0.0,
+      "OFT_40": 23800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 16.0,
+      "TEU_20": 0.0,
+      "TEU_40": 16.0,
+      "Revenue": 51296.78,
+      "OFT_20": 0.0,
+      "OFT_40": 48800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637601",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "YIWU HUAHAO INTERNATIONAL FREIGHT CO,.LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 19290.05,
+      "OFT_20": 0.0,
+      "OFT_40": 18300.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637608",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO SINOWAY INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 19290.05,
+      "OFT_20": 0.0,
+      "OFT_40": 18300.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2503450",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO SINOWAY INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2503450",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo kostar supply chain co., ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 12.0,
+      "TEU_20": 0.0,
+      "TEU_40": 12.0,
+      "Revenue": 38494.09,
+      "OFT_20": 0.0,
+      "OFT_40": 36600.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625342",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 4287.35,
+      "OFT_20": 0.0,
+      "OFT_40": 3900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3900.0,
+      "Contract": "A2632386",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 4287.35,
+      "OFT_20": 0.0,
+      "OFT_40": 3900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3900.0,
+      "Contract": "A2632386",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 10.0,
+      "TEU_20": 0.0,
+      "TEU_40": 10.0,
+      "Revenue": 31342.74,
+      "OFT_20": 0.0,
+      "OFT_40": 29750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 16.0,
+      "TEU_20": 0.0,
+      "TEU_40": 16.0,
+      "Revenue": 50096.78,
+      "OFT_20": 0.0,
+      "OFT_40": 47600.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo kostar supply chain co., ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625342",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "DP WORLD CHINA CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 19290.05,
+      "OFT_20": 0.0,
+      "OFT_40": 18600.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6200.0,
+      "Contract": "C2615381",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 25091.39,
+      "OFT_20": 0.0,
+      "OFT_40": 23800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "YIWU HUAHAO INTERNATIONAL FREIGHT CO,.LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 19290.05,
+      "OFT_20": 0.0,
+      "OFT_40": 18300.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637608",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 18840.05,
+      "OFT_20": 0.0,
+      "OFT_40": 17850.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo Union Ocean Shipping Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 18840.05,
+      "OFT_20": 0.0,
+      "OFT_40": 17850.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637617",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "CIMC GOLD WIDE TECHNOLOGY LOGISTICS GROUP CO., LIMITED",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637612",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Worldwide Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 19290.05,
+      "OFT_20": 0.0,
+      "OFT_40": 18300.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625354",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Worldwide Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625354",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO SINOWAY INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2503450",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637601",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOTRANS ZHEJIANG CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 19290.05,
+      "OFT_20": 0.0,
+      "OFT_40": 18300.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625352",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Worldwide Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625354",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO  HAPPYPORT LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637605",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637601",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO YAOHONG INTERNATIONAL FORWARDING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4214.55,
+      "OFT_20": 3950.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2625346",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4214.55,
+      "OFT_20": 3950.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4139.55,
+      "OFT_20": 3875.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3875.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo kostar supply chain co., ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4214.55,
+      "OFT_20": 3950.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2625342",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 18840.05,
+      "OFT_20": 0.0,
+      "OFT_40": 17850.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 10.0,
+      "TEU_20": 0.0,
+      "TEU_40": 10.0,
+      "Revenue": 31342.74,
+      "OFT_20": 0.0,
+      "OFT_40": 29750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO YAOHONG INTERNATIONAL FORWARDING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 25691.39,
+      "OFT_20": 0.0,
+      "OFT_40": 24400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625346",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo kostar supply chain co., ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625342",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "XINFENGMING GROUP CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 17190.05,
+      "OFT_20": 0.0,
+      "OFT_40": 16200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5400.0,
+      "Contract": "A2516784",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "XINFENGMING GROUP CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 11488.7,
+      "OFT_20": 0.0,
+      "OFT_40": 10800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5400.0,
+      "Contract": "A2516784",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "XINFENGMING GROUP CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 5787.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5400.0,
+      "Contract": "A2516784",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHENZHEN H&T SHIPPING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 4287.35,
+      "OFT_20": 0.0,
+      "OFT_40": 3900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3900.0,
+      "Contract": "A2635505",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO YAOHONG INTERNATIONAL FORWARDING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625346",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 18840.05,
+      "OFT_20": 0.0,
+      "OFT_40": 17850.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO SINOWAY INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2503450",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 3.0,
+      "TEU_20": 1.0,
+      "TEU_40": 2.0,
+      "Revenue": 10615.9,
+      "OFT_20": 3950.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637600",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 3.0,
+      "TEU_20": 3.0,
+      "TEU_40": 0.0,
+      "Revenue": 12246.63,
+      "OFT_20": 11625.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3875.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 18840.05,
+      "OFT_20": 0.0,
+      "OFT_40": 17850.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOTRANS ZHEJIANG CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625352",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOTRANS ZHEJIANG CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 25691.39,
+      "OFT_20": 0.0,
+      "OFT_40": 24400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625352",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637601",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Worldwide Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 25691.39,
+      "OFT_20": 0.0,
+      "OFT_40": 24400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625354",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 18840.05,
+      "OFT_20": 0.0,
+      "OFT_40": 17850.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4139.55,
+      "OFT_20": 3875.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3875.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 10.0,
+      "TEU_20": 10.0,
+      "TEU_40": 0.0,
+      "Revenue": 40665.44,
+      "OFT_20": 38750.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3875.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "HONHANN SUPPLY CHAIN CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 3.0,
+      "TEU_20": 3.0,
+      "TEU_40": 0.0,
+      "Revenue": 12471.63,
+      "OFT_20": 11850.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637623",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "YIWU HUAHAO INTERNATIONAL FREIGHT CO,.LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 10.0,
+      "TEU_20": 0.0,
+      "TEU_40": 10.0,
+      "Revenue": 32092.74,
+      "OFT_20": 0.0,
+      "OFT_40": 30500.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637608",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo kostar supply chain co., ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625342",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 25091.39,
+      "OFT_20": 0.0,
+      "OFT_40": 23800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Safround Logistics Co.,Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625348",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Safround Logistics Co.,Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625348",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO YAOHONG INTERNATIONAL FORWARDING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625346",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 4287.35,
+      "OFT_20": 0.0,
+      "OFT_40": 3900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3900.0,
+      "Contract": "A2503451",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637601",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG PORT SOUTHEAST LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637609",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOTRANS NINGBO INT'L CONTAINER TRANS.CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637606",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOTRANS NINGBO INT'L CONTAINER TRANS.CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637606",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 25091.39,
+      "OFT_20": 0.0,
+      "OFT_40": 23800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 18840.05,
+      "OFT_20": 0.0,
+      "OFT_40": 17850.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "DP WORLD CHINA CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6200.0,
+      "Contract": "C2615381",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHANGHAI WINWELL SUPPLYCHAIN MANAGEMENT LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625349",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 19290.05,
+      "OFT_20": 0.0,
+      "OFT_40": 18300.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637601",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHANGHAI WINWELL SUPPLYCHAIN MANAGEMENT LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625349",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO YAOHONG INTERNATIONAL FORWARDING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625346",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 25091.39,
+      "OFT_20": 0.0,
+      "OFT_40": 23800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 10.0,
+      "TEU_20": 0.0,
+      "TEU_40": 10.0,
+      "Revenue": 31342.74,
+      "OFT_20": 0.0,
+      "OFT_40": 29750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 25091.39,
+      "OFT_20": 0.0,
+      "OFT_40": 23800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 5.0,
+      "TEU_20": 1.0,
+      "TEU_40": 4.0,
+      "Revenue": 16642.24,
+      "OFT_20": 3875.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 3875.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4139.55,
+      "OFT_20": 3875.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3875.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "XINFENGMING GROUP CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 22891.39,
+      "OFT_20": 0.0,
+      "OFT_40": 21600.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5400.0,
+      "Contract": "A2516784",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO SINOWAY INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 25691.39,
+      "OFT_20": 0.0,
+      "OFT_40": 24400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2503450",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo kostar supply chain co., ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625342",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO  HAPPYPORT LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637605",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 18840.05,
+      "OFT_20": 0.0,
+      "OFT_40": 17850.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 18840.05,
+      "OFT_20": 0.0,
+      "OFT_40": 17850.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637601",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 10.0,
+      "TEU_20": 0.0,
+      "TEU_40": 10.0,
+      "Revenue": 31342.74,
+      "OFT_20": 0.0,
+      "OFT_40": 29750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOTRANS ZHEJIANG CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625352",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "YIWU HUAHAO INTERNATIONAL FREIGHT CO,.LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 19290.05,
+      "OFT_20": 0.0,
+      "OFT_40": 18300.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637608",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 25091.39,
+      "OFT_20": 0.0,
+      "OFT_40": 23800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo kostar supply chain co., ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 2.0,
+      "TEU_40": 0.0,
+      "Revenue": 8343.09,
+      "OFT_20": 7900.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2625342",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4139.55,
+      "OFT_20": 3875.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3875.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo kostar supply chain co., ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 5.0,
+      "TEU_20": 5.0,
+      "TEU_40": 0.0,
+      "Revenue": 20728.72,
+      "OFT_20": 19750.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2625342",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "XINFENGMING GROUP CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 11488.7,
+      "OFT_20": 0.0,
+      "OFT_40": 10800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5400.0,
+      "Contract": "A2516784",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO YAOHONG INTERNATIONAL FORWARDING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 19290.05,
+      "OFT_20": 0.0,
+      "OFT_40": 18300.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625346",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637600",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 10.0,
+      "TEU_20": 0.0,
+      "TEU_40": 10.0,
+      "Revenue": 31342.74,
+      "OFT_20": 0.0,
+      "OFT_40": 29750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG MINGJUN SUPPLY CHAIN MANAGEMENT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2503443",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 10.0,
+      "TEU_20": 0.0,
+      "TEU_40": 10.0,
+      "Revenue": 31342.74,
+      "OFT_20": 0.0,
+      "OFT_40": 29750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHENZHEN UNITED LOGISTICS DEVELOPMENT CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 10.0,
+      "TEU_20": 0.0,
+      "TEU_40": 10.0,
+      "Revenue": 21092.74,
+      "OFT_20": 0.0,
+      "OFT_40": 19500.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3900.0,
+      "Contract": "A2635507",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOTRANS NINGBO INT'L CONTAINER TRANS.CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 19290.05,
+      "OFT_20": 0.0,
+      "OFT_40": 18300.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637606",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "CIMC GOLD WIDE TECHNOLOGY LOGISTICS GROUP CO., LIMITED",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4214.55,
+      "OFT_20": 3950.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637612",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4139.55,
+      "OFT_20": 3875.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3875.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Safround Logistics Co.,Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4214.55,
+      "OFT_20": 3950.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2625348",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOOCEAN GROUP LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4214.55,
+      "OFT_20": 3950.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637622",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHANGHAI WINWELL SUPPLYCHAIN MANAGEMENT LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625349",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 19290.05,
+      "OFT_20": 0.0,
+      "OFT_40": 18300.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 10.0,
+      "TEU_20": 0.0,
+      "TEU_40": 10.0,
+      "Revenue": 31342.74,
+      "OFT_20": 0.0,
+      "OFT_40": 29750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 4287.35,
+      "OFT_20": 0.0,
+      "OFT_40": 3900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3900.0,
+      "Contract": "A2632386",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo Union Ocean Shipping Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 10.0,
+      "TEU_20": 0.0,
+      "TEU_40": 10.0,
+      "Revenue": 31342.74,
+      "OFT_20": 0.0,
+      "OFT_40": 29750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637617",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 10.0,
+      "TEU_20": 0.0,
+      "TEU_40": 10.0,
+      "Revenue": 31342.74,
+      "OFT_20": 0.0,
+      "OFT_40": 29750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "YIWU HUAHAO INTERNATIONAL FREIGHT CO,.LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637608",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 18840.05,
+      "OFT_20": 0.0,
+      "OFT_40": 17850.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG PORT SOUTHEAST LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 19290.05,
+      "OFT_20": 0.0,
+      "OFT_40": 18300.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637609",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHANGHAI WINWELL SUPPLYCHAIN MANAGEMENT LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625349",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12588.7,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6337.35,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637619",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 12888.7,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637601",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOTRANS ZHEJIANG CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 25691.39,
+      "OFT_20": 0.0,
+      "OFT_40": 24400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625352",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "EGSOK",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6487.35,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637601",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6553.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5900.0,
+      "Contract": "A2625340",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "DP WORLD CHINA CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6200.0,
+      "Contract": "C2615381",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 26533.34,
+      "OFT_20": 0.0,
+      "OFT_40": 24400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo Union Ocean Shipping Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 13046.78,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637617",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 13346.78,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637600",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 13346.78,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637600",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Safround Logistics Co.,Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625348",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637600",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "DP WORLD CHINA CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6200.0,
+      "Contract": "C2615381",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6403.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5750.0,
+      "Contract": "A2632301",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6403.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5750.0,
+      "Contract": "A2625353",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 13346.78,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SAFROUND LOGISTICS NINGBO CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637618",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SAFROUND LOGISTICS NINGBO CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637618",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SAFROUND LOGISTICS NINGBO CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637618",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo Union Ocean Shipping Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 13046.78,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637617",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 16.0,
+      "TEU_20": 0.0,
+      "TEU_40": 16.0,
+      "Revenue": 52906.47,
+      "OFT_20": 0.0,
+      "OFT_40": 48800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637600",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 26533.34,
+      "OFT_20": 0.0,
+      "OFT_40": 24400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Safround Logistics Co.,Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625348",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "DP WORLD CHINA CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6200.0,
+      "Contract": "C2615381",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO SINOWAY INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6553.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5900.0,
+      "Contract": "A2625344",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHENZHEN H&T SHIPPING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4458.23,
+      "OFT_20": 3950.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637846",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo kostar supply chain co., ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4458.23,
+      "OFT_20": 3950.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2625342",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo Shancheng International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 13346.78,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637615",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO SINOWAY INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6553.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5900.0,
+      "Contract": "A2625344",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHENZHEN H&T SHIPPING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637620",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Worldwide Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 10.0,
+      "TEU_20": 0.0,
+      "TEU_40": 10.0,
+      "Revenue": 33126.62,
+      "OFT_20": 0.0,
+      "OFT_40": 30500.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625354",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo Union Ocean Shipping Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637617",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "DP WORLD CHINA CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6200.0,
+      "Contract": "C2615381",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOTRANS NINGBO INT'L CONTAINER TRANS.CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6797.5,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637606",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo Union Ocean Shipping Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 13046.78,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637617",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6797.5,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SAFROUND LOGISTICS CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 13340.06,
+      "OFT_20": 0.0,
+      "OFT_40": 11700.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3900.0,
+      "Contract": "A2635508",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637600",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO BEWIN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 19940.06,
+      "OFT_20": 0.0,
+      "OFT_40": 18300.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637614",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "DP WORLD CHINA CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 5008.23,
+      "OFT_20": 4350.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 4350.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "C2615381",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NingBo YuanYong International Forwarding Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637616",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHANGHAI WINWELL SUPPLYCHAIN MANAGEMENT LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 6.0,
+      "TEU_20": 0.0,
+      "TEU_40": 6.0,
+      "Revenue": 19340.06,
+      "OFT_20": 0.0,
+      "OFT_40": 17700.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5900.0,
+      "Contract": "A2503445",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG MINGJUN SUPPLY CHAIN MANAGEMENT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2503443",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "DP WORLD CHINA CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6200.0,
+      "Contract": "C2615381",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 7.0,
+      "TEU_20": 7.0,
+      "TEU_40": 0.0,
+      "Revenue": 30246.34,
+      "OFT_20": 27650.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2625341",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 5.0,
+      "TEU_20": 5.0,
+      "TEU_40": 0.0,
+      "Revenue": 21650.3,
+      "OFT_20": 19750.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637601",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOTRANS ZHEJIANG CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4458.23,
+      "OFT_20": 3950.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2504262",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4458.23,
+      "OFT_20": 3950.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4458.23,
+      "OFT_20": 3950.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637621",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NingBo YuanYong International Forwarding Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637616",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6553.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5900.0,
+      "Contract": "A2625343",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo Union Ocean Shipping Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637617",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO SINOWAY INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6553.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5900.0,
+      "Contract": "A2625344",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "DP WORLD CHINA CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6200.0,
+      "Contract": "C2615381",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOTRANS NINGBO INT'L CONTAINER TRANS.CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637606",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "DP WORLD CHINA CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6200.0,
+      "Contract": "C2615381",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo Union Ocean Shipping Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637617",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO  HAPPYPORT LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637605",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6403.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5750.0,
+      "Contract": "A2632301",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637600",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo Shancheng International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637615",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 13346.78,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHENZHEN H&T SHIPPING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637620",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6403.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5750.0,
+      "Contract": "A2625353",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Safround Logistics Co.,Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625348",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6403.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5750.0,
+      "Contract": "A2625353",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO YAOHONG INTERNATIONAL FORWARDING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625346",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo Union Ocean Shipping Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637617",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NingBo AsiaCargo International Shipping Agency Co.,Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637613",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 4297.5,
+      "OFT_20": 0.0,
+      "OFT_40": 3600.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3600.0,
+      "Contract": "A2634723",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "DP WORLD CHINA CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6200.0,
+      "Contract": "C2615381",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6403.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5750.0,
+      "Contract": "A2625353",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "DP WORLD CHINA CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6200.0,
+      "Contract": "C2615381",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo kostar supply chain co., ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625342",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHENZHEN H&T SHIPPING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 13046.78,
+      "OFT_20": 0.0,
+      "OFT_40": 11900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637620",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637600",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO UNION OCEAN SHIPPING CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637604",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637600",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "DP WORLD CHINA CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 13346.78,
+      "OFT_20": 0.0,
+      "OFT_40": 12400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6200.0,
+      "Contract": "C2615381",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO  HAPPYPORT LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 5.0,
+      "TEU_20": 5.0,
+      "TEU_40": 0.0,
+      "Revenue": 21650.3,
+      "OFT_20": 19750.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637605",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SAFROUND LOGISTICS NINGBO CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637618",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO SINOWAY INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6553.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5900.0,
+      "Contract": "A2625344",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Safround Logistics Co.,Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625348",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Worldwide Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 4.0,
+      "TEU_20": 0.0,
+      "TEU_40": 4.0,
+      "Revenue": 13346.78,
+      "OFT_20": 0.0,
+      "OFT_40": 12200.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625354",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637600",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo kostar supply chain co., ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 4458.23,
+      "OFT_20": 3950.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2625342",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NingBo YuanYong International Forwarding Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637616",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SAFROUND LOGISTICS NINGBO CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637618",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SAFROUND LOGISTICS NINGBO CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637618",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "YIWU HUAHAO INTERNATIONAL FREIGHT CO,.LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6797.5,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637608",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "CIMC GOLD WIDE TECHNOLOGY LOGISTICS GROUP CO., LIMITED",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637612",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Shanghai Zhenxun International Logistics Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637611",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6403.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5750.0,
+      "Contract": "A2625353",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "YIWU HUAHAO INTERNATIONAL FREIGHT CO,.LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6797.5,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637608",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo kostar supply chain co., ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2625342",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6797.5,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637602",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6403.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5750.0,
+      "Contract": "A2625353",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG MINGJUN SUPPLY CHAIN MANAGEMENT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2503443",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO TRANSLED INT'L FREIGHT CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6797.5,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637603",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "DP WORLD CHINA CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 1.0,
+      "TEU_20": 1.0,
+      "TEU_40": 0.0,
+      "Revenue": 5008.23,
+      "OFT_20": 4350.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 4350.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "C2615381",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 5.0,
+      "TEU_20": 5.0,
+      "TEU_40": 0.0,
+      "Revenue": 21650.3,
+      "OFT_20": 19750.0,
+      "OFT_40": 0.0,
+      "Per_Unit_OFT_20": 3950.0,
+      "Per_Unit_OFT_40": 0.0,
+      "Contract": "A2637600",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHENZHEN HUAGUANDA INTERNATIONAL FREIGHT FORWARDING CO., LIMITED",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 25933.34,
+      "OFT_20": 0.0,
+      "OFT_40": 23800.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "C2616042",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6753.49,
+      "OFT_20": 0.0,
+      "OFT_40": 6100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NingBo YuanYong International Forwarding Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637616",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NingBo YuanYong International Forwarding Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 6603.49,
+      "OFT_20": 0.0,
+      "OFT_40": 5950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5950.0,
+      "Contract": "A2637616",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SINOOCEAN GROUP LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SAJED",
+      "TEU": 8.0,
+      "TEU_20": 0.0,
+      "TEU_40": 8.0,
+      "Revenue": 26533.34,
+      "OFT_20": 0.0,
+      "OFT_40": 24400.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6100.0,
+      "Contract": "A2637622",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7645.24,
+      "OFT_20": 0.0,
+      "OFT_40": 7100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 7100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO  HAPPYPORT LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7645.24,
+      "OFT_20": 0.0,
+      "OFT_40": 7100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 7100.0,
+      "Contract": "A2637605",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7445.24,
+      "OFT_20": 0.0,
+      "OFT_40": 6900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6900.0,
+      "Contract": "A2625340",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7445.24,
+      "OFT_20": 0.0,
+      "OFT_40": 6900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6900.0,
+      "Contract": "A2625340",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo Union Ocean Shipping Co., Ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7495.24,
+      "OFT_20": 0.0,
+      "OFT_40": 6950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6950.0,
+      "Contract": "A2637617",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo JATO International Shipping Co.,ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7645.24,
+      "OFT_20": 0.0,
+      "OFT_40": 7100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 7100.0,
+      "Contract": "A2637601",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7645.24,
+      "OFT_20": 0.0,
+      "OFT_40": 7100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 7100.0,
+      "Contract": "A2637621",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Ningbo kostar supply chain co., ltd",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7711.25,
+      "OFT_20": 0.0,
+      "OFT_40": 7100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 7100.0,
+      "Contract": "A2625342",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7645.24,
+      "OFT_20": 0.0,
+      "OFT_40": 7100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 7100.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7445.24,
+      "OFT_20": 0.0,
+      "OFT_40": 6900.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6900.0,
+      "Contract": "A2625340",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHENZHEN H&T SHIPPING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7495.24,
+      "OFT_20": 0.0,
+      "OFT_40": 6950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6950.0,
+      "Contract": "A2637620",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7645.24,
+      "OFT_20": 0.0,
+      "OFT_40": 7100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 7100.0,
+      "Contract": "A2637607",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "UNICORN SUPPLY CHAIN（NINGBO） CO.，LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7295.24,
+      "OFT_20": 0.0,
+      "OFT_40": 6750.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6750.0,
+      "Contract": "A2625353",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SAFROUND LOGISTICS CO., LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 5545.24,
+      "OFT_20": 0.0,
+      "OFT_40": 5000.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 5000.0,
+      "Contract": "A2635508",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "ZHEJIANG JIANCHENG SHIPPING CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7645.24,
+      "OFT_20": 0.0,
+      "OFT_40": 7100.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 7100.0,
+      "Contract": "A2637847",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "SHENZHEN H&T SHIPPING AGENCY CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "SDPZU",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7495.24,
+      "OFT_20": 0.0,
+      "OFT_40": 6950.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6950.0,
+      "Contract": "A2637620",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD",
+      "POL_CD": "CNNGB",
+      "DEL_CD": "YEADE",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 7722.35,
+      "OFT_20": 0.0,
+      "OFT_40": 7300.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 7300.0,
+      "Contract": "A2637600",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "Patent International Logistics （Shen Zhen） Co., Ltd",
+      "POL_CD": "CNQZH",
+      "DEL_CD": "SDPZU",
+      "TEU": 12.0,
+      "TEU_20": 0.0,
+      "TEU_40": 12.0,
+      "Revenue": 38889.8,
+      "OFT_20": 0.0,
+      "OFT_40": 36000.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 6000.0,
+      "Contract": "A2636182",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "INTERNATIONAL TOYS TRADING LIMITED",
+      "POL_CD": "CNSWA",
+      "DEL_CD": "SAJED",
+      "TEU": 2.0,
+      "TEU_20": 0.0,
+      "TEU_40": 2.0,
+      "Revenue": 4475.09,
+      "OFT_20": 0.0,
+      "OFT_40": 3700.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3700.0,
+      "Contract": "A2485089",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "INTERNATIONAL TOYS TRADING LIMITED",
+      "POL_CD": "CNSWA",
+      "DEL_CD": "SAJED",
+      "TEU": 10.0,
+      "TEU_20": 0.0,
+      "TEU_40": 10.0,
+      "Revenue": 21558.59,
+      "OFT_20": 0.0,
+      "OFT_40": 18500.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3700.0,
+      "Contract": "A2485089",
+      "BLNO": "H7282620W"
+    },
+    {
+      "Shipper": "CTS INTERNATIONAL LOGISTICS CORPORATION LIMITED",
+      "POL_CD": "CNXGG",
+      "DEL_CD": "EGSOK",
+      "TEU": 40.0,
+      "TEU_20": 0.0,
+      "TEU_40": 40.0,
+      "Revenue": 80178.95,
+      "OFT_20": 0.0,
+      "OFT_40": 76000.0,
+      "Per_Unit_OFT_20": 0.0,
+      "Per_Unit_OFT_40": 3800.0,
+      "Contract": "C2615361",
+      "BLNO": "H7282620W"
+    }
+  ],
+  "fak_data": [
+    {
+      "POL": "CNNGB",
+      "POD": "SAJED",
+      "Size": "20",
+      "FAK": 4000.0,
+      "OFT_Avg": 4016.67,
+      "Count": 12,
+      "Diff": 16.67,
+      "DiffPct": 0.4,
+      "Status": "Above"
+    },
+    {
+      "POL": "CNNGB",
+      "POD": "SAJED",
+      "Size": "40",
+      "FAK": 6200.0,
+      "OFT_Avg": 5987.3,
+      "Count": 126,
+      "Diff": -212.7,
+      "DiffPct": -3.4,
+      "Status": "Below"
+    },
+    {
+      "POL": "CNNGB",
+      "POD": "EGSOK",
+      "Size": "20",
+      "FAK": 4000.0,
+      "OFT_Avg": 3916.25,
+      "Count": 20,
+      "Diff": -83.75,
+      "DiffPct": -2.1,
+      "Status": "Below"
+    },
+    {
+      "POL": "CNNGB",
+      "POD": "EGSOK",
+      "Size": "40",
+      "FAK": 6200.0,
+      "OFT_Avg": 5912.04,
+      "Count": 191,
+      "Diff": -287.96,
+      "DiffPct": -4.6,
+      "Status": "Below"
+    },
+    {
+      "POL": "CNNGB",
+      "POD": "DJJIB",
+      "Size": "20",
+      "FAK": 4000.0,
+      "OFT_Avg": 0,
+      "Count": 0,
+      "Diff": 0,
+      "DiffPct": 0,
+      "Status": "Equal"
+    },
+    {
+      "POL": "CNNGB",
+      "POD": "DJJIB",
+      "Size": "40",
+      "FAK": 6200.0,
+      "OFT_Avg": 5950.0,
+      "Count": 5,
+      "Diff": -250.0,
+      "DiffPct": -4.0,
+      "Status": "Below"
+    },
+    {
+      "POL": "CNNGB",
+      "POD": "YEADE",
+      "Size": "20",
+      "FAK": 4500.0,
+      "OFT_Avg": 0,
+      "Count": 0,
+      "Diff": 0,
+      "DiffPct": 0,
+      "Status": "Equal"
+    },
+    {
+      "POL": "CNNGB",
+      "POD": "YEADE",
+      "Size": "40",
+      "FAK": 7400.0,
+      "OFT_Avg": 7300.0,
+      "Count": 1,
+      "Diff": -100.0,
+      "DiffPct": -1.4,
+      "Status": "Below"
+    },
+    {
+      "POL": "CNNGB",
+      "POD": "SDPZU",
+      "Size": "20",
+      "FAK": 4400.0,
+      "OFT_Avg": 0,
+      "Count": 0,
+      "Diff": 0,
+      "DiffPct": 0,
+      "Status": "Equal"
+    },
+    {
+      "POL": "CNNGB",
+      "POD": "SDPZU",
+      "Size": "40",
+      "FAK": 7200.0,
+      "OFT_Avg": 6881.25,
+      "Count": 16,
+      "Diff": -318.75,
+      "DiffPct": -4.4,
+      "Status": "Below"
+    },
+    {
+      "POL": "CNNGB",
+      "POD": "SARUH",
+      "Size": "20",
+      "FAK": 6500.0,
+      "OFT_Avg": 0,
+      "Count": 0,
+      "Diff": 0,
+      "DiffPct": 0,
+      "Status": "Equal"
+    },
+    {
+      "POL": "CNNGB",
+      "POD": "SARUH",
+      "Size": "40",
+      "FAK": 8700.0,
+      "OFT_Avg": 0,
+      "Count": 0,
+      "Diff": 0,
+      "DiffPct": 0,
+      "Status": "Equal"
+    },
+    {
+      "POL": "CNNGB",
+      "POD": "SADMM",
+      "Size": "20",
+      "FAK": 6500.0,
+      "OFT_Avg": 0,
+      "Count": 0,
+      "Diff": 0,
+      "DiffPct": 0,
+      "Status": "Equal"
+    },
+    {
+      "POL": "CNNGB",
+      "POD": "SADMM",
+      "Size": "40",
+      "FAK": 8700.0,
+      "OFT_Avg": 0,
+      "Count": 0,
+      "Diff": 0,
+      "DiffPct": 0,
+      "Status": "Equal"
+    },
+    {
+      "POL": "CNNAS",
+      "POD": "SAJED",
+      "Size": "20",
+      "FAK": 4100.0,
+      "OFT_Avg": 4000.0,
+      "Count": 1,
+      "Diff": -100.0,
+      "DiffPct": -2.4,
+      "Status": "Below"
+    },
+    {
+      "POL": "CNNAS",
+      "POD": "SAJED",
+      "Size": "40",
+      "FAK": 6600.0,
+      "OFT_Avg": 5566.67,
+      "Count": 9,
+      "Diff": -1033.33,
+      "DiffPct": -15.7,
+      "Status": "Below"
+    },
+    {
+      "POL": "CNNAS",
+      "POD": "EGSOK",
+      "Size": "20",
+      "FAK": 4100.0,
+      "OFT_Avg": 0,
+      "Count": 0,
+      "Diff": 0,
+      "DiffPct": 0,
+      "Status": "Equal"
+    },
+    {
+      "POL": "CNNAS",
+      "POD": "EGSOK",
+      "Size": "40",
+      "FAK": 6600.0,
+      "OFT_Avg": 4633.33,
+      "Count": 6,
+      "Diff": -1966.67,
+      "DiffPct": -29.8,
+      "Status": "Below"
+    },
+    {
+      "POL": "CNNAS",
+      "POD": "SDPZU",
+      "Size": "20",
+      "FAK": 5100.0,
+      "OFT_Avg": 0,
+      "Count": 0,
+      "Diff": 0,
+      "DiffPct": 0,
+      "Status": "Equal"
+    },
+    {
+      "POL": "CNNAS",
+      "POD": "SDPZU",
+      "Size": "40",
+      "FAK": 7600.0,
+      "OFT_Avg": 6395.0,
+      "Count": 10,
+      "Diff": -1205.0,
+      "DiffPct": -15.9,
+      "Status": "Below"
+    },
+    {
+      "POL": "CNNAS",
+      "POD": "YEADE",
+      "Size": "20",
+      "FAK": 5150.0,
+      "OFT_Avg": 0,
+      "Count": 0,
+      "Diff": 0,
+      "DiffPct": 0,
+      "Status": "Equal"
+    },
+    {
+      "POL": "CNNAS",
+      "POD": "YEADE",
+      "Size": "40",
+      "FAK": 8200.0,
+      "OFT_Avg": 5875.0,
+      "Count": 2,
+      "Diff": -2325.0,
+      "DiffPct": -28.4,
+      "Status": "Below"
+    },
+    {
+      "POL": "CNNAS",
+      "POD": "SADMM",
+      "Size": "20",
+      "FAK": 6600.0,
+      "OFT_Avg": 0,
+      "Count": 0,
+      "Diff": 0,
+      "DiffPct": 0,
+      "Status": "Equal"
+    },
+    {
+      "POL": "CNNAS",
+      "POD": "SADMM",
+      "Size": "40",
+      "FAK": 9100.0,
+      "OFT_Avg": 0,
+      "Count": 0,
+      "Diff": 0,
+      "DiffPct": 0,
+      "Status": "Equal"
+    },
+    {
+      "POL": "CNNAS",
+      "POD": "SARUH",
+      "Size": "20",
+      "FAK": 6600.0,
+      "OFT_Avg": 0,
+      "Count": 0,
+      "Diff": 0,
+      "DiffPct": 0,
+      "Status": "Equal"
+    },
+    {
+      "POL": "CNNAS",
+      "POD": "SARUH",
+      "Size": "40",
+      "FAK": 9100.0,
+      "OFT_Avg": 0,
+      "Count": 0,
+      "Diff": 0,
+      "DiffPct": 0,
+      "Status": "Equal"
+    }
+  ]
+};
+
+console.log('H7282620W Dashboard loaded. total_teu=' + DATA.level1.total_teu + ', rows=' + (DATA.level5||[]).length);
+renderAll();
+
+
