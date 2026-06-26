@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>中国出口运价达成分析</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Microsoft YaHei','Segoe UI',sans-serif; }
+  body { background:linear-gradient(135deg,#f0f6ff 0%,#e6efff 100%); color:#1a2a4a; padding:14px; min-height:100vh; }
+  .header { background:linear-gradient(90deg,#1e4d8b 0%,#2c6db5 100%); color:#fff; padding:18px 28px; border-radius:10px; box-shadow:0 4px 14px rgba(30,77,139,.25); display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .header .title { font-size:24px; font-weight:700; letter-spacing:1px; }
+  .header .subtitle { font-size:13px; opacity:.85; margin-top:4px; }
+  .header .ship-kpi { display:flex; gap:24px; align-items:center; }
+  .header .ship-kpi .item { text-align:center; }
+  .header .ship-kpi .num { font-size:26px; font-weight:800; color:#ffe066; }
+  .header .ship-kpi .lbl { font-size:11px; opacity:.85; margin-top:2px; }
+
+  .kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px; }
+  .kpi-card { background:#fff; border-radius:8px; padding:14px 16px; box-shadow:0 2px 8px rgba(30,77,139,.08); border-left:4px solid #2c6db5; }
+  .kpi-card .lbl { font-size:12px; color:#6a7a99; margin-bottom:6px; }
+  .kpi-card .val { font-size:24px; font-weight:700; color:#1e4d8b; }
+  .kpi-card .sub { font-size:11px; color:#8a99b3; margin-top:3px; }
+  .kpi-card.warn { border-left-color:#e8533f; }
+  .kpi-card.warn .val { color:#e8533f; }
+
+  .row { display:grid; gap:10px; margin-bottom:10px; }
+  .row-2eq { grid-template-columns:1fr 1fr; }
+  .panel { background:#fff; border-radius:8px; padding:12px 14px; box-shadow:0 2px 8px rgba(30,77,139,.08); }
+  .panel-title { font-size:14px; font-weight:600; color:#1e4d8b; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; }
+  .panel-title .tag { font-size:11px; background:#eaf2ff; color:#2c6db5; padding:2px 8px; border-radius:10px; font-weight:normal; }
+  .chart { width:100%; height:300px; }
+
+  .toggle-bar { display:flex; gap:6px; align-items:center; }
+  .toggle-bar button { background:#eaf2ff; color:#2c6db5; border:none; padding:4px 12px; border-radius:14px; cursor:pointer; font-size:12px; }
+  .toggle-bar button.active { background:#1e4d8b; color:#fff; }
+
+  .filter-bar { display:flex; gap:10px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+  .filter-bar label { font-size:12px; color:#6a7a99; font-weight:600; }
+  .filter-bar select { padding:4px 8px; border:1px solid #c5d3e8; border-radius:4px; font-size:12px; color:#1a2a4a; background:#fff; cursor:pointer; }
+  .filter-bar select:focus { outline:none; border-color:#2c6db5; }
+
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { background:#1e4d8b; color:#fff; padding:8px 6px; text-align:center; font-weight:600; position:sticky; top:0; }
+  td { padding:6px; text-align:center; border-bottom:1px solid #eef2f8; }
+  tr:hover td { background:#f5f9ff; }
+  .tbl-wrap { max-height:340px; overflow:auto; border-radius:6px; }
+  .num-r { text-align:right !important; }
+  .region-zd { background:#fff4e6; }
+  .region-hh { background:#e6f4ff; }
+  .badge-low { background:#fdecea; color:#e8533f; padding:2px 8px; border-radius:10px; font-weight:600; }
+  .badge-mid { background:#fff4e6; color:#f59f00; padding:2px 8px; border-radius:10px; font-weight:600; }
+  .badge-high { background:#e6f9ee; color:#28a745; padding:2px 8px; border-radius:10px; font-weight:600; }
+  .footnote { font-size:11px; color:#8a99b3; margin-top:10px; padding:8px 14px; background:#fff; border-radius:6px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="title"><span id="hdr-vvd" style="font-size:20px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);padding:4px 12px;border-radius:5px;margin-right:10px;vertical-align:middle;">--</span>中国出口运价达成分析</div>
+    <div class="subtitle">航次事后分析 · 数据源：Local_Analytical_By_Vessel · 口径：USD</div>
+  </div>
+</div>
+
+<div class="kpi-row" id="kpi-row"></div>
+
+<div class="row row-2eq">
+  <div class="panel">
+    <div class="panel-title">整船货量达成率 <span class="tag">达FAK价箱量占比(TEU口径) · 🔴低=打折多</span></div>
+    <div id="chart-ship-ratio" class="chart"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">区域分布 <span class="tag" id="region-tag">按TEU</span>
+      <div class="toggle-bar" style="float:right">
+        <button class="active" onclick="switchRegion('teu')">TEU</button>
+        <button onclick="switchRegion('rev')">收入</button>
+      </div>
+    </div>
+    <div id="chart-region" class="chart"></div>
+  </div>
+</div>
+
+<div class="row row-2eq">
+  <div class="panel">
+    <div class="panel-title">POL×POD 货量达成率热力图 <span class="tag">每格=达FAK箱量占比(TEU口径) · 🟢高=好 · 🔴低=打折多</span></div>
+    <div id="chart-heat" class="chart"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">起运港(POL)运价对比 <span class="tag">红折线=货量达成率 · 🟢高=达成好</span>
+      <div class="toggle-bar" style="float:right">
+        <button class="active" onclick="switchPol(20)">20GP</button>
+        <button onclick="switchPol(40)">40HQ</button>
+      </div>
+    </div>
+    <div id="chart-pol" class="chart"></div>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:10px">
+  <div class="panel-title">明细表 <span class="tag">初始按货量达成率(TEU口径)降序 · 🟢&gt;70% / 🟠50-70% / 🔴&lt;50%</span>
+    <div class="toggle-bar" style="float:right">
+      <button class="active" onclick="switchTable(20)">20GP</button>
+      <button onclick="switchTable(40)">40HQ</button>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <label>区域:</label>
+    <select id="filter-region" onchange="renderTable()">
+      <option value="">全部</option>
+      <option value="中东">中东</option>
+      <option value="红海">红海</option>
+    </select>
+    <label>POL:</label>
+    <select id="filter-pol" onchange="renderTable()">
+      <option value="">全部</option>
+    </select>
+    <label>POD:</label>
+    <select id="filter-pod" onchange="renderTable()">
+      <option value="">全部</option>
+    </select>
+    <span style="font-size:11px;color:#8a99b3;margin-left:auto;" id="filter-count"></span>
+  </div>
+  <div class="tbl-wrap">
+    <table id="detail-table">
+      <thead><tr>
+        <th>区域</th><th>POL</th><th>POD</th><th>TEU</th><th>收入(USD)</th>
+        <th>FAK</th><th>实际价</th>
+        <th>箱量</th><th>达FAK箱量</th><th>货量达成率</th>
+      </tr></thead>
+      <tbody id="detail-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="footnote">
+  口径说明：① <b>金额达成率</b> = 实际单箱价 / FAK批复价，&gt;100%表示溢价承运；② <b>货量达成率</b> = 达到FAK价及以上的箱量 / 总箱量，<b>高=好(达FAK箱多)、低=坏(打折箱多)</b>；③ 整船汇总按 <b>TEU口径</b>(40HQ按2倍计)，与Sheet2一致；④ 5773 TEU 为所有 CN 起运港出口总量（CNNAS/CNNGB/CNSHA/CNSHK/CNSWA/CNTAO/CNXMN）；⑤ POD区域分类：<b>中东</b>=AEKLF；<b>红海</b>=SAJED/SDPZU/EGSOK/YEADE/DJJIB/JOAQJ。
+</div>
+
+<script>
+const DATA = {"records": [{"region": "红海", "vvd": "CSJ82624W", "pol": "CNNAS", "pod": "EGSOK", "revenue": 536291.7308143659, "teu": 166, "charge_20": 3942.1875, "charge_40": 5768.6567164179105, "fak_20": 4200.0, "fak_40": 6600.0, "ttl_20": 32, "ttl_40": 67, "more_20": 6, "more_40": 2, "more_teu": 10, "ratio_qty_20": 0.1875, "ratio_qty_40": 0.029850746268656716, "ratio_qty_teu": 0.060240963855421686, "ratio_amt_20": 0.9386160714285714, "ratio_amt_40": 0.8740388964269561}, {"region": "红海", "vvd": "CSJ82624W", "pol": "CNNAS", "pod": "SAJED", "revenue": 843274.5597966363, "teu": 223, "charge_20": 4253.888888888889, "charge_40": 6557.303370786517, "fak_20": 4300.0, "fak_40": 6800.0, "ttl_20": 45, "ttl_40": 89, "more_20": 27, "more_40": 45, "more_teu": 117, "ratio_qty_20": 0.6, "ratio_qty_40": 0.5056179775280899, "ratio_qty_teu": 0.5246636771300448, "ratio_amt_20": 0.9892764857881137, "ratio_amt_40": 0.9643093192333113}, {"region": "红海", "vvd": "CSJ82624W", "pol": "CNNAS", "pod": "SDPZU", "revenue": 156792.811851623, "teu": 38, "charge_20": 4950.0, "charge_40": 7658.333333333333, "fak_20": 4950.0, "fak_40": 7800.0, "ttl_20": 2, "ttl_40": 18, "more_20": 2, "more_40": 1, "more_teu": 4, "ratio_qty_20": 1.0, "ratio_qty_40": 0.05555555555555555, "ratio_qty_teu": 0.10526315789473684, "ratio_amt_20": 1.0, "ratio_amt_40": 0.9818376068376068}, {"region": "红海", "vvd": "CSJ82624W", "pol": "CNNAS", "pod": "YEADE", "revenue": 20111.6756629902, "teu": 5, "charge_20": 5050.0, "charge_40": 6950.0, "fak_20": 5050.0, "fak_40": 8000.0, "ttl_20": 1, "ttl_40": 2, "more_20": 1, "more_40": 0, "more_teu": 1, "ratio_qty_20": 1.0, "ratio_qty_40": 0.0, "ratio_qty_teu": 0.2, "ratio_amt_20": 1.0, "ratio_amt_40": 0.86875}, {"region": "红海", "vvd": "CSJ82624W", "pol": "CNNGB", "pod": "SAJED", "revenue": 176040.2307134672, "teu": 68, "charge_20": 0.0, "charge_40": 4767.64705882353, "fak_20": null, "fak_40": null, "ttl_20": 0, "ttl_40": 34, "more_20": 0, "more_40": 0, "more_teu": 0, "ratio_qty_20": 0.0, "ratio_qty_40": 0.0, "ratio_qty_teu": 0.0, "ratio_amt_20": null, "ratio_amt_40": null}, {"region": "红海", "vvd": "CSJ82624W", "pol": "CNSHA", "pod": "DJJIB", "revenue": 344843.7477118043, "teu": 84, "charge_20": 4900.0, "charge_40": 6859.259259259259, "fak_20": 5200.0, "fak_40": 7200.0, "ttl_20": 30, "ttl_40": 27, "more_20": 0, "more_40": 0, "more_teu": 0, "ratio_qty_20": 0.0, "ratio_qty_40": 0.0, "ratio_qty_teu": 0.0, "ratio_amt_20": 0.9423076923076923, "ratio_amt_40": 0.9526748971193415}, {"region": "红海", "vvd": "CSJ82624W", "pol": "CNSHA", "pod": "EGSOK", "revenue": 662995.2170851879, "teu": 177, "charge_20": 5000.0, "charge_40": 6688.0, "fak_20": 5000.0, "fak_40": 6800.0, "ttl_20": 27, "ttl_40": 75, "more_20": 27, "more_40": 16, "more_teu": 59, "ratio_qty_20": 1.0, "ratio_qty_40": 0.21333333333333335, "ratio_qty_teu": 0.3333333333333333, "ratio_amt_20": 1.0, "ratio_amt_40": 0.9835294117647059}, {"region": "红海", "vvd": "CSJ82624W", "pol": "CNSHA", "pod": "SAJED", "revenue": 1932430.9069232447, "teu": 479, "charge_20": 5020.054945054945, "charge_40": 6900.0, "fak_20": 5100.0, "fak_40": 7000.0, "ttl_20": 91, "ttl_40": 194, "more_20": 47, "more_40": 64, "more_teu": 175, "ratio_qty_20": 0.5164835164835165, "ratio_qty_40": 0.32989690721649484, "ratio_qty_teu": 0.3653444676409186, "ratio_amt_20": 0.9843244990303814, "ratio_amt_40": 0.9857142857142858}, {"region": "红海", "vvd": "CSJ82624W", "pol": "CNSHA", "pod": "SDPZU", "revenue": 129641.5805324836, "teu": 31, "charge_20": 5700.0, "charge_40": 7786.666666666667, "fak_20": 5700.0, "fak_40": 8000.0, "ttl_20": 1, "ttl_40": 15, "more_20": 1, "more_40": 1, "more_teu": 3, "ratio_qty_20": 1.0, "ratio_qty_40": 0.06666666666666667, "ratio_qty_teu": 0.0967741935483871, "ratio_amt_20": 1.0, "ratio_amt_40": 0.9733333333333334}, {"region": "红海", "vvd": "CSJ82624W", "pol": "CNSHA", "pod": "YEADE", "revenue": 17042.574513025, "teu": 4, "charge_20": 0.0, "charge_40": 8200.0, "fak_20": 6100.0, "fak_40": 8200.0, "ttl_20": 0, "ttl_40": 2, "more_20": 0, "more_40": 2, "more_teu": 4, "ratio_qty_20": 0.0, "ratio_qty_40": 1.0, "ratio_qty_teu": 1.0, "ratio_amt_20": 0.0, "ratio_amt_40": 1.0}, {"region": "红海", "vvd": "CSJ82624W", "pol": "CNSWA", "pod": "SAJED", "revenue": 85544.2393280688, "teu": 26, "charge_20": 0.0, "charge_40": 6050.0, "fak_20": 5050.0, "fak_40": 6200.0, "ttl_20": 0, "ttl_40": 13, "more_20": 0, "more_40": 0, "more_teu": 0, "ratio_qty_20": 0.0, "ratio_qty_40": 0.0, "ratio_qty_teu": 0.0, "ratio_amt_20": 0.0, "ratio_amt_40": 0.9758064516129032}, {"region": "红海", "vvd": "CSJ82624W", "pol": "CNSWA", "pod": "SDPZU", "revenue": 15388.1132991576, "teu": 4, "charge_20": 0.0, "charge_40": 7200.0, "fak_20": 5700.0, "fak_40": 7200.0, "ttl_20": 0, "ttl_40": 2, "more_20": 0, "more_40": 2, "more_teu": 4, "ratio_qty_20": 0.0, "ratio_qty_40": 1.0, "ratio_qty_teu": 1.0, "ratio_amt_20": 0.0, "ratio_amt_40": 1.0}], "summary": {"vvd": "CSJ82624W", "total_rev": 4920397.388232054, "total_teu": 1305, "total_ttl_20": 229, "total_ttl_40": 538, "total_more_20": 111, "total_more_40": 133, "total_more_teu": 377, "ship_ratio_qty_teu": 0.28888888888888886, "pol_count": 4, "pod_count": 5, "route_count": 12, "region_zhongdong_teu": 0, "region_honghai_teu": 1305, "region_zhongdong_rev": 0, "region_honghai_rev": 4920397.388232054}};
+
+const s = DATA.summary;
+document.getElementById('hdr-vvd').textContent = s.vvd;
+
+const kpis = [
+  {lbl:'起运港 POL', val:s.pol_count, sub:'个 CN 起运港'},
+  {lbl:'所有CN出口总TEU', val:s.total_teu.toLocaleString(), sub:'20GP:'+s.total_ttl_20+' 40HQ:'+s.total_ttl_40},
+  {lbl:'总收入 (USD)', val:'$'+(s.total_rev/1e6).toFixed(2)+'M', sub:'平均 $'+(s.total_rev/s.total_teu).toFixed(0)+'/TEU'},
+  {lbl:'整船货量达成率', val:(s.ship_ratio_qty_teu*100).toFixed(1)+'%', sub:'达FAK箱量占比 · 低=打折多', cls:'warn'}
+];
+document.getElementById('kpi-row').innerHTML = kpis.map(function(k){
+  return '<div class="kpi-card '+(k.cls||'')+'"><div class="lbl">'+k.lbl+'</div><div class="val">'+k.val+'</div><div class="sub">'+k.sub+'</div></div>';
+}).join('');
+
+const POL_ORDER = ['CNNAS','CNNGB','CNSHA','CNSHK','CNSWA','CNTAO','CNXMN'];
+const POD_ORDER = ['AEKLF','SAJED','SDPZU','EGSOK','YEADE','DJJIB','JOAQJ'];
+
+function ratioBadge(v) {
+  if (v == null) return '<span class="badge-mid">-</span>';
+  const pct = (v*100).toFixed(1)+'%';
+  if (v < 0.5) return '<span class="badge-low">'+pct+'</span>';
+  if (v < 0.7) return '<span class="badge-mid">'+pct+'</span>';
+  return '<span class="badge-high">'+pct+'</span>';
+}
+
+// ============ 初始化筛选下拉框 ============
+(function initFilters(){
+  const polSet = [], podSet = [];
+  DATA.records.forEach(function(r){
+    if (polSet.indexOf(r.pol) === -1) polSet.push(r.pol);
+    if (podSet.indexOf(r.pod) === -1) podSet.push(r.pod);
+  });
+  const polSel = document.getElementById('filter-pol');
+  polSet.forEach(function(p){ polSel.appendChild(new Option(p, p)); });
+  const podSel = document.getElementById('filter-pod');
+  podSet.forEach(function(p){ podSel.appendChild(new Option(p, p)); });
+})();
+
+// ============ 整船货量达成率大图 ============
+let shipRatioChart;
+function renderShipRatio() {
+  const ratio = DATA.summary.ship_ratio_qty_teu;
+  const moreTeu = DATA.summary.total_more_teu;
+  const totalTeu = DATA.summary.total_teu;
+  shipRatioChart.setOption({
+    tooltip:{formatter:function(){
+      return '达FAK价箱量: '+moreTeu+' TEU<br/>总箱量: '+totalTeu+' TEU<br/>达成率: '+(ratio*100).toFixed(1)+'%';
+    }},
+    graphic:[{
+      type:'text', left:'center', top:'36%',
+      style:{text:(ratio*100).toFixed(1)+'%', fontSize:46, fontWeight:700, fill:'#e8533f', textAlign:'center'}
+    },{
+      type:'text', left:'center', top:'60%',
+      style:{text:'达FAK价箱量占比', fontSize:14, fill:'#6a7a99', textAlign:'center'}
+    },{
+      type:'text', left:'center', top:'72%',
+      style:{text:moreTeu.toLocaleString()+' / '+totalTeu.toLocaleString()+' TEU', fontSize:13, fill:'#8a99b3', textAlign:'center'}
+    }],
+    series:[{
+      type:'pie',
+      radius:['60%','82%'],
+      center:['50%','48%'],
+      startAngle:90,
+      label:{show:false},
+      labelLine:{show:false},
+      data:[
+        {value:ratio, itemStyle:{color:'#e8533f'}, name:'达FAK'},
+        {value:1-ratio, itemStyle:{color:'#eef2f8'}, name:'未达FAK'}
+      ],
+      emphasis:{disabled:true},
+      silent:true,
+      animationType:'scale'
+    }]
+  });
+}
+
+// ============ 区域饼图 ============
+let regionChart, regionMode='teu';
+function renderRegion() {
+  const r = DATA.summary;
+  const data = regionMode==='teu'
+    ? [{name:'红海',value:r.region_honghai_teu},{name:'中东',value:r.region_zhongdong_teu}]
+    : [{name:'红海',value:r.region_honghai_rev},{name:'中东',value:r.region_zhongdong_rev}];
+  const unit = regionMode==='teu' ? 'TEU' : 'USD';
+  regionChart.setOption({
+    tooltip:{trigger:'item', formatter:function(p){return p.name+': '+p.value.toLocaleString()+' ('+unit+') '+p.percent+'%';}},
+    legend:{bottom:0, icon:'circle'},
+    series:[{
+      type:'pie', radius:['45%','72%'], center:['50%','45%'],
+      label:{formatter:'{b}\n{d}%', fontSize:12},
+      itemStyle:{borderColor:'#fff', borderWidth:3},
+      color:['#2c6db5','#f59f00'],
+      data:data
+    }]
+  });
+  document.getElementById('region-tag').textContent = regionMode==='teu' ? '按TEU' : '按收入(USD)';
+}
+function switchRegion(m){regionMode=m;renderRegion();}
+
+// ============ 热力图 ============
+let heatChart;
+function renderHeat() {
+  const matrix = {};
+  DATA.records.forEach(function(r){ matrix[r.pol+'|'+r.pod] = r.ratio_qty_teu; });
+  const data = [];
+  for (let yi=0; yi<POL_ORDER.length; yi++) {
+    for (let xi=0; xi<POD_ORDER.length; xi++) {
+      const p = POL_ORDER[yi], d = POD_ORDER[xi];
+      const v = matrix[p+'|'+d];
+      if (v != null) data.push([xi, yi, v]);
+    }
+  }
+  const yLabels = POL_ORDER.slice();
+  const xLabels = POD_ORDER.slice();
+
+  heatChart.setOption({
+    tooltip:{
+      position:'top',
+      formatter:function(p){return yLabels[p.value[1]] + ' → ' + xLabels[p.value[0]] + '<br/>货量达成率: ' + (p.value[2]*100).toFixed(1) + '%';}
+    },
+    grid:{left:70, right:30, top:20, bottom:60},
+    xAxis:{type:'category', data:xLabels, splitArea:{show:true}, axisLabel:{fontSize:10, rotate:20}},
+    yAxis:{type:'category', data:yLabels, splitArea:{show:true}, axisLabel:{fontSize:11}},
+    visualMap:{
+      min:0, max:1, calculable:true, orient:'horizontal', left:'center', bottom:5,
+      inRange:{color:['#e8533f','#ffd43b','#51cf66']},
+      text:['高(>70%)','低(<50%)'], textStyle:{fontSize:10}
+    },
+    series:[{
+      type:'heatmap', data:data,
+      label:{show:true, formatter:function(p){return (p.value[2]*100).toFixed(0)+'%';}, fontSize:10, color:'#000'},
+      emphasis:{itemStyle:{shadowBlur:10, shadowColor:'rgba(0,0,0,.3)'}}
+    }]
+  });
+}
+
+// ============ POL柱图 ============
+let polChart, polSize=20;
+function renderPol() {
+  const size = polSize;
+  // 加权价 = Σ(price × qty) / Σ(qty)  (按该箱型的箱量加权, 不做TEU换算)
+  const agg = {};
+  POL_ORDER.forEach(function(p){ agg[p]={w_charge:0, w_fak:0, ttl_qty:0, more_teu:0, ttl_teu:0}; });
+  DATA.records.forEach(function(r){
+    if (!agg[r.pol]) return;
+    const ttl = r['ttl_'+size]||0;
+    agg[r.pol].w_charge += (r['charge_'+size]||0)*ttl;
+    agg[r.pol].w_fak += (r['fak_'+size]||0)*ttl;
+    agg[r.pol].ttl_qty += ttl;
+    agg[r.pol].more_teu += r.more_20 + 2*r.more_40;
+    agg[r.pol].ttl_teu += r.ttl_20 + 2*r.ttl_40;
+  });
+  const labels = POL_ORDER.slice();
+  const faks = POL_ORDER.map(function(p){return agg[p].w_fak>0 ? Math.round(agg[p].w_fak/agg[p].ttl_qty) : 0;});
+  const charges = POL_ORDER.map(function(p){return agg[p].w_charge>0 ? Math.round(agg[p].w_charge/agg[p].ttl_qty) : 0;});
+  const ratios = POL_ORDER.map(function(p){return agg[p].ttl_teu>0 ? agg[p].more_teu/agg[p].ttl_teu : 0;});
+
+  polChart.setOption({
+    tooltip:{trigger:'axis', axisPointer:{type:'shadow'},
+      formatter:function(params){
+        let s = params[0].axisValue + '<br/>';
+        params.forEach(function(p){
+          s += p.marker + p.seriesName + ': ';
+          if (p.seriesName==='货量达成率') s += (p.value*100).toFixed(1)+'%';
+          else s += '$'+p.value;
+          s += '<br/>';
+        });
+        return s;
+      }},
+    legend:{data:['FAK批复价','实际承运价','货量达成率'], top:0, right:0, textStyle:{fontSize:11}},
+    grid:{left:50, right:50, top:30, bottom:30},
+    xAxis:{type:'category', data:labels, axisLabel:{fontSize:11}},
+    yAxis:[
+      {type:'value', name:'USD', position:'left', axisLabel:{fontSize:10}},
+      {type:'value', name:'货量达成率', position:'right', axisLabel:{formatter:'{value}%', fontSize:10}, min:0, max:1}
+    ],
+    series:[
+      {name:'FAK批复价', type:'bar', data:faks, itemStyle:{color:'#9bb8d9'}, barWidth:'30%'},
+      {name:'实际承运价', type:'bar', data:charges, itemStyle:{color:'#1e4d8b'}, barWidth:'30%'},
+      {name:'货量达成率', type:'line', yAxisIndex:1, data:ratios.map(function(v){return +v.toFixed(3);}),
+       itemStyle:{color:'#e8533f'}, lineStyle:{width:2}, symbol:'circle', symbolSize:7,
+       label:{show:true, formatter:function(p){return (p.value*100).toFixed(0)+'%';}, fontSize:10, color:'#e8533f'}}
+    ]
+  });
+}
+function switchPol(sz){polSize=sz;renderPol();}
+
+// ============ 明细表 (带筛选 + 按货量达成率降序) ============
+let tableSize=20;
+function renderTable() {
+  const size = tableSize;
+  const fRegion = document.getElementById('filter-region').value;
+  const fPol = document.getElementById('filter-pol').value;
+  const fPod = document.getElementById('filter-pod').value;
+
+  let filtered = DATA.records.filter(function(r){
+    if (fRegion && r.region !== fRegion) return false;
+    if (fPol && r.pol !== fPol) return false;
+    if (fPod && r.pod !== fPod) return false;
+    return true;
+  });
+
+  // 按货量达成率(TEU口径)降序: 高→低
+  filtered.sort(function(a,b){
+    const ra = a.ratio_qty_teu || 0;
+    const rb = b.ratio_qty_teu || 0;
+    return rb - ra;
+  });
+
+  document.getElementById('filter-count').textContent = '显示 ' + filtered.length + ' / ' + DATA.records.length + ' 条';
+
+  document.getElementById('detail-body').innerHTML = filtered.map(function(r){
+    const charge = r['charge_'+size];
+    const fak = r['fak_'+size];
+    const ttl = r['ttl_'+size];
+    const more = r['more_'+size];
+    const ratioQty = size===20 ? r.ratio_qty_20 : r.ratio_qty_40;
+    const cls = r.region==='中东' ? 'region-zd' : 'region-hh';
+    return '<tr class="'+cls+'">'
+      + '<td>'+r.region+'</td>'
+      + '<td>'+r.pol+'</td>'
+      + '<td>'+r.pod+'</td>'
+      + '<td>'+r.teu+'</td>'
+      + '<td class="num-r">'+Math.round(r.revenue).toLocaleString()+'</td>'
+      + '<td class="num-r">'+(fak?Math.round(fak):'-')+'</td>'
+      + '<td class="num-r">'+(charge?Math.round(charge):'-')+'</td>'
+      + '<td>'+ttl+'</td>'
+      + '<td>'+more+'</td>'
+      + '<td>'+ratioBadge(ratioQty)+'</td>'
+      + '</tr>';
+  }).join('');
+}
+function switchTable(sz){tableSize=sz;renderTable();}
+
+// ============ 初始化 ============
+window.addEventListener('load', function() {
+  shipRatioChart = echarts.init(document.getElementById('chart-ship-ratio'));
+  regionChart = echarts.init(document.getElementById('chart-region'));
+  heatChart = echarts.init(document.getElementById('chart-heat'));
+  polChart = echarts.init(document.getElementById('chart-pol'));
+  renderShipRatio();
+  renderRegion();
+  renderHeat();
+  renderPol();
+  renderTable();
+  window.addEventListener('resize', function() {
+    [shipRatioChart, regionChart, heatChart, polChart].forEach(function(c){c.resize();});
+  });
+});
+</script>
+</body>
+</html>
