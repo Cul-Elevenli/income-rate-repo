@@ -152,8 +152,17 @@ document.getElementById('kpi-row').innerHTML = kpis.map(function(k){
   return '<div class="kpi-card '+(k.cls||'')+'"><div class="lbl">'+k.lbl+'</div><div class="val">'+k.val+'</div><div class="sub">'+k.sub+'</div></div>';
 }).join('');
 
-const POL_ORDER = ['CNNAS','CNNGB','CNSHA','CNSHK','CNSWA','CNTAO','CNXMN'];
-const POD_ORDER = ['AEKLF','SAJED','SDPZU','EGSOK','YEADE','DJJIB','JOAQJ'];
+// 从数据动态生成 POL/POD 顺序 (保持数据中出现顺序)
+const POL_ORDER = (function(){
+  const seen = [];
+  DATA.records.forEach(function(r){ if (seen.indexOf(r.pol) === -1) seen.push(r.pol); });
+  return seen;
+})();
+const POD_ORDER = (function(){
+  const seen = [];
+  DATA.records.forEach(function(r){ if (seen.indexOf(r.pod) === -1) seen.push(r.pod); });
+  return seen;
+})();
 
 function ratioBadge(v) {
   if (v == null) return '<span class="badge-mid">-</span>';
