@@ -369,8 +369,8 @@ function renderTable() {
       + '<td>'+r.pod+'</td>'
       + '<td>'+r.teu+'</td>'
       + '<td class="num-r">'+Math.round(r.revenue).toLocaleString()+'</td>'
-      + '<td class="num-r">'+(fak?Math.round(fak):'-')+'</td>'
-      + '<td class="num-r">'+(charge?Math.round(charge):'-')+'</td>'
+      + '<td class="num-r">'+(fak!=null&&!isNaN(fak)?Math.round(fak):'-')+'</td>'
+      + '<td class="num-r">'+(charge!=null&&!isNaN(charge)?Math.round(charge):'-')+'</td>'
       + '<td>'+ratioBadge(ratioQty)+'</td>'
       + '</tr>';
   }).join('');
