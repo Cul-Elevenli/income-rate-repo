@@ -125,7 +125,7 @@
       <thead><tr>
         <th>区域</th><th>POL</th><th>POD</th><th>TEU</th><th>收入(USD)</th>
         <th>FAK</th><th>实际价</th>
-        <th>箱量</th><th>达FAK箱量</th><th>货量达成率</th>
+        <th>达FAK箱量</th><th>货量达成率</th>
       </tr></thead>
       <tbody id="detail-body"></tbody>
     </table>
@@ -361,7 +361,6 @@ function renderTable() {
   document.getElementById('detail-body').innerHTML = filtered.map(function(r){
     const charge = r['charge_'+size];
     const fak = r['fak_'+size];
-    const ttl = r['ttl_'+size];
     const more = r['more_'+size];
     const ratioQty = size===20 ? r.ratio_qty_20 : r.ratio_qty_40;
     const cls = r.region==='中东' ? 'region-zd' : 'region-hh';
@@ -373,7 +372,6 @@ function renderTable() {
       + '<td class="num-r">'+Math.round(r.revenue).toLocaleString()+'</td>'
       + '<td class="num-r">'+(fak?Math.round(fak):'-')+'</td>'
       + '<td class="num-r">'+(charge?Math.round(charge):'-')+'</td>'
-      + '<td>'+ttl+'</td>'
       + '<td>'+more+'</td>'
       + '<td>'+ratioBadge(ratioQty)+'</td>'
       + '</tr>';
