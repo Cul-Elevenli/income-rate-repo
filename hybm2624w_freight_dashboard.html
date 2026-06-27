@@ -346,6 +346,8 @@ function renderTable() {
     if (fRegion && r.region !== fRegion) return false;
     if (fPol && r.pol !== fPol) return false;
     if (fPod && r.pod !== fPod) return false;
+    // 按当前箱型过滤: 只显示该箱型有箱量的记录, 避免无数据行显示0或-
+    if (!(r['ttl_'+size] > 0)) return false;
     return true;
   });
 
